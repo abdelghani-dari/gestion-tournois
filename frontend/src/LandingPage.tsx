@@ -85,61 +85,76 @@ export default function LandingPage({ onNavigateToClassement }: LandingPageProps
   return (
     <div className="bg-black text-zinc-400 font-sans pb-16">
       
-      {/* 1. Hero Section */}
-      <section className="relative pt-32 pb-24 md:pt-40 md:pb-36 overflow-hidden">
-        {/* Glow ambient lights */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-blue-500/5 rounded-full blur-[140px] pointer-events-none" />
-        
-        <div className="max-w-4xl mx-auto px-6 text-center space-y-8 relative z-10">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-950/80">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,1)]"></span>
-            <span className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">
-              Tournament Engine v2.0
-            </span>
-          </div>
+{/* 1. Hero Section */}
+<section className="relative pt-32 pb-24 md:pt-40 md:pb-36 overflow-hidden bg-[#050507]">
+  
+  {/* Cutting-edge twin ambient laser glows */}
+  <div className="absolute top-1/3 left-1/4 -translate-x-1/2 w-[400px] h-[400px] bg-cyan-500/[0.04] rounded-full blur-[120px] pointer-events-none" />
+  <div className="absolute top-1/4 right-1/4 translate-x-1/2 w-[400px] h-[400px] bg-fuchsia-500/[0.03] rounded-full blur-[140px] pointer-events-none" />
+  
+  {/* Tech HUD Corner Accents */}
+  <div className="absolute top-12 left-12 w-8 h-8 border-t border-l border-zinc-800/60 hidden lg:block pointer-events-none" />
+  <div className="absolute top-12 right-12 w-8 h-8 border-t border-r border-zinc-800/60 hidden lg:block pointer-events-none" />
 
-          {/* Headline */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-zinc-50 leading-tight">
-            Raw simplicity.<br />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-zinc-50 via-zinc-400 to-blue-500">
-              Unrivaled tournament speed.
-            </span>
-          </h1>
+  <div className="max-w-4xl mx-auto px-6 text-center space-y-8 relative z-10">
+    
+    {/* Tech Cyber Badge */}
+    <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900/40 border border-cyan-500/30 rounded-sm backdrop-blur-md shadow-[0_0_15px_rgba(6,182,212,0.05)]">
+      <span className="w-1.5 h-1.5 bg-cyan-400 animate-pulse"></span>
+      <span className="text-[9px] font-mono font-bold tracking-[0.2em] text-cyan-400 uppercase">
+        SYS.ENG // CORE_V2.0
+      </span>
+    </div>
 
-          {/* Description */}
-          <p className="text-xs sm:text-sm text-zinc-450 max-w-lg mx-auto leading-relaxed font-light">
-            Generate complex brackets, balance seeds, and coordinate streams in real time. Build matching matrices within minutes.
-          </p>
+    {/* Aggressive Sharp Headline */}
+    <h1 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter text-zinc-100 uppercase italic leading-none select-none">
+      Raw simplicity.<br />
+      <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-zinc-100 to-fuchsia-500">
+        Unrivaled Speed.
+      </span>
+    </h1>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-row items-center justify-center gap-4 pt-2">
-            <button
-              onClick={onNavigateToClassement}
-              className="px-6 py-2.5 rounded bg-blue-600 hover:bg-blue-500 text-xs font-semibold tracking-wider text-white transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:-translate-y-0.5 cursor-pointer"
-            >
-              Lancer la Console
-            </button>
-            <a
-              href="#bracket-demo"
-              className="px-6 py-2.5 rounded border border-zinc-800 bg-zinc-950/60 hover:bg-zinc-900 text-xs font-semibold tracking-wider text-zinc-200 transition-all hover:-translate-y-0.5"
-            >
-              Simulateur Live
-            </a>
-          </div>
+    {/* Monospaced Blueprint Subtext */}
+    <p className="text-xs sm:text-sm text-zinc-400 max-w-md mx-auto leading-relaxed font-mono opacity-80">
+      [SYSTEM READY] Generate multi-stage brackets, automate seed logic, and compile real-time score matrices instantly.
+    </p>
 
-          {/* Minimal visual metrics */}
-          <div className="flex items-center justify-center gap-x-8 text-[9px] font-mono tracking-widest text-zinc-550 uppercase pt-4">
-            <div>
-              Platform: <span className="text-zinc-400">Fixed Layout</span>
-            </div>
-            <div className="w-1 h-1 rounded-full bg-zinc-850"></div>
-            <div>
-              Updates: <span className="text-zinc-400">Real-time Hook</span>
-            </div>
-          </div>
-        </div>
-      </section>
+    {/* Cyberpunk Accent Line */}
+    <div className="w-12 h-[1px] bg-gradient-to-r from-transparent via-zinc-700 to-transparent mx-auto" />
+
+    {/* High Contrast Sci-Fi Actions */}
+    <div className="flex flex-row items-center justify-center gap-4 pt-2">
+      <button
+        onClick={onNavigateToClassement}
+        className="px-8 py-3 bg-cyan-500 hover:bg-cyan-400 text-black text-[11px] font-mono font-bold tracking-widest uppercase transition-all duration-200 shadow-[0_0_25px_rgba(6,182,212,0.2)] hover:shadow-[0_0_35px_rgba(6,182,212,0.45)] clip-cyber cursor-pointer"
+      >
+        // LAUNCH_CONSOLE
+      </button>
+      <a
+        href="#bracket-demo"
+        className="px-8 py-3 border border-zinc-800 bg-transparent hover:bg-zinc-900/50 text-zinc-400 hover:text-zinc-200 text-[11px] font-mono font-bold tracking-widest uppercase transition-all duration-200"
+      >
+        SIMULATE_LIVE
+      </a>
+    </div>
+
+    {/* Real-time Diagnostics Terminal Bar */}
+    <div className="flex items-center justify-center gap-x-6 text-[9px] font-mono tracking-wider text-zinc-600 pt-6">
+      <div className="flex items-center gap-2">
+        <span className="text-zinc-700">NET_STATUS:</span> 
+        <span className="text-emerald-500 flex items-center gap-1">
+          <span className="w-1 h-1 rounded-full bg-emerald-500 inline-block animate-ping"></span>
+          CONNECTED
+        </span>
+      </div>
+      <div className="text-zinc-800">|</div>
+      <div>
+        <span className="text-zinc-700">LAYOUT:</span> <span className="text-zinc-400">HYBRID_GRID</span>
+      </div>
+    </div>
+    
+  </div>
+</section>
 
       {/* 2. Interactive Bracket Section */}
       <section id="bracket-demo" className="py-20 bg-zinc-950/25 border-y border-zinc-900">
