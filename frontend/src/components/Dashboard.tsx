@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import LeagueHeader from './LeagueHeader';
 import TeamSidebar from './TeamSidebar';
 import type { Team } from './TeamSidebar';
@@ -121,10 +121,10 @@ export default function Dashboard() {
   const activeTournamentName = "Botola Pro Inwi";
 
   // Calculate available players count for the selected team
-  const currentTeamPlayersAvailable = useMemo(() => {
-    if (selectedTeam === null) return 0;
-    return players.filter((p) => p.teamid === selectedTeam.id).length;
-  }, [players, selectedTeam]);
+  // const currentTeamPlayersAvailable = useMemo(() => {
+  //   if (selectedTeam === null) return 0;
+  //   return players.filter((p) => p.teamid === selectedTeam.id).length;
+  // }, [players, selectedTeam]);
 
   // Helper to handle team select from dropdown in PlayerTable
   const handleDropdownTeamSelect = (teamid: number | null) => {
@@ -140,7 +140,7 @@ export default function Dashboard() {
     <div className="flex flex-row flex-grow h-[calc(100vh-64px)] overflow-hidden bg-black mt-16">
       
       {/* Left Sidebar Panel - Standing List (Scrolls independently) */}
-      <div className="w-80 lg:w-96 border-r border-zinc-900 h-full overflow-y-auto p-4 flex-shrink-0 bg-black">
+      <div className="w-80 lg:w-96 border-r border-zinc-900 h-full overflow-hidden p-4 flex-shrink-0 bg-black">
         <TeamSidebar
           teams={teams}
           selectedTeam={selectedTeam}
@@ -153,9 +153,6 @@ export default function Dashboard() {
         {/* Top Header Controls (displays tournament name) */}
         <LeagueHeader
           tournamentName={activeTournamentName}
-          selectedCount={0} // Selection count omitted per visual focus changes
-          maxPlayers={15}
-          totalAvailable={currentTeamPlayersAvailable}
         />
 
         {/* Roster table */}
