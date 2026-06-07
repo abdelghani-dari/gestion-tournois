@@ -1,122 +1,75 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useState } from 'react';
+import LandingPage from './LandingPage';
+import Dashboard from './components/Dashboard';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [currentPage, setCurrentPage] = useState<'home' | 'classement'>('home');
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="h-screen flex flex-col bg-black overflow-hidden font-sans select-none">
+      
+      {/* 1. Translucent Sticky Navigation Bar */}
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-900 bg-black/60 backdrop-blur-md h-16 flex items-center">
+        <div className="max-w-[1440px] mx-auto w-full px-6 flex items-center justify-between">
+          {/* Logo */}
+          <div 
+            onClick={() => setCurrentPage('home')}
+            className="flex items-center gap-2.5 cursor-pointer group"
+          >
+            <div className="w-5 h-5 rounded bg-blue-600 flex items-center justify-center text-white font-bold text-xs shadow-[0_0_15px_rgba(37,99,235,0.6)]">
+              T
+            </div>
+            <span className="font-semibold text-sm tracking-widest text-zinc-50 uppercase">
+              Gestion<span className="text-blue-500">Tournois</span>
+            </span>
+          </div>
 
-      <div className="ticks"></div>
+          {/* Navigation Links */}
+          <nav className="hidden md:flex items-center gap-8 text-xs font-semibold tracking-wider uppercase text-zinc-400">
+            <button 
+              onClick={() => setCurrentPage('home')}
+              className={`hover:text-zinc-100 transition-all focus:outline-none cursor-pointer py-1.5 ${
+                currentPage === 'home' 
+                  ? 'text-zinc-100 font-bold border-b-2 border-blue-500' 
+                  : 'border-b-2 border-transparent'
+              }`}
+            >
+              Home
+            </button>
+            <button 
+              onClick={() => setCurrentPage('classement')}
+              className={`hover:text-zinc-100 transition-all focus:outline-none cursor-pointer py-1.5 ${
+                currentPage === 'classement' 
+                  ? 'text-zinc-100 font-bold border-b-2 border-blue-500' 
+                  : 'border-b-2 border-transparent'
+              }`}
+            >
+              Classements & Stats
+            </button>
+          </nav>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+          {/* Simple Connexion Button */}
+          <div>
+            <button className="px-4 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-xs font-semibold tracking-wider text-white transition-colors cursor-pointer select-none">
+              Connexion
+            </button>
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      {/* 2. Content view depending on state routing */}
+      <div className="flex-grow overflow-hidden bg-black">
+        {currentPage === 'home' ? (
+          <div className="h-full overflow-y-auto pt-0">
+            <LandingPage onNavigateToClassement={() => setCurrentPage('classement')} />
+          </div>
+        ) : (
+          <Dashboard />
+        )}
+      </div>
+
+    </div>
+  );
 }
 
-export default App
+export default App;
