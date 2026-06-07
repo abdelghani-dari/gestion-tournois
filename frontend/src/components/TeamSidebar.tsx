@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import  { useState, useMemo } from 'react';
 
 export interface Team {
   id: number;
@@ -53,7 +53,7 @@ export default function TeamSidebar({ teams, selectedTeam, onTeamSelect }: TeamS
       </div>
 
       {/* Standings List */}
-      <div className="flex-grow overflow-y-auto max-h-[580px] bg-black p-2 space-y-1.5">
+      <div className="flex-grow overflow-y-auto bg-black p-2 space-y-1.5">
         {filteredTeams.length > 0 ? (
           filteredTeams.map((team) => {
             const isSelected = selectedTeam?.id === team.id;

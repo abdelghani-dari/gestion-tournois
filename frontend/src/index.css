@@ -18,20 +18,20 @@ body {
 }
 
 /* Custom minimal dark scrollbar for Webkit browsers (Chrome, Safari, Edge) on all elements */
-::-webkit-scrollbar {
+*::-webkit-scrollbar {
   width: 4px;
   height: 4px;
 }
 
-::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
+*::-webkit-scrollbar-thumb {
   background: #27272a;
   border-radius: 9999px;
 }
 
-::-webkit-scrollbar-thumb:hover {
+*::-webkit-scrollbar-thumb:hover {
   background: #3f3f46;
 }
