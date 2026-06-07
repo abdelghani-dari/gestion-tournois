@@ -147,7 +147,7 @@ export default function LandingPage({ onNavigateToClassement }: LandingPageProps
           CONNECTED
         </span>
       </div>
-      <div className="text-zinc-800">|</div>
+      <div className="text-zinc-700">|</div>
       <div>
         <span className="text-zinc-700">LAYOUT:</span> <span className="text-zinc-400">HYBRID_GRID</span>
       </div>
