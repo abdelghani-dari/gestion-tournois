@@ -11,7 +11,7 @@ function App() {
       {/* 1. Translucent Sticky Navigation Bar */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-900 bg-black/60 backdrop-blur-md h-16 flex items-center">
         <div className="max-w-[1440px] mx-auto w-full px-6 flex items-center justify-between">
-          {/* Logo */}
+          {/* Logo */}      {/* DIMA RAJA */}
           <div 
             onClick={() => setCurrentPage('home')}
             className="flex items-center gap-2.5 cursor-pointer group"
