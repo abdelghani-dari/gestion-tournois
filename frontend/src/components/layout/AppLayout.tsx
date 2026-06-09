@@ -1,18 +1,43 @@
 import { Outlet } from "react-router";
+import { clsx } from "clsx";
+import { XSidebarProvider, useXSidebar } from "../context/SidebarContext";
+import { useXTheme } from "../context/XThemeContext";
+import { XSeasonProvider } from "../context/SeasonContext";
+import { HeaderDropdownProvider } from "../context/HeaderDropdownContext";
+import Sidebar from "./Sidebar";
+import AppHeader from "./AppHeader";
+import "../styles/x-scrollbars.css";
+
+function LayoutContent() {
+  const { isCollapsed } = useXSidebar();
+  const { shellBg } = useXTheme();
+
+  return (
+    <div className={clsx("min-h-screen", shellBg)}>
+      <Sidebar />
+      <div
+        className={clsx(
+          "flex flex-col transition-[margin] duration-200 ease-in-out",
+          isCollapsed ? "lg:ml-[72px]" : "lg:ml-[260px]"
+        )}
+      >
+        <HeaderDropdownProvider>
+          <AppHeader />
+        </HeaderDropdownProvider>
+        <main className="flex-1 p-6">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+}
 
 export default function XAppLayout() {
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex">
-      <aside className="w-64 border-r border-slate-800 p-4">
-        <h2 className="font-bold mb-4">Tournoi Manager</h2>
-        <nav className="flex flex-col gap-2">
-          <a href="/dashboard">Dashboard (WIP)</a>
-          <a href="/tournaments">Tournaments</a>
-        </nav>
-      </aside>
-      <main className="flex-1 p-6">
-        <Outlet />
-      </main>
-    </div>
+    <XSeasonProvider>
+      <XSidebarProvider>
+        <LayoutContent />
+      </XSidebarProvider>
+    </XSeasonProvider>
   );
 }
