@@ -16,6 +16,10 @@ class FakePaymentController extends Controller
 
     public function store(Request $request)
     {
+        if (auth('api')->user()->role !== 'admin') {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
             'plan' => ['nullable', 'in:organizer'],

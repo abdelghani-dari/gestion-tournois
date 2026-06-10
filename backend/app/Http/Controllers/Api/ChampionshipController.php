@@ -15,9 +15,14 @@ class ChampionshipController extends Controller
 
     public function store(Request $request)
     {
+        $user = auth('api')->user();
+
+        if (! in_array($user->role, ['admin', 'organizer'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'season_id' => ['required', 'exists:seasons,id'],
-            'created_by' => ['nullable', 'exists:users,id'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'level' => ['required', 'in:international,national,local'],
@@ -26,6 +31,16 @@ class ChampionshipController extends Controller
             'country' => ['nullable', 'string', 'max:255'],
             'status' => ['required', 'in:draft,active,finished'],
         ]);
+
+        $validated['created_by'] = $user->id;
+
+        if ($user->role === 'organizer') {
+            if ($validated['level'] !== 'local') {
+                return response()->json(['message' => 'Organizers can only create local championships.'], 403);
+            }
+
+            $validated['source'] = 'user_created';
+        }
 
         $championship = Championship::create($validated);
 
@@ -39,9 +54,14 @@ class ChampionshipController extends Controller
 
     public function update(Request $request, Championship $championship)
     {
+        $user = auth('api')->user();
+
+        if (! in_array($user->role, ['admin', 'organizer'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'season_id' => ['sometimes', 'required', 'exists:seasons,id'],
-            'created_by' => ['sometimes', 'nullable', 'exists:users,id'],
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
             'level' => ['sometimes', 'required', 'in:international,national,local'],
@@ -51,6 +71,16 @@ class ChampionshipController extends Controller
             'status' => ['sometimes', 'required', 'in:draft,active,finished'],
         ]);
 
+        if ($user->role === 'organizer') {
+            $level = $validated['level'] ?? $championship->level;
+
+            if ($level !== 'local') {
+                return response()->json(['message' => 'Organizers can only manage local championships.'], 403);
+            }
+
+            $validated['source'] = 'user_created';
+        }
+
         $championship->update($validated);
 
         return response()->json($championship->load(['season', 'creator', 'teams']));
@@ -58,6 +88,16 @@ class ChampionshipController extends Controller
 
     public function destroy(Championship $championship)
     {
+        $user = auth('api')->user();
+
+        if (! in_array($user->role, ['admin', 'organizer'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        if ($user->role === 'organizer' && $championship->level !== 'local') {
+            return response()->json(['message' => 'Organizers can only delete local championships.'], 403);
+        }
+
         $championship->delete();
 
         return response()->json(null, 204);

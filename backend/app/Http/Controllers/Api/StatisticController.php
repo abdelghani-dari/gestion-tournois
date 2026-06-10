@@ -33,6 +33,10 @@ class StatisticController extends Controller
 
     public function store(Request $request)
     {
+        if (! in_array(auth('api')->user()->role, ['admin', 'organizer'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'match_game_id' => ['nullable', 'exists:match_games,id'],
             'team_id' => ['nullable', 'exists:teams,id'],
@@ -61,6 +65,10 @@ class StatisticController extends Controller
 
     public function destroy(Statistic $statistic)
     {
+        if (! in_array(auth('api')->user()->role, ['admin', 'organizer'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $statistic->delete();
 
         return response()->json(['message' => 'Statistic deleted.']);

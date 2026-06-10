@@ -35,6 +35,10 @@ class CompositionController extends Controller
 
     public function store(Request $request)
     {
+        if (! in_array(auth('api')->user()->role, ['admin', 'organizer', 'team_manager'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'match_game_id' => ['required', 'exists:match_games,id'],
             'team_id' => ['required', 'exists:teams,id'],
@@ -60,6 +64,10 @@ class CompositionController extends Controller
 
     public function update(Request $request, Composition $composition)
     {
+        if (! in_array(auth('api')->user()->role, ['admin', 'organizer', 'team_manager'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'match_game_id' => ['sometimes', 'exists:match_games,id'],
             'team_id' => ['sometimes', 'exists:teams,id'],
@@ -81,6 +89,10 @@ class CompositionController extends Controller
 
     public function destroy(Composition $composition)
     {
+        if (! in_array(auth('api')->user()->role, ['admin', 'organizer', 'team_manager'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $composition->delete();
 
         return response()->json(['message' => 'Composition deleted.']);
