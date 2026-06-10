@@ -10,9 +10,11 @@ return new class extends Migration
     {
         Schema::create('teams', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('manager_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('name');
             $table->string('logo_path')->nullable();
             $table->string('city')->nullable();
+            $table->string('country')->nullable();
             $table->timestamps();
         });
     }

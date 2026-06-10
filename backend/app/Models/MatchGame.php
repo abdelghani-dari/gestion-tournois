@@ -18,15 +18,22 @@ class MatchGame extends Model
         'tournament_id',
         'home_team_id',
         'away_team_id',
+        'created_by',
         'match_date',
         'home_score',
         'away_score',
         'status',
+        'result_status',
     ];
 
     protected $casts = [
         'match_date' => 'datetime',
     ];
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 
     public function championship(): BelongsTo
     {
