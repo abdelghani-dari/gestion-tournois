@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Championship;
 use App\Models\Post;
 use App\Models\Tournament;
-use App\Models\User;
 use Illuminate\Http\Request;
 
 class PostController extends Controller
@@ -48,7 +47,6 @@ class PostController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
             'championship_id' => ['nullable', 'exists:championships,id'],
             'tournament_id' => ['nullable', 'exists:tournaments,id'],
             'content' => ['required', 'string'],
@@ -63,13 +61,13 @@ class PostController extends Controller
             ], 422);
         }
 
-        $user = User::findOrFail($validated['user_id']);
+        $user = auth('api')->user();
         $championship = ! empty($validated['championship_id']) ? Championship::findOrFail($validated['championship_id']) : null;
         $tournament = ! empty($validated['tournament_id']) ? Tournament::findOrFail($validated['tournament_id']) : null;
 
         if ($validated['scope'] === 'official') {
             if ($user->role !== 'admin') {
-                return response()->json(['message' => 'Only admins can create official posts.'], 422);
+                return response()->json(['message' => 'Only admins can create official posts.'], 403);
             }
 
             $validated['status'] = 'approved';
@@ -79,7 +77,7 @@ class PostController extends Controller
 
         if ($validated['scope'] === 'local') {
             if ($user->role !== 'organizer') {
-                return response()->json(['message' => 'Only organizers can create local posts.'], 422);
+                return response()->json(['message' => 'Only organizers can create local posts.'], 403);
             }
 
             if (empty($validated['championship_id']) === empty($validated['tournament_id'])) {
@@ -101,6 +99,7 @@ class PostController extends Controller
             $validated['approved_at'] = null;
         }
 
+        $validated['user_id'] = $user->id;
         $validated['type'] = $validated['type'] ?? 'general';
 
         $post = Post::create($validated);
@@ -115,14 +114,10 @@ class PostController extends Controller
 
     public function approve(Request $request, Post $post)
     {
-        $validated = $request->validate([
-            'admin_id' => ['required', 'exists:users,id'],
-        ]);
-
-        $admin = User::findOrFail($validated['admin_id']);
+        $admin = auth('api')->user();
 
         if ($admin->role !== 'admin') {
-            return response()->json(['message' => 'Only admins can approve posts.'], 422);
+            return response()->json(['message' => 'Only admins can approve posts.'], 403);
         }
 
         $post->update([
@@ -139,14 +134,10 @@ class PostController extends Controller
 
     public function reject(Request $request, Post $post)
     {
-        $validated = $request->validate([
-            'admin_id' => ['required', 'exists:users,id'],
-        ]);
-
-        $admin = User::findOrFail($validated['admin_id']);
+        $admin = auth('api')->user();
 
         if ($admin->role !== 'admin') {
-            return response()->json(['message' => 'Only admins can reject posts.'], 422);
+            return response()->json(['message' => 'Only admins can reject posts.'], 403);
         }
 
         $post->update([
@@ -163,6 +154,10 @@ class PostController extends Controller
 
     public function destroy(Post $post)
     {
+        if (auth('api')->user()->role !== 'admin') {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $post->delete();
 
         return response()->json(['message' => 'Post deleted.']);

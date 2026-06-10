@@ -31,6 +31,10 @@ class RankingController extends Controller
 
     public function recalculate(Request $request)
     {
+        if (! in_array(auth('api')->user()->role, ['admin', 'organizer'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'championship_id' => ['nullable', 'exists:championships,id'],
             'tournament_id' => ['nullable', 'exists:tournaments,id'],
