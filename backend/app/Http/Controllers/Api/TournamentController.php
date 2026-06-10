@@ -3,14 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Championship;
+use App\Models\Tournament;
 use Illuminate\Http\Request;
 
-class ChampionshipController extends Controller
+class TournamentController extends Controller
 {
     public function index()
     {
-        return response()->json(Championship::with(['season', 'creator'])->get());
+        return response()->json(Tournament::with(['season', 'creator'])->get());
     }
 
     public function store(Request $request)
@@ -24,20 +24,22 @@ class ChampionshipController extends Controller
             'source' => ['required', 'in:official,user_created'],
             'city' => ['nullable', 'string', 'max:255'],
             'country' => ['nullable', 'string', 'max:255'],
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'status' => ['required', 'in:draft,active,finished'],
         ]);
 
-        $championship = Championship::create($validated);
+        $tournament = Tournament::create($validated);
 
-        return response()->json($championship, 201);
+        return response()->json($tournament, 201);
     }
 
-    public function show(Championship $championship)
+    public function show(Tournament $tournament)
     {
-        return response()->json($championship->load(['season', 'creator', 'teams']));
+        return response()->json($tournament->load(['season', 'creator', 'teams']));
     }
 
-    public function update(Request $request, Championship $championship)
+    public function update(Request $request, Tournament $tournament)
     {
         $validated = $request->validate([
             'season_id' => ['sometimes', 'required', 'exists:seasons,id'],
@@ -48,17 +50,19 @@ class ChampionshipController extends Controller
             'source' => ['sometimes', 'required', 'in:official,user_created'],
             'city' => ['sometimes', 'nullable', 'string', 'max:255'],
             'country' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'start_date' => ['sometimes', 'required', 'date'],
+            'end_date' => ['sometimes', 'required', 'date', 'after_or_equal:start_date'],
             'status' => ['sometimes', 'required', 'in:draft,active,finished'],
         ]);
 
-        $championship->update($validated);
+        $tournament->update($validated);
 
-        return response()->json($championship->load(['season', 'creator', 'teams']));
+        return response()->json($tournament->load(['season', 'creator', 'teams']));
     }
 
-    public function destroy(Championship $championship)
+    public function destroy(Tournament $tournament)
     {
-        $championship->delete();
+        $tournament->delete();
 
         return response()->json(null, 204);
     }
