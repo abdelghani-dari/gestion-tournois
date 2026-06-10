@@ -17,6 +17,14 @@ class Post extends Model
         'content',
         'image_path',
         'type',
+        'scope',
+        'status',
+        'approved_by',
+        'approved_at',
+    ];
+
+    protected $casts = [
+        'approved_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -32,5 +40,10 @@ class Post extends Model
     public function tournament(): BelongsTo
     {
         return $this->belongsTo(Tournament::class);
+    }
+
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 }
