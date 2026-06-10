@@ -14,10 +14,15 @@ class Tournament extends Model
 
     protected $fillable = [
         'season_id',
+        'created_by',
         'name',
         'description',
         'start_date',
         'end_date',
+        'level',
+        'source',
+        'city',
+        'country',
         'status',
     ];
 
@@ -25,6 +30,11 @@ class Tournament extends Model
         'start_date' => 'date',
         'end_date' => 'date',
     ];
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 
     public function season(): BelongsTo
     {
@@ -44,5 +54,15 @@ class Tournament extends Model
     public function rankings(): HasMany
     {
         return $this->hasMany(Ranking::class);
+    }
+
+    public function joinRequests(): HasMany
+    {
+        return $this->hasMany(JoinRequest::class);
+    }
+
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class);
     }
 }
