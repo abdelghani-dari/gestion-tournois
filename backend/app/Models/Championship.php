@@ -14,10 +14,20 @@ class Championship extends Model
 
     protected $fillable = [
         'season_id',
+        'created_by',
         'name',
         'description',
+        'level',
+        'source',
+        'city',
+        'country',
         'status',
     ];
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 
     public function season(): BelongsTo
     {
@@ -37,5 +47,15 @@ class Championship extends Model
     public function rankings(): HasMany
     {
         return $this->hasMany(Ranking::class);
+    }
+
+    public function joinRequests(): HasMany
+    {
+        return $this->hasMany(JoinRequest::class);
+    }
+
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class);
     }
 }
