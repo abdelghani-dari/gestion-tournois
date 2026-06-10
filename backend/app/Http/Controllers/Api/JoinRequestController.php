@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\JoinRequest;
+use App\Models\Team;
 use Illuminate\Http\Request;
 
 class JoinRequestController extends Controller
@@ -15,13 +16,24 @@ class JoinRequestController extends Controller
 
     public function store(Request $request)
     {
+        $user = auth('api')->user();
+
+        if ($user->role !== 'team_manager') {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'championship_id' => ['nullable', 'exists:championships,id'],
             'tournament_id' => ['nullable', 'exists:tournaments,id'],
             'team_id' => ['required', 'exists:teams,id'],
-            'manager_id' => ['required', 'exists:users,id'],
             'message' => ['nullable', 'string'],
         ]);
+
+        $team = Team::findOrFail($validated['team_id']);
+
+        if ((int) $team->manager_id !== (int) $user->id) {
+            return response()->json(['message' => 'You can only create join requests for your own team.'], 403);
+        }
 
         if (empty($validated['championship_id']) === empty($validated['tournament_id'])) {
             return response()->json([
@@ -31,6 +43,7 @@ class JoinRequestController extends Controller
 
         $joinRequest = JoinRequest::create([
             ...$validated,
+            'manager_id' => $user->id,
             'status' => 'pending',
         ]);
 
@@ -44,6 +57,10 @@ class JoinRequestController extends Controller
 
     public function accept(JoinRequest $joinRequest)
     {
+        if (! in_array(auth('api')->user()->role, ['admin', 'organizer'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $joinRequest->update(['status' => 'accepted']);
 
         if ($joinRequest->championship_id) {
@@ -62,6 +79,10 @@ class JoinRequestController extends Controller
 
     public function refuse(JoinRequest $joinRequest)
     {
+        if (! in_array(auth('api')->user()->role, ['admin', 'organizer'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $joinRequest->update(['status' => 'refused']);
 
         return response()->json([

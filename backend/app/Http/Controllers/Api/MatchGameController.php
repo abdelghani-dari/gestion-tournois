@@ -15,6 +15,12 @@ class MatchGameController extends Controller
 
     public function store(Request $request)
     {
+        $user = auth('api')->user();
+
+        if (! in_array($user->role, ['admin', 'organizer'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'championship_id' => ['nullable', 'exists:championships,id'],
             'tournament_id' => ['nullable', 'exists:tournaments,id'],
@@ -34,6 +40,8 @@ class MatchGameController extends Controller
             ], 422);
         }
 
+        $validated['created_by'] = $validated['created_by'] ?? $user->id;
+
         $matchGame = MatchGame::create($validated);
 
         return response()->json($matchGame, 201);
@@ -46,6 +54,10 @@ class MatchGameController extends Controller
 
     public function update(Request $request, MatchGame $matchGame)
     {
+        if (! in_array(auth('api')->user()->role, ['admin', 'organizer'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'championship_id' => ['sometimes', 'nullable', 'exists:championships,id'],
             'tournament_id' => ['sometimes', 'nullable', 'exists:tournaments,id'],
@@ -83,6 +95,10 @@ class MatchGameController extends Controller
 
     public function destroy(MatchGame $matchGame)
     {
+        if (! in_array(auth('api')->user()->role, ['admin', 'organizer'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $matchGame->delete();
 
         return response()->json(null, 204);
@@ -90,6 +106,10 @@ class MatchGameController extends Controller
 
     public function updateResult(Request $request, MatchGame $matchGame)
     {
+        if (! in_array(auth('api')->user()->role, ['admin', 'organizer'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'home_score' => ['required', 'integer', 'min:0'],
             'away_score' => ['required', 'integer', 'min:0'],
@@ -110,6 +130,10 @@ class MatchGameController extends Controller
 
     public function confirmResult(MatchGame $matchGame)
     {
+        if (! in_array(auth('api')->user()->role, ['admin', 'organizer'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $matchGame->update(['result_status' => 'confirmed']);
 
         return response()->json([
@@ -120,6 +144,10 @@ class MatchGameController extends Controller
 
     public function disputeResult(MatchGame $matchGame)
     {
+        if (! in_array(auth('api')->user()->role, ['admin', 'organizer'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $matchGame->update(['result_status' => 'disputed']);
 
         return response()->json([

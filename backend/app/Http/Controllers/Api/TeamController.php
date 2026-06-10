@@ -15,6 +15,12 @@ class TeamController extends Controller
 
     public function store(Request $request)
     {
+        $user = auth('api')->user();
+
+        if (! in_array($user->role, ['admin', 'organizer', 'team_manager'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'manager_id' => ['nullable', 'exists:users,id'],
             'name' => ['required', 'string', 'max:255'],
@@ -22,6 +28,12 @@ class TeamController extends Controller
             'city' => ['nullable', 'string', 'max:255'],
             'country' => ['nullable', 'string', 'max:255'],
         ]);
+
+        $validated['manager_id'] = $validated['manager_id'] ?? $user->id;
+
+        if ($user->role === 'team_manager') {
+            $validated['manager_id'] = $user->id;
+        }
 
         $team = Team::create($validated);
 
@@ -35,6 +47,12 @@ class TeamController extends Controller
 
     public function update(Request $request, Team $team)
     {
+        $user = auth('api')->user();
+
+        if (! $this->canManageTeam($user, $team)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'manager_id' => ['sometimes', 'nullable', 'exists:users,id'],
             'name' => ['sometimes', 'required', 'string', 'max:255'],
@@ -43,6 +61,10 @@ class TeamController extends Controller
             'country' => ['sometimes', 'nullable', 'string', 'max:255'],
         ]);
 
+        if (in_array($user->role, ['organizer', 'team_manager'], true)) {
+            $validated['manager_id'] = $user->id;
+        }
+
         $team->update($validated);
 
         return response()->json($team->load(['manager', 'players']));
@@ -50,8 +72,22 @@ class TeamController extends Controller
 
     public function destroy(Team $team)
     {
+        if (! $this->canManageTeam(auth('api')->user(), $team)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $team->delete();
 
         return response()->json(null, 204);
+    }
+
+    private function canManageTeam($user, Team $team): bool
+    {
+        if ($user->role === 'admin') {
+            return true;
+        }
+
+        return in_array($user->role, ['organizer', 'team_manager'], true)
+            && (int) $team->manager_id === (int) $user->id;
     }
 }
