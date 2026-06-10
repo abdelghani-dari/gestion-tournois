@@ -37,7 +37,7 @@ class Team extends Model
 
     public function tournaments(): BelongsToMany
     {
-        return $this->belongsToMany(Tournament::class)->withTimestamps();
+        return $this->belongsToMany(Tournament::class, 'tournament_team', 'team_id', 'tournament_id')->withTimestamps();
     }
 
     public function homeMatches(): HasMany
