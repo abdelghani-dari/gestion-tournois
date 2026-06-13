@@ -39,13 +39,17 @@ class MatchGameController extends Controller
     {
         $validated = $request->validate([
             'tournament_id' => ['required', 'exists:tournaments,id'],
-            'created_by' => ['nullable', 'exists:users,id'],
             'home_team_id' => ['required', 'exists:teams,id'],
             'away_team_id' => ['required', 'exists:teams,id', 'different:home_team_id'],
             'match_date' => ['required', 'date'],
         ]);
 
         $tournament = Tournament::findOrFail($validated['tournament_id']);
+
+        if (! $this->canManageTournament($tournament)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $error = $this->validateMatchTeams($tournament, $validated['home_team_id'], $validated['away_team_id']);
 
         if ($error !== null) {
@@ -54,6 +58,7 @@ class MatchGameController extends Controller
 
         $matchGame = MatchGame::create([
             ...$validated,
+            'created_by' => auth('api')->id(),
             'home_score' => null,
             'away_score' => null,
             'status' => 'scheduled',
@@ -70,6 +75,10 @@ class MatchGameController extends Controller
 
     public function update(Request $request, MatchGame $matchGame): JsonResponse
     {
+        if (! $this->canManageTournament($matchGame->tournament)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'home_team_id' => ['sometimes', 'required', 'exists:teams,id'],
             'away_team_id' => ['sometimes', 'required', 'exists:teams,id'],
@@ -97,6 +106,10 @@ class MatchGameController extends Controller
 
     public function destroy(MatchGame $matchGame): JsonResponse
     {
+        if (! $this->canManageTournament($matchGame->tournament)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $matchGame->delete();
 
         return response()->json(['message' => 'Match deleted.']);
@@ -104,6 +117,10 @@ class MatchGameController extends Controller
 
     public function result(Request $request, MatchGame $matchGame): JsonResponse
     {
+        if (! $this->canManageTournament($matchGame->tournament)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'home_score' => ['required', 'integer', 'min:0'],
             'away_score' => ['required', 'integer', 'min:0'],
@@ -120,6 +137,10 @@ class MatchGameController extends Controller
 
     public function confirmResult(MatchGame $matchGame): JsonResponse
     {
+        if (! $this->canManageTournament($matchGame->tournament)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $error = $this->validateResultReady($matchGame);
 
         if ($error !== null) {
@@ -133,6 +154,10 @@ class MatchGameController extends Controller
 
     public function disputeResult(MatchGame $matchGame): JsonResponse
     {
+        if (! $this->canManageTournament($matchGame->tournament)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $error = $this->validateResultReady($matchGame);
 
         if ($error !== null) {
@@ -168,6 +193,11 @@ class MatchGameController extends Controller
         }
 
         return null;
+    }
+
+    private function canManageTournament(Tournament $tournament): bool
+    {
+        return (int) $tournament->created_by === (int) auth('api')->id();
     }
 
     private function validateResultReady(MatchGame $matchGame): ?string

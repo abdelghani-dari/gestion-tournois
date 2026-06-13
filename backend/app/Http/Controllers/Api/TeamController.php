@@ -17,13 +17,15 @@ class TeamController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'manager_id' => ['required', 'exists:users,id'],
             'name' => ['required', 'string', 'max:255'],
             'logo_path' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $team = Team::create($validated);
+        $team = Team::create([
+            ...$validated,
+            'manager_id' => auth('api')->id(),
+        ]);
 
         return response()->json($team, 201);
     }
@@ -35,6 +37,10 @@ class TeamController extends Controller
 
     public function update(Request $request, Team $team): JsonResponse
     {
+        if ((int) $team->manager_id !== (int) auth('api')->id()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'logo_path' => ['nullable', 'string', 'max:255'],
@@ -48,19 +54,19 @@ class TeamController extends Controller
 
     public function destroy(Team $team): JsonResponse
     {
+        if ((int) $team->manager_id !== (int) auth('api')->id()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $team->delete();
 
         return response()->json(['message' => 'Team deleted.']);
     }
 
-    public function myTeams(Request $request): JsonResponse
+    public function myTeams(): JsonResponse
     {
-        $validated = $request->validate([
-            'manager_id' => ['required', 'exists:users,id'],
-        ]);
-
         return response()->json(
-            Team::where('manager_id', $validated['manager_id'])->latest()->get()
+            Team::where('manager_id', auth('api')->id())->latest()->get()
         );
     }
 }

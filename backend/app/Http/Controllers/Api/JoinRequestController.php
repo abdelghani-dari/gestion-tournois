@@ -41,7 +41,6 @@ class JoinRequestController extends Controller
         $validated = $request->validate([
             'tournament_id' => ['required', 'exists:tournaments,id'],
             'team_id' => ['required', 'exists:teams,id'],
-            'manager_id' => ['required', 'exists:users,id'],
             'message' => ['nullable', 'string'],
         ]);
 
@@ -56,7 +55,7 @@ class JoinRequestController extends Controller
             return response()->json(['message' => 'Tournament must be open or active before teams can request participation.'], 422);
         }
 
-        if ((int) $team->manager_id !== (int) $validated['manager_id']) {
+        if ((int) $team->manager_id !== (int) auth('api')->id()) {
             return response()->json(['message' => 'The manager does not own this team.'], 422);
         }
 
@@ -74,6 +73,7 @@ class JoinRequestController extends Controller
 
         $joinRequest = JoinRequest::create([
             ...$validated,
+            'manager_id' => auth('api')->id(),
             'status' => 'pending',
         ]);
 
@@ -87,6 +87,10 @@ class JoinRequestController extends Controller
 
     public function accept(JoinRequest $joinRequest): JsonResponse
     {
+        if ((int) $joinRequest->tournament->created_by !== (int) auth('api')->id()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         if ($joinRequest->status !== 'pending') {
             return response()->json(['message' => 'Only pending join requests can be accepted.'], 422);
         }
@@ -99,6 +103,10 @@ class JoinRequestController extends Controller
 
     public function refuse(JoinRequest $joinRequest): JsonResponse
     {
+        if ((int) $joinRequest->tournament->created_by !== (int) auth('api')->id()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         if ($joinRequest->status !== 'pending') {
             return response()->json(['message' => 'Only pending join requests can be refused.'], 422);
         }

@@ -27,6 +27,11 @@ class RankingController extends Controller
 
         $tournament = Tournament::with('teams')->findOrFail($validated['tournament_id']);
 
+        if ((int) $tournament->created_by !== (int) auth('api')->id()
+            && auth('api')->user()?->role !== 'admin') {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         Ranking::where('tournament_id', $tournament->id)->delete();
 
         $rankings = [];

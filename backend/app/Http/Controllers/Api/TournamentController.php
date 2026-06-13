@@ -19,7 +19,6 @@ class TournamentController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'created_by' => ['required', 'exists:users,id'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'city' => ['nullable', 'string', 'max:255'],
@@ -31,6 +30,7 @@ class TournamentController extends Controller
 
         $tournament = Tournament::create([
             ...$validated,
+            'created_by' => auth('api')->id(),
             'status' => 'draft',
             'approval_status' => 'pending',
             'admin_note' => null,
@@ -48,6 +48,10 @@ class TournamentController extends Controller
 
     public function update(Request $request, Tournament $tournament): JsonResponse
     {
+        if ((int) $tournament->created_by !== (int) auth('api')->id()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -66,8 +70,19 @@ class TournamentController extends Controller
 
     public function destroy(Tournament $tournament): JsonResponse
     {
+        if ((int) $tournament->created_by !== (int) auth('api')->id()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $tournament->delete();
 
         return response()->json(['message' => 'Tournament deleted.']);
+    }
+
+    public function myTournaments(): JsonResponse
+    {
+        return response()->json(
+            Tournament::where('created_by', auth('api')->id())->latest()->get()
+        );
     }
 }

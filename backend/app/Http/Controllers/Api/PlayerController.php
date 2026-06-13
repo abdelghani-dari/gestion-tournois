@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Player;
+use App\Models\Team;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -26,6 +27,12 @@ class PlayerController extends Controller
             'photo_path' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $team = Team::findOrFail($validated['team_id']);
+
+        if ((int) $team->manager_id !== (int) auth('api')->id()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $player = Player::create($validated);
 
         return response()->json($player, 201);
@@ -38,6 +45,10 @@ class PlayerController extends Controller
 
     public function update(Request $request, Player $player): JsonResponse
     {
+        if ((int) $player->team->manager_id !== (int) auth('api')->id()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'first_name' => ['sometimes', 'required', 'string', 'max:255'],
             'last_name' => ['sometimes', 'required', 'string', 'max:255'],
@@ -54,6 +65,10 @@ class PlayerController extends Controller
 
     public function destroy(Player $player): JsonResponse
     {
+        if ((int) $player->team->manager_id !== (int) auth('api')->id()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $player->delete();
 
         return response()->json(['message' => 'Player deleted.']);
