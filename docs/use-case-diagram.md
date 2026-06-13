@@ -1,158 +1,117 @@
-# Diagramme de Cas d'Utilisation — Gestion Tournois
+# Diagramme de Cas d'Utilisation — Gestion Tournois Locaux
 
 ## 1. Objectif
 
-Ce diagramme présente les principales fonctionnalités de la plateforme Gestion Tournois et les acteurs qui interagissent avec le système.
+Ce document présente les principales fonctionnalités de l'application **Gestion Tournois Locaux** et les acteurs qui interagissent avec le système.
 
-L'application permet de gérer à la fois des compétitions officielles et des compétitions locales créées par les utilisateurs.
-
----
+L'application permet uniquement la gestion des tournois locaux de football.
 
 ## 2. Acteurs
 
 ### Admin
 
-L'admin gère la plateforme complète. Il peut gérer les utilisateurs, les compétitions officielles, les résultats officiels, les paiements simulés et les publications.
+L'admin valide ou refuse les tournois créés par les utilisateurs. Il supervise la plateforme.
 
-### Organizer
+### User
 
-L'organizer crée et gère ses propres compétitions locales après activation de son compte par paiement simulé.
+L'utilisateur peut créer un tournoi local, créer une équipe, ajouter des joueurs, demander la participation à un tournoi et consulter les résultats.
 
-### Team Manager
+### Créateur du tournoi
 
-Le team manager crée une équipe, ajoute les joueurs et demande la participation à des compétitions locales.
-
-### Viewer / Fan
-
-Le viewer consulte les informations publiques : compétitions, matchs, résultats, classements, statistiques et publications.
-
----
+Le créateur du tournoi est un utilisateur qui possède des droits de gestion uniquement sur les tournois qu'il a créés.
 
 ## 3. Cas d'utilisation
 
 ### Cas communs
 
-- S'inscrire
-- S'authentifier
-- Consulter les compétitions
-- Consulter les matchs
-- Consulter les résultats
-- Consulter les classements
-- Consulter les statistiques
-- Consulter le feed football
+- S'inscrire.
+- Se connecter.
+- Consulter les tournois acceptés.
+- Consulter les matchs.
+- Consulter les résultats.
+- Consulter les classements.
+- Consulter les statistiques.
 
 ### Admin
 
-- Gérer les utilisateurs
-- Gérer les saisons
-- Gérer les compétitions officielles
-- Gérer les championnats officiels
-- Gérer les tournois officiels
-- Planifier les matchs officiels
-- Saisir les résultats officiels
-- Gérer les paiements simulés
-- Superviser les publications
+- Consulter les tournois en attente.
+- Accepter un tournoi.
+- Refuser un tournoi.
+- Ajouter une note d'administration.
+- Superviser les utilisateurs.
 
-### Organizer
+### User
 
-- Simuler le paiement d'abonnement
-- Créer un championnat local
-- Créer un tournoi local
-- Gérer ses compétitions locales
-- Gérer les demandes de participation
-- Accepter ou refuser une équipe
-- Planifier les matchs locaux
-- Saisir les résultats locaux
-- Valider un résultat local
-- Publier une annonce
+- Créer un tournoi local.
+- Consulter le statut de validation de son tournoi.
+- Créer une équipe.
+- Ajouter des joueurs.
+- Envoyer une demande de participation.
+- Consulter ses demandes.
 
-### Team Manager
+### Créateur du tournoi
 
-- Créer une équipe
-- Gérer les joueurs de son équipe
-- Demander la participation à une compétition locale
-- Consulter ses demandes
-- Confirmer un résultat
-- Contester un résultat
-
-### Viewer / Fan
-
-- Voir les compétitions officielles
-- Voir les compétitions locales
-- Filtrer par ville, niveau, date ou type
-- Voir les matchs du jour
-- Voir les derniers résultats
-- Voir les classements
-- Voir les statistiques
-
----
+- Gérer son tournoi.
+- Consulter les demandes de participation.
+- Accepter ou refuser une équipe.
+- Planifier les matchs.
+- Saisir les résultats.
+- Générer le classement.
 
 ## 4. Diagramme
 
 ```mermaid
 flowchart LR
     Admin[Admin]
-    Organizer[Organizer]
-    Manager[Team Manager]
-    Viewer[Viewer / Fan]
+    User[User]
+    Creator[Créateur du tournoi]
 
-    UC1((S'inscrire / S'authentifier))
-    UC2((Gérer les utilisateurs))
-    UC3((Gérer les saisons))
-    UC4((Gérer les compétitions officielles))
-    UC5((Créer une compétition locale))
-    UC6((Simuler paiement organizer))
-    UC7((Créer / gérer équipe))
-    UC8((Gérer les joueurs))
+    UC1((S'inscrire / Se connecter))
+    UC2((Créer tournoi local))
+    UC3((Consulter statut du tournoi))
+    UC4((Consulter tournois acceptés))
+    UC5((Valider tournoi))
+    UC6((Refuser tournoi))
+    UC7((Créer équipe))
+    UC8((Gérer joueurs))
     UC9((Demander participation))
-    UC10((Accepter / refuser demande))
-    UC11((Planifier les matchs))
-    UC12((Saisir les résultats))
-    UC13((Confirmer / contester résultat))
-    UC14((Valider résultat local))
-    UC15((Générer classement))
-    UC16((Consulter résultats))
-    UC17((Consulter classements))
-    UC18((Consulter statistiques))
-    UC19((Publier post / annonce))
-    UC20((Consulter feed football))
-    UC21((Gérer paiements simulés))
+    UC10((Accepter / refuser équipe))
+    UC11((Planifier matchs))
+    UC12((Saisir résultats))
+    UC13((Générer classement))
+    UC14((Consulter résultats))
+    UC15((Consulter classement))
+    UC16((Consulter statistiques))
+    UC17((Superviser utilisateurs))
+
+    User --> UC1
+    User --> UC2
+    User --> UC3
+    User --> UC4
+    User --> UC7
+    User --> UC8
+    User --> UC9
+    User --> UC14
+    User --> UC15
+    User --> UC16
 
     Admin --> UC1
-    Admin --> UC2
-    Admin --> UC3
-    Admin --> UC4
-    Admin --> UC11
-    Admin --> UC12
-    Admin --> UC15
-    Admin --> UC19
-    Admin --> UC21
+    Admin --> UC5
+    Admin --> UC6
+    Admin --> UC17
 
-    Organizer --> UC1
-    Organizer --> UC6
-    Organizer --> UC5
-    Organizer --> UC10
-    Organizer --> UC11
-    Organizer --> UC12
-    Organizer --> UC14
-    Organizer --> UC15
-    Organizer --> UC19
-
-    Manager --> UC1
-    Manager --> UC7
-    Manager --> UC8
-    Manager --> UC9
-    Manager --> UC13
-
-    Viewer --> UC1
-    Viewer --> UC16
-    Viewer --> UC17
-    Viewer --> UC18
-    Viewer --> UC20
+    Creator --> UC10
+    Creator --> UC11
+    Creator --> UC12
+    Creator --> UC13
+    Creator --> UC14
+    Creator --> UC15
 ```
-
----
 
 ## 5. Remarque
 
-L'admin possède les droits globaux. L'organizer gère uniquement ses propres compétitions locales. Le team manager gère son équipe et ses demandes. Le viewer possède seulement des droits de consultation.
+Le rôle `Créateur du tournoi` n'est pas un rôle stocké dans `users.role`. C'est une permission logique basée sur la règle :
+
+```txt
+tournament.created_by == current_user.id
+```

@@ -1,89 +1,96 @@
-# Fiche de Cadrage — Gestion Tournois
+# Fiche de Cadrage — Gestion Tournois Locaux
 
 ## 1. Intitulé du projet
 
-Application de Gestion Sportive — Gestion Tournois
+**Application de Gestion des Tournois Locaux de Football**
 
 ## 2. Contexte du projet
 
-Dans le cadre du projet tutoré, notre équipe développe une application web de gestion sportive orientée football.
+Dans le cadre du projet tutoré, notre équipe développe une application web destinée à faciliter l'organisation des tournois locaux de football.
 
-L'objectif est de créer une plateforme permettant de gérer et consulter à la fois :
+Les tournois locaux, comme les tournois de quartier, les tournois scolaires, les tournois Ramadan ou les compétitions associatives, sont souvent gérés avec WhatsApp, Excel ou papier. Cette méthode devient rapidement difficile lorsque le nombre d'équipes, de joueurs et de matchs augmente.
 
-- des compétitions officielles ou majeures comme la Coupe du Monde, la Ligue des Champions, La Liga ou la Botola ;
-- des compétitions locales créées par des organisateurs, comme les tournois de quartier, tournois Ramadan, compétitions scolaires ou associatives.
-
-La plateforme permet aussi aux team managers de créer leurs équipes et de demander la participation à des compétitions locales.
+L'application proposée permet de centraliser la création des tournois, la validation administrative, la gestion des équipes, la planification des matchs, la saisie des résultats, le calcul des classements et le suivi des statistiques.
 
 ## 3. Problématique
 
-La gestion manuelle des compétitions sportives devient difficile lorsque le nombre d'équipes, de joueurs et de matchs augmente.
+La gestion manuelle des tournois locaux présente plusieurs problèmes :
 
-Ce problème est encore plus visible pour les compétitions locales, souvent organisées avec WhatsApp, Excel ou papier, ce qui rend difficile le suivi des résultats, classements et statistiques.
+- difficulté à suivre les équipes inscrites ;
+- manque de validation avant la publication d'un tournoi ;
+- organisation compliquée des matchs ;
+- erreurs possibles dans les scores et classements ;
+- absence d'un espace centralisé pour consulter les résultats ;
+- perte d'informations lorsque tout est géré par messages ou fichiers séparés.
 
-Les responsables sportifs et organisateurs ont besoin d'un outil centralisé permettant de créer des compétitions, gérer les équipes, planifier les matchs, enregistrer les résultats, valider les scores et générer automatiquement les classements.
-
-Les utilisateurs simples ont besoin d'un espace clair pour suivre les compétitions officielles et locales, les matchs, les résultats, les classements, les statistiques et les publications.
+Les organisateurs et les responsables d'équipes ont donc besoin d'un outil simple pour gérer un tournoi local depuis sa création jusqu'à la publication des résultats.
 
 ## 4. Objectifs du projet
 
-- Gérer les saisons sportives.
-- Gérer les compétitions officielles.
-- Gérer les championnats.
-- Gérer les tournois.
-- Gérer les compétitions locales créées par les utilisateurs.
-- Gérer les équipes.
-- Gérer les joueurs.
-- Permettre aux team managers de demander la participation à une compétition locale.
-- Permettre aux organizers d'accepter ou refuser les demandes.
-- Planifier les matchs.
-- Saisir les résultats.
-- Confirmer ou contester les résultats locaux.
-- Gérer les compositions d'équipes.
-- Générer les classements.
-- Consulter les statistiques.
-- Publier des annonces et actualités via un feed football simple.
-- Simuler un paiement pour l'activation du rôle organizer.
+L'application doit permettre de :
+
+- gérer les comptes utilisateurs ;
+- permettre à un utilisateur de créer un tournoi local ;
+- permettre à l'administrateur d'accepter ou refuser un tournoi ;
+- afficher uniquement les tournois acceptés ;
+- permettre aux utilisateurs de créer leurs équipes ;
+- permettre aux équipes d'envoyer une demande de participation ;
+- permettre au créateur du tournoi d'accepter ou refuser les équipes ;
+- gérer les joueurs d'une équipe ;
+- planifier les matchs du tournoi ;
+- saisir les résultats ;
+- confirmer ou contester un résultat si nécessaire ;
+- générer automatiquement le classement ;
+- consulter les statistiques simples du tournoi.
 
 ## 5. Périmètre du projet
 
-### Inclus dans le projet
+### 5.1 Inclus dans le projet
 
 - Interface web frontend.
 - API backend.
 - Base de données PostgreSQL.
-- Gestion CRUD des principales entités.
-- Gestion des rôles : admin, organizer, team_manager, viewer.
-- Gestion des compétitions officielles.
-- Gestion des compétitions locales.
-- Système de paiement simulé pour organizer.
-- Demandes de participation des équipes.
-- Validation simple des résultats locaux.
+- Authentification simple.
+- Gestion des rôles `admin` et `user`.
+- Création des tournois locaux.
+- Validation des tournois par l'admin.
+- Gestion des équipes.
+- Gestion des joueurs.
+- Demandes de participation.
+- Planification des matchs.
+- Saisie des résultats.
 - Classement automatique.
 - Statistiques simples.
-- Feed football simple.
 - Déploiement local avec Docker Compose.
-- Documentation technique.
+- Documentation technique et UML.
 
-### Non inclus dans la première version
+### 5.2 Non inclus dans la première version
 
+- Championnats.
+- Compétitions officielles ou internationales.
+- Paiement réel.
+- Paiement simulé.
 - Application mobile.
-- Paiement réel en ligne.
-- Notifications en temps réel.
+- Notifications temps réel.
 - Chat privé.
-- Likes, commentaires et followers avancés.
+- Likes, commentaires et followers.
+- Billetterie.
 - Gestion avancée des arbitres.
-- Système complexe de billetterie.
-- Connexion à une API football réelle pour les résultats live.
+- API football externe.
 
 ## 6. Utilisateurs cibles
 
-- Administrateurs de la plateforme.
-- Organisateurs de compétitions locales.
-- Responsables d'équipes locales.
-- Responsables sportifs.
-- Membres d'organisation sportive.
-- Utilisateurs simples souhaitant consulter les résultats, classements, statistiques et publications.
+### Administrateur
+
+L'administrateur valide ou refuse les tournois créés par les utilisateurs. Il supervise aussi les données principales de l'application.
+
+### Utilisateur
+
+L'utilisateur peut créer un tournoi local, créer une équipe, gérer les joueurs de son équipe et demander la participation à un tournoi.
+
+### Créateur du tournoi
+
+Le créateur du tournoi est un utilisateur normal, mais il devient responsable uniquement des tournois qu'il a créés. Il peut gérer les équipes participantes, les matchs et les résultats de ses propres tournois.
 
 ## 7. Technologies utilisées
 
@@ -95,36 +102,28 @@ Les utilisateurs simples ont besoin d'un espace clair pour suivre les compétiti
 | API | REST API |
 | Déploiement local | Docker + Docker Compose |
 | Versioning | Git + GitHub |
-| Conception | UML |
+| Conception | UML / Mermaid |
 
 ## 8. Résultat attendu
 
-À la fin du projet, l'application devra permettre la gestion complète d'une plateforme football combinant les compétitions officielles et locales.
-
-Le prototype devra permettre :
-
-- à l'admin de gérer les compétitions officielles ;
-- à l'organizer de créer et gérer ses propres compétitions locales ;
-- au team manager de créer une équipe et demander la participation ;
-- aux viewers de consulter les matchs, résultats, classements, statistiques et publications.
+À la fin du projet, l'application devra permettre de gérer un tournoi local de football de manière complète : création, validation par l'admin, inscription des équipes, gestion des matchs, saisie des résultats, calcul du classement et consultation des statistiques.
 
 ## 9. Contraintes
 
-- Respect des délais du projet tutoré.
+- Respect du délai du projet tutoré.
 - Travail en équipe.
-- Utilisation de GitHub pour la collaboration.
+- Utilisation de GitHub.
 - Interface simple et claire.
 - Code maintenable.
 - Documentation complète.
-- Paiement réel non inclus dans la première version.
-- Fonctionnalités sociales limitées à un feed simple.
+- Fonctionnalités limitées au périmètre local.
 
 ## 10. Livrables
 
-- Fiche de cadrage
-- Cahier des charges
-- Planning
-- Rapports d'avancement
-- Documentation technique
-- Prototype
-- Rapport final
+- Fiche de cadrage.
+- Cahier des charges.
+- Planning.
+- Rapports d'avancement.
+- Documentation technique.
+- Prototype.
+- Rapport final.
