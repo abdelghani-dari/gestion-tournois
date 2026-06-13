@@ -63,4 +63,9 @@ class Tournament extends Model
     {
         return $this->hasMany(MatchGame::class);
     }
+
+    public function rankings(): HasMany
+    {
+        return $this->hasMany(Ranking::class);
+    }
 }

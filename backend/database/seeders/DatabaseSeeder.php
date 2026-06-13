@@ -95,8 +95,22 @@ class DatabaseSeeder extends Seeder
             'home_team_id' => $team->id,
             'away_team_id' => $secondTeam->id,
             'match_date' => '2026-07-01 18:00:00',
-            'status' => 'scheduled',
-            'result_status' => 'pending',
+            'home_score' => 2,
+            'away_score' => 1,
+            'status' => 'played',
+            'result_status' => 'confirmed',
+        ]);
+
+        MatchGame::create([
+            'tournament_id' => $tournament->id,
+            'created_by' => $user->id,
+            'home_team_id' => $team->id,
+            'away_team_id' => $secondTeam->id,
+            'match_date' => '2026-07-02 18:00:00',
+            'home_score' => 1,
+            'away_score' => 1,
+            'status' => 'played',
+            'result_status' => 'disputed',
         ]);
     }
 }

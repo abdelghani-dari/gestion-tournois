@@ -48,4 +48,9 @@ class Team extends Model
     {
         return $this->hasMany(MatchGame::class, 'away_team_id');
     }
+
+    public function rankings(): HasMany
+    {
+        return $this->hasMany(Ranking::class);
+    }
 }
