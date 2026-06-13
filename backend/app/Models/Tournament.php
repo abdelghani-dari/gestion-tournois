@@ -10,6 +10,8 @@ class Tournament extends Model
 {
     use HasFactory;
 
+    public static $snakeAttributes = false;
+
     protected $fillable = [
         'created_by',
         'name',
