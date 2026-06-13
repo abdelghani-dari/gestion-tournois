@@ -1,140 +1,94 @@
-# Conception — Gestion Tournois
+# Conception — Gestion Tournois Locaux
 
 ## 1. Objectif de la conception
 
-Cette conception définit la structure fonctionnelle et technique de l'application **Gestion Tournois**.
+Ce document définit la structure fonctionnelle et technique de l'application **Gestion Tournois Locaux**.
 
-L'application devient une plateforme football permettant de gérer et consulter :
-
-- les compétitions officielles : Coupe du Monde, Ligue des Champions, La Liga, Botola, etc. ;
-- les compétitions locales créées par les organisateurs ;
-- les saisons sportives ;
-- les championnats ;
-- les tournois ;
-- les équipes ;
-- les joueurs ;
-- les matchs ;
-- les compositions d'équipes ;
-- les résultats ;
-- les classements ;
-- les statistiques ;
-- les publications d'actualité sportive.
-
-Le but est de proposer une plateforme qui combine la gestion sportive et un feed football simple, sans construire un réseau social complet.
-
----
+L'application permet de gérer uniquement des tournois locaux de football. Elle ne gère pas les championnats, les compétitions officielles ou les paiements.
 
 ## 2. Acteurs
 
-### Admin
+### 2.1 Admin
 
-L'admin gère toute la plateforme. Il peut créer et gérer les compétitions officielles ou majeures, gérer les utilisateurs, suivre les paiements simulés et superviser les contenus.
-
-Exemples de compétitions gérées par l'admin :
-
-- Coupe du Monde
-- Ligue des Champions
-- La Liga
-- Botola Pro
-
-### Organizer
-
-L'organizer est un utilisateur qui peut créer et gérer ses propres compétitions locales après activation de son compte via un paiement simulé.
+L'administrateur supervise la plateforme. Son rôle principal est de valider les tournois créés par les utilisateurs avant leur publication.
 
 Il peut :
 
+- consulter les tournois en attente ;
+- accepter un tournoi ;
+- refuser un tournoi ;
+- ajouter une remarque de refus ;
+- consulter tous les tournois ;
+- superviser les utilisateurs.
+
+### 2.2 User
+
+L'utilisateur est le rôle principal de l'application.
+
+Il peut :
+
+- créer un compte ;
+- se connecter ;
 - créer un tournoi local ;
-- créer un championnat local ;
-- gérer les équipes participantes ;
-- accepter ou refuser les demandes de participation ;
+- créer une équipe ;
+- ajouter des joueurs ;
+- demander la participation à un tournoi ;
+- consulter les matchs, les résultats, les classements et les statistiques.
+
+### 2.3 Créateur du tournoi
+
+Le créateur du tournoi est un utilisateur normal qui possède des permissions supplémentaires uniquement sur les tournois qu'il a créés.
+
+Il peut, pour ses propres tournois :
+
+- modifier les informations du tournoi ;
+- consulter les demandes de participation ;
+- accepter ou refuser une équipe ;
 - planifier les matchs ;
 - saisir les résultats ;
-- publier des annonces.
-
-### Team Manager
-
-Le team manager représente un responsable d'équipe locale.
-
-Il peut :
-
-- créer son équipe ;
-- ajouter les joueurs ;
-- demander la participation à une compétition locale ;
-- suivre les matchs de son équipe ;
-- confirmer ou contester un résultat local.
-
-### Viewer / Fan
-
-Le viewer est un utilisateur simple. Il peut consulter les informations publiques :
-
-- compétitions officielles ;
-- compétitions locales ;
-- matchs ;
-- résultats ;
-- classements ;
-- statistiques ;
-- publications.
-
----
+- recalculer le classement.
 
 ## 3. Cas d'utilisation principaux
 
-### Authentification et comptes
+### Cas communs
 
-- S'inscrire
-- Se connecter
-- Choisir un rôle
-- Simuler un paiement pour devenir organizer
+- S'inscrire.
+- Se connecter.
+- Consulter les tournois acceptés.
+- Consulter les matchs.
+- Consulter les résultats.
+- Consulter les classements.
+- Consulter les statistiques.
 
 ### Admin
 
-- Gérer les utilisateurs
-- Gérer les compétitions officielles
-- Gérer les saisons
-- Gérer les championnats officiels
-- Gérer les tournois officiels
-- Gérer les matchs et résultats officiels
-- Consulter les paiements simulés
-- Superviser les publications
+- Consulter les tournois en attente.
+- Accepter un tournoi.
+- Refuser un tournoi.
+- Ajouter une note d'administration.
+- Superviser la plateforme.
 
-### Organizer
+### User
 
-- Créer une compétition locale
-- Gérer ses championnats locaux
-- Gérer ses tournois locaux
-- Gérer les demandes de participation
-- Gérer les matchs locaux
-- Saisir les résultats locaux
-- Valider les résultats
-- Publier une annonce ou une actualité
+- Créer un tournoi local.
+- Consulter le statut de validation de son tournoi.
+- Créer une équipe.
+- Ajouter des joueurs.
+- Envoyer une demande de participation.
+- Consulter ses demandes.
 
-### Team Manager
+### Créateur du tournoi
 
-- Créer une équipe
-- Ajouter les joueurs
-- Envoyer une demande de participation
-- Consulter ses demandes
-- Confirmer ou contester un résultat
-
-### Viewer / Fan
-
-- Consulter les compétitions officielles
-- Consulter les compétitions locales
-- Filtrer par type, niveau, ville ou date
-- Consulter les matchs du jour
-- Consulter les résultats
-- Consulter les classements
-- Consulter les statistiques
-- Consulter le feed football
-
----
+- Gérer son tournoi.
+- Gérer les demandes reçues.
+- Ajouter les équipes acceptées.
+- Planifier les matchs.
+- Saisir les résultats.
+- Gérer les classements.
 
 ## 4. Entités principales
 
 - User
-- FakePayment
-- Season
-- Championship
 - Tournament
 - Team
 - Player
@@ -143,44 +97,52 @@ Le viewer est un utilisateur simple. Il peut consulter les informations publique
 - Ranking
 - Statistic
 - JoinRequest
-- Post
-- ChampionshipTeam
 - TournamentTeam
-
----
 
 ## 5. Règles métier importantes
 
-### Règles des rôles
+### 5.1 Règles des rôles
 
 ```txt
-Admin       : contrôle total de la plateforme
-Organizer   : contrôle uniquement ses propres compétitions locales
-TeamManager : contrôle uniquement ses équipes et joueurs
-Viewer      : consultation seulement
+Admin : valide/refuse les tournois et supervise l'application.
+User  : crée des tournois, équipes, joueurs et consulte les résultats.
 ```
 
-### Règles des compétitions
+### 5.2 Règle du créateur de tournoi
 
-Chaque championnat ou tournoi possède deux informations importantes :
+Un utilisateur devient responsable uniquement des tournois qu'il a créés.
 
 ```txt
-level  = international / national / local
-source = official / user_created
+tournaments.created_by = users.id
 ```
 
-Exemples :
+Il ne peut pas modifier les tournois créés par d'autres utilisateurs.
 
-| Compétition | Type | level | source |
-|---|---|---|---|
-| World Cup | tournament | international | official |
-| La Liga | championship | national | official |
-| Ramadan Cup Taourirt | tournament | local | user_created |
-| Quartier League | championship | local | user_created |
+### 5.3 Règle de validation admin
 
-### Règles des résultats locaux
+Un tournoi créé par un utilisateur n'est pas visible directement dans la liste publique.
 
-Un résultat local peut avoir trois états :
+Processus :
+
+```txt
+1. User crée un tournoi.
+2. approval_status = pending.
+3. Admin accepte ou refuse.
+4. Si accepté : approval_status = accepted et status = open.
+5. Si refusé : approval_status = refused.
+```
+
+### 5.4 Règle de participation
+
+Une équipe peut participer à un tournoi uniquement si :
+
+- le tournoi est accepté par l'admin ;
+- l'équipe envoie une demande ;
+- le créateur du tournoi accepte la demande.
+
+### 5.5 Règle des résultats
+
+Un résultat peut avoir trois états :
 
 ```txt
 pending
@@ -188,51 +150,49 @@ confirmed
 disputed
 ```
 
-Seuls les résultats `confirmed` sont utilisés pour calculer les classements.
+Seuls les matchs avec `result_status = confirmed` sont utilisés pour calculer le classement.
 
-### Règles de paiement simulé
-
-Le paiement réel n'est pas inclus dans la première version. Le prototype utilise un système de paiement simulé pour montrer le fonctionnement futur.
-
-Processus :
+### 5.6 Règle de classement
 
 ```txt
-1. L'utilisateur crée un compte.
-2. Il choisit le rôle organizer.
-3. Il accède à une page de paiement simulé.
-4. Il clique sur Fake Pay.
-5. Son payment_status devient paid.
-6. Son rôle devient organizer.
+Victoire = 3 points
+Match nul = 1 point
+Défaite = 0 point
 ```
 
----
+Le classement est trié par :
 
-## 6. Remarque importante
+1. points ;
+2. différence de buts ;
+3. buts marqués ;
+4. nom de l'équipe.
 
-Le modèle représentant un match ne doit pas s'appeler `Match`, car `match` est un mot réservé en PHP.
+## 6. Parcours principal
 
-Nom recommandé :
+```txt
+User crée un tournoi
+        ↓
+Admin accepte le tournoi
+        ↓
+Le tournoi devient public
+        ↓
+User crée une équipe
+        ↓
+Équipe demande à participer
+        ↓
+Créateur du tournoi accepte l'équipe
+        ↓
+Créateur planifie les matchs
+        ↓
+Créateur saisit les résultats
+        ↓
+Système calcule le classement
+```
+
+## 7. Remarque technique
+
+Le modèle représentant un match ne doit pas s'appeler `Match`, car `match` est un mot réservé en PHP. Le nom recommandé reste :
 
 ```txt
 MatchGame
 ```
-
----
-
-## 7. Architecture générale
-
-```txt
-Utilisateur
-    |
-    v
-React Frontend
-    |
-    | REST API
-    v
-Laravel Backend
-    |
-    v
-PostgreSQL Database
-```
-
-Docker Compose lance les services frontend, backend et base de données.

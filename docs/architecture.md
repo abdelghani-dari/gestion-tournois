@@ -1,8 +1,8 @@
-# Architecture Technique — Gestion Tournois
+# Architecture Technique — Gestion Tournois Locaux
 
 ## 1. Objectif
 
-Ce document présente l'architecture technique de l'application Gestion Tournois.
+Ce document présente l'architecture technique de l'application **Gestion Tournois Locaux**.
 
 L'application suit une architecture web moderne basée sur :
 
@@ -11,14 +11,6 @@ L'application suit une architecture web moderne basée sur :
 - une base de données PostgreSQL ;
 - une communication via API REST ;
 - un environnement local Docker Compose.
-
-La nouvelle orientation du projet transforme l'application en plateforme football capable de gérer :
-
-- des compétitions officielles ou majeures ;
-- des compétitions locales créées par les organizers ;
-- des équipes gérées par des team managers ;
-- un feed football simple ;
-- des paiements simulés pour l'activation du rôle organizer.
 
 ## 2. Architecture générale
 
@@ -42,20 +34,23 @@ PostgreSQL Database
 ```mermaid
 flowchart TD
     User[Utilisateur] --> Frontend[React Frontend]
+    Admin[Administrateur] --> Frontend
 
     Frontend -->|REST API / HTTP| Backend[Laravel Backend]
+
+    Backend --> Auth[Authentification]
+    Backend --> Approval[Validation Admin des Tournois]
+    Backend --> Tournaments[Gestion des Tournois]
+    Backend --> Teams[Gestion Equipes et Joueurs]
+    Backend --> Requests[Demandes de Participation]
+    Backend --> Matches[Matchs et Résultats]
+    Backend --> Rankings[Classements et Statistiques]
 
     Backend -->|SQL Queries| Database[(PostgreSQL Database)]
 
     Docker[Docker Compose] --> Frontend
     Docker --> Backend
     Docker --> Database
-
-    Backend --> Auth[Auth & Roles]
-    Backend --> Payments[Fake Payment]
-    Backend --> Competitions[Official & Local Competitions]
-    Backend --> Results[Result Validation]
-    Backend --> Feed[Football Feed]
 ```
 
 ## 4. Services Docker
@@ -65,8 +60,6 @@ Le projet est lancé avec une seule commande :
 ```bash
 docker compose up -d --build
 ```
-
-Cette commande lance les services suivants :
 
 | Service | Container | Port |
 |---|---|---|
@@ -83,15 +76,20 @@ Le frontend React communique avec Laravel via des requêtes HTTP vers l'API REST
 Exemples :
 
 ```txt
+POST /api/register
+POST /api/login
 GET /api/tournaments
 POST /api/tournaments
-GET /api/championships
-POST /api/championships
-GET /api/matches
-PUT /api/matches/{id}/result
+GET /api/admin/tournaments/pending
+PUT /api/admin/tournaments/{id}/accept
+PUT /api/admin/tournaments/{id}/refuse
+POST /api/teams
+POST /api/players
 POST /api/join-requests
-POST /api/fake-payments
-GET /api/posts
+PUT /api/join-requests/{id}/accept
+POST /api/matches
+PUT /api/matches/{id}/result
+GET /api/rankings?tournament_id=1
 ```
 
 ### Backend vers Base de données
@@ -109,49 +107,33 @@ DB_PASSWORD=postgres
 
 ## 6. Modules principaux
 
-### Authentification et rôles
+### 6.1 Authentification
 
-Le système utilise les rôles suivants :
+Gestion de l'inscription, de la connexion et des permissions de base.
 
-```txt
-admin
-organizer
-team_manager
-viewer
-```
+### 6.2 Validation admin
 
-Chaque rôle possède des permissions différentes.
+L'admin accepte ou refuse les tournois créés par les utilisateurs.
 
-### Gestion des compétitions
+### 6.3 Gestion des tournois
 
-Les championnats et tournois peuvent être :
+Création, modification, consultation et suivi des tournois locaux.
 
-```txt
-level  = international / national / local
-source = official / user_created
-```
+### 6.4 Gestion des équipes et joueurs
 
-### Gestion des demandes de participation
+Création des équipes et ajout des joueurs.
 
-Un team manager peut demander à faire participer son équipe à une compétition locale.
+### 6.5 Demandes de participation
 
-L'organizer peut accepter ou refuser la demande.
+Une équipe demande à rejoindre un tournoi accepté.
 
-### Gestion des résultats locaux
+### 6.6 Matchs et résultats
 
-Les résultats locaux utilisent :
+Planification des matchs et saisie des scores.
 
-```txt
-pending
-confirmed
-disputed
-```
+### 6.7 Classements et statistiques
 
-Seuls les résultats confirmés sont utilisés dans les classements.
-
-### Feed football
-
-Le feed permet d'afficher des annonces, actualités et résultats liés aux compétitions.
+Calcul automatique des points et suivi des statistiques sportives.
 
 ## 7. Stockage des images
 
@@ -161,7 +143,7 @@ Les images uploadées sont stockées dans Laravel :
 backend/storage/app/public
 ```
 
-La base de données stocke seulement le chemin de l'image.
+La base de données stocke seulement le chemin.
 
 Exemples :
 
@@ -169,7 +151,18 @@ Exemples :
 teams/logo.png
 players/photo.jpg
 tournaments/banner.jpg
-posts/post-image.jpg
+```
+
+Commande Laravel :
+
+```bash
+php artisan storage:link
+```
+
+Avec Docker :
+
+```bash
+docker compose exec backend php artisan storage:link
 ```
 
 ## 8. Avantages de cette architecture
@@ -180,5 +173,4 @@ posts/post-image.jpg
 - Lancement simple avec Docker Compose.
 - Environnement identique pour les membres de l'équipe.
 - Maintenance plus facile.
-- Possibilité d'ajouter plus tard une vraie API football.
-- Possibilité d'ajouter plus tard un vrai paiement en ligne.
+- Fonctionnalités adaptées au périmètre PFE.

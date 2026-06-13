@@ -1,25 +1,23 @@
-# Documentation Technique — Gestion Tournois
+# Documentation Technique — Gestion Tournois Locaux
 
 ## 1. Présentation technique
 
-Gestion Tournois est une application web de gestion sportive basée sur une architecture frontend/backend.
+**Gestion Tournois Locaux** est une application web basée sur une architecture frontend/backend.
 
-L'application devient une plateforme football permettant de gérer :
+L'application permet de gérer :
 
-- les compétitions officielles ou majeures ;
-- les compétitions locales créées par les organisateurs ;
-- les saisons ;
-- les championnats ;
-- les tournois ;
+- les utilisateurs ;
+- les tournois locaux ;
+- la validation des tournois par l'admin ;
 - les équipes ;
 - les joueurs ;
+- les demandes de participation ;
 - les matchs ;
-- les compositions ;
 - les résultats ;
 - les classements ;
-- les statistiques ;
-- les publications d'un feed football simple ;
-- les paiements simulés pour l'activation du rôle organizer.
+- les statistiques.
+
+L'application ne gère pas les championnats, les compétitions officielles ni les paiements.
 
 ## 2. Stack technique
 
@@ -59,6 +57,7 @@ gestion-tournois/
 │   ├── database-schema.md
 │   ├── fiche-de-cadrage.md
 │   ├── planning.md
+│   ├── sequence-diagrams.md
 │   └── use-case-diagram.md
 │
 ├── docker-compose.yml
@@ -80,9 +79,9 @@ PostgreSQL Database
 
 Docker Compose lance les trois services :
 
-- frontend
-- backend
-- postgres
+- frontend ;
+- backend ;
+- postgres.
 
 ## 5. Services Docker
 
@@ -109,142 +108,156 @@ Le backend Laravel contient :
 - la logique métier ;
 - la validation des données ;
 - la gestion des rôles ;
-- la simulation de paiement ;
-- la gestion des demandes de participation ;
-- la validation des résultats locaux ;
+- la validation admin ;
 - la gestion des uploads.
 
-### Routes API prévues
+## 7. Routes API prévues
+
+### Auth
 
 ```txt
-Auth:
 POST /api/register
 POST /api/login
-POST /api/fake-payments
+POST /api/logout
+```
 
-Users:
-GET /api/users
-PUT /api/users/{id}
+### Admin
 
-Seasons:
-GET /api/seasons
-POST /api/seasons
-PUT /api/seasons/{id}
-DELETE /api/seasons/{id}
+```txt
+GET /api/admin/tournaments/pending
+GET /api/admin/tournaments
+PUT /api/admin/tournaments/{id}/accept
+PUT /api/admin/tournaments/{id}/refuse
+```
 
-Championships:
-GET /api/championships
-POST /api/championships
-PUT /api/championships/{id}
-DELETE /api/championships/{id}
+### Tournaments
 
-Tournaments:
+```txt
 GET /api/tournaments
 POST /api/tournaments
+GET /api/tournaments/{id}
 PUT /api/tournaments/{id}
 DELETE /api/tournaments/{id}
+GET /api/my-tournaments
+```
 
-Teams:
+Règle : `GET /api/tournaments` retourne seulement les tournois acceptés.
+
+### Teams
+
+```txt
 GET /api/teams
 POST /api/teams
+GET /api/teams/{id}
 PUT /api/teams/{id}
 DELETE /api/teams/{id}
+GET /api/my-teams
+```
 
-Players:
+### Players
+
+```txt
 GET /api/players
 POST /api/players
+GET /api/players/{id}
 PUT /api/players/{id}
 DELETE /api/players/{id}
+```
 
-Join Requests:
+### Join Requests
+
+```txt
 GET /api/join-requests
 POST /api/join-requests
+GET /api/join-requests/{id}
 PUT /api/join-requests/{id}/accept
 PUT /api/join-requests/{id}/refuse
+```
 
-Matches:
+### Matches
+
+```txt
 GET /api/matches
 POST /api/matches
+GET /api/matches/{id}
 PUT /api/matches/{id}
+DELETE /api/matches/{id}
 PUT /api/matches/{id}/result
 PUT /api/matches/{id}/confirm-result
 PUT /api/matches/{id}/dispute-result
-
-Rankings:
-GET /api/rankings
-
-Statistics:
-GET /api/statistics
-POST /api/statistics
-
-Posts:
-GET /api/posts
-POST /api/posts
-DELETE /api/posts/{id}
 ```
 
-## 7. Frontend React
+### Rankings
 
-Le frontend React contient :
+```txt
+GET /api/rankings?tournament_id=1
+POST /api/rankings/recalculate
+```
 
-- les pages principales ;
-- les composants réutilisables ;
-- les appels API ;
-- les formulaires ;
-- les tableaux d'affichage ;
-- le dashboard ;
-- la gestion des rôles côté interface.
+### Statistics
+
+```txt
+GET /api/statistics
+POST /api/statistics
+GET /api/statistics/{id}
+PUT /api/statistics/{id}
+DELETE /api/statistics/{id}
+```
+
+## 8. Frontend React
+
+Le frontend contient :
+
+- pages principales ;
+- composants réutilisables ;
+- appels API ;
+- formulaires ;
+- tableaux d'affichage ;
+- dashboard utilisateur ;
+- dashboard admin.
 
 ### Pages publiques
 
-- Home Feed
-- Compétitions officielles
-- Compétitions locales
-- Détail compétition
-- Matchs / Résultats
-- Classements
-- Statistiques
-- Publications
+- Accueil.
+- Liste des tournois acceptés.
+- Détail tournoi.
+- Matchs.
+- Résultats.
+- Classement.
+- Statistiques.
 
 ### Pages authentification
 
-- Register
-- Login
-- Choix du rôle
-- Fake Payment / Upgrade Organizer
+- Register.
+- Login.
 
 ### Pages Admin
 
-- Dashboard Admin
-- Utilisateurs
-- Compétitions officielles
-- Championnats officiels
-- Tournois officiels
-- Matchs officiels
-- Paiements simulés
-- Publications
+- Dashboard Admin.
+- Tournois en attente.
+- Tous les tournois.
+- Acceptation / refus d'un tournoi.
 
-### Pages Organizer
+### Pages User
 
-- Dashboard Organizer
-- Mes championnats
-- Mes tournois
-- Demandes de participation
-- Équipes participantes
-- Matchs
-- Résultats
-- Publications
+- Dashboard User.
+- Mes tournois.
+- Créer tournoi.
+- Mes équipes.
+- Créer équipe.
+- Joueurs.
+- Mes demandes.
 
-### Pages Team Manager
+### Pages Créateur du tournoi
 
-- Dashboard Team Manager
-- Mon équipe
-- Mes joueurs
-- Compétitions disponibles
-- Mes demandes
-- Confirmation ou contestation des résultats
+- Détail de mon tournoi.
+- Demandes de participation.
+- Équipes participantes.
+- Création des matchs.
+- Saisie des résultats.
+- Classement.
 
-## 8. Base de données PostgreSQL
+## 9. Base de données PostgreSQL
 
 Configuration Docker utilisée par Laravel :
 
@@ -257,44 +270,38 @@ DB_USERNAME=postgres
 DB_PASSWORD=postgres
 ```
 
-Tables principales prévues :
+Tables principales :
 
-- users
-- fake_payments
-- seasons
-- championships
-- tournaments
-- teams
-- players
-- match_games
-- compositions
-- rankings
-- statistics
-- join_requests
-- posts
-- championship_team
-- tournament_team
+- users ;
+- tournaments ;
+- teams ;
+- players ;
+- tournament_team ;
+- join_requests ;
+- match_games ;
+- compositions ;
+- rankings ;
+- statistics.
 
-## 9. Gestion des rôles et permissions
+## 10. Gestion des rôles et permissions
 
 | Rôle | Permissions principales |
 |---|---|
-| admin | Gérer toute la plateforme |
-| organizer | Gérer ses propres compétitions locales |
-| team_manager | Gérer son équipe, ses joueurs et ses demandes |
-| viewer | Consultation seulement |
+| admin | Valider/refuser les tournois, superviser la plateforme |
+| user | Créer tournois, équipes, joueurs, demander participation |
 
-Règle de sécurité :
+Règles de sécurité :
 
 ```txt
-Un organizer ne peut modifier que les compétitions où created_by = son user_id.
-Un team_manager ne peut modifier que les équipes où manager_id = son user_id.
-Un viewer ne peut pas créer, modifier ou supprimer des données.
+Un user ne peut modifier que les tournois où created_by = son user_id.
+Un user ne peut modifier que les équipes où manager_id = son user_id.
+Un tournoi doit être accepted pour être visible publiquement.
+Un tournoi doit être accepted pour recevoir des demandes de participation.
 ```
 
-## 10. Gestion des résultats locaux
+## 11. Gestion des résultats
 
-Les résultats locaux passent par trois états :
+Les résultats passent par trois états :
 
 ```txt
 pending
@@ -303,21 +310,6 @@ disputed
 ```
 
 Seuls les résultats `confirmed` sont utilisés dans le calcul du classement.
-
-## 11. Paiement simulé
-
-Le paiement réel n'est pas inclus dans la première version.
-
-Le prototype utilise un système de paiement simulé :
-
-```txt
-1. L'utilisateur choisit le rôle organizer.
-2. Il accède à la page Fake Payment.
-3. Il clique sur Fake Pay.
-4. Une ligne est créée dans fake_payments.
-5. users.payment_status devient paid.
-6. users.role devient organizer.
-```
 
 ## 12. Gestion des images
 
@@ -335,7 +327,6 @@ Exemples :
 teams/logo.png
 players/photo.jpg
 tournaments/banner.jpg
-posts/post-image.jpg
 ```
 
 Commande Laravel nécessaire :
@@ -365,14 +356,14 @@ Règles recommandées :
 Exemples de branches :
 
 ```txt
-feature/roles-and-auth
-feature/fake-payments
-feature/local-competitions
+feature/auth-users
+feature/admin-tournament-approval
+feature/tournaments-crud
+feature/teams-players
 feature/join-requests
 feature/matches-results
-feature/posts-feed
 feature/rankings-statistics
-docs/conception
+docs/local-tournament-docs
 ```
 
 ## 14. Sécurité
@@ -381,7 +372,7 @@ Mesures prévues :
 
 - mots de passe hashés ;
 - validation des données côté backend ;
-- routes protégées selon les rôles ;
+- routes protégées selon le rôle ;
 - restriction par propriétaire des données ;
 - fichier `.env` non versionné ;
 - contrôle des fichiers uploadés ;
@@ -392,21 +383,14 @@ Mesures prévues :
 - test du lancement Docker ;
 - test des migrations ;
 - test des routes API ;
-- test des rôles ;
-- test du paiement simulé ;
+- test de l'inscription et connexion ;
+- test de création tournoi ;
+- test d'acceptation/refus par admin ;
+- test de création équipe ;
+- test de création joueurs ;
 - test des demandes de participation ;
-- test de la validation des résultats ;
-- test des formulaires React ;
-- test des uploads ;
-- test du calcul du classement ;
-- test des statistiques.
-
-## 16. Maintenance
-
-L'architecture séparée frontend/backend facilite :
-
-- la maintenance du code ;
-- l'ajout de nouvelles fonctionnalités ;
-- le test des API ;
-- le remplacement ou l'amélioration du frontend ;
-- le travail en équipe.
+- test de création match ;
+- test de saisie résultat ;
+- test du calcul de classement ;
+- test des statistiques ;
+- test des formulaires React.
