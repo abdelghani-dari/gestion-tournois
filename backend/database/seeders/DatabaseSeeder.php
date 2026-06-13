@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\JoinRequest;
 use App\Models\Player;
 use App\Models\Team;
 use App\Models\Tournament;
@@ -13,7 +14,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        User::create([
+        $admin = User::create([
             'name' => 'Admin',
             'email' => 'admin@example.com',
             'password' => Hash::make('password'),
@@ -27,16 +28,18 @@ class DatabaseSeeder extends Seeder
             'role' => 'user',
         ]);
 
-        Tournament::create([
+        $tournament = Tournament::create([
             'created_by' => $user->id,
             'name' => 'Demo Local Tournament',
-            'description' => 'Pending demo tournament for local testing.',
+            'description' => 'Accepted demo tournament for local testing.',
             'city' => 'Casablanca',
             'location' => 'Local Stadium',
             'start_date' => '2026-07-01',
             'end_date' => '2026-07-15',
-            'status' => 'draft',
-            'approval_status' => 'pending',
+            'status' => 'open',
+            'approval_status' => 'accepted',
+            'approved_by' => $admin->id,
+            'approved_at' => now(),
         ]);
 
         $team = Team::create([
@@ -59,6 +62,14 @@ class DatabaseSeeder extends Seeder
             'last_name' => 'El Mansouri',
             'position' => 'MF',
             'number' => 8,
+        ]);
+
+        JoinRequest::create([
+            'tournament_id' => $tournament->id,
+            'team_id' => $team->id,
+            'manager_id' => $user->id,
+            'status' => 'pending',
+            'message' => 'Demo Team would like to join this tournament.',
         ]);
     }
 }

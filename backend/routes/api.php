@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminTournamentController;
+use App\Http\Controllers\Api\JoinRequestController;
 use App\Http\Controllers\Api\PlayerController;
 use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\TournamentController;
@@ -33,3 +34,9 @@ Route::post('players', [PlayerController::class, 'store']);
 Route::get('players/{player}', [PlayerController::class, 'show']);
 Route::put('players/{player}', [PlayerController::class, 'update']);
 Route::delete('players/{player}', [PlayerController::class, 'destroy']);
+
+Route::get('join-requests', [JoinRequestController::class, 'index']);
+Route::post('join-requests', [JoinRequestController::class, 'store']);
+Route::get('join-requests/{joinRequest}', [JoinRequestController::class, 'show']);
+Route::put('join-requests/{joinRequest}/accept', [JoinRequestController::class, 'accept']);
+Route::put('join-requests/{joinRequest}/refuse', [JoinRequestController::class, 'refuse']);

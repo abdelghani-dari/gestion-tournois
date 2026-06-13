@@ -45,4 +45,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Team::class, 'manager_id');
     }
+
+    public function joinRequests(): HasMany
+    {
+        return $this->hasMany(JoinRequest::class, 'manager_id');
+    }
 }
