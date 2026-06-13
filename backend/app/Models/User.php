@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -28,5 +29,15 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function tournaments(): HasMany
+    {
+        return $this->hasMany(Tournament::class, 'created_by');
+    }
+
+    public function approvedTournaments(): HasMany
+    {
+        return $this->hasMany(Tournament::class, 'approved_by');
     }
 }
