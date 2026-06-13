@@ -53,4 +53,9 @@ class Team extends Model
     {
         return $this->hasMany(Ranking::class);
     }
+
+    public function statistics(): HasMany
+    {
+        return $this->hasMany(Statistic::class);
+    }
 }

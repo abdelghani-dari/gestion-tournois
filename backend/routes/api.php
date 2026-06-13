@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\JoinRequestController;
 use App\Http\Controllers\Api\MatchGameController;
 use App\Http\Controllers\Api\PlayerController;
 use App\Http\Controllers\Api\RankingController;
+use App\Http\Controllers\Api\StatisticController;
 use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\TournamentController;
 use Illuminate\Support\Facades\Route;
@@ -54,3 +55,9 @@ Route::put('matches/{matchGame}/dispute-result', [MatchGameController::class, 'd
 
 Route::get('rankings', [RankingController::class, 'index']);
 Route::post('rankings/recalculate', [RankingController::class, 'recalculate']);
+
+Route::get('statistics', [StatisticController::class, 'index']);
+Route::post('statistics', [StatisticController::class, 'store']);
+Route::get('statistics/{statistic}', [StatisticController::class, 'show']);
+Route::put('statistics/{statistic}', [StatisticController::class, 'update']);
+Route::delete('statistics/{statistic}', [StatisticController::class, 'destroy']);

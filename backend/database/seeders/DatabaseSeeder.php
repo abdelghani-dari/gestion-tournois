@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\JoinRequest;
 use App\Models\MatchGame;
 use App\Models\Player;
+use App\Models\Statistic;
 use App\Models\Team;
 use App\Models\Tournament;
 use App\Models\User;
@@ -49,7 +50,7 @@ class DatabaseSeeder extends Seeder
             'city' => 'Casablanca',
         ]);
 
-        Player::create([
+        $demoGoalkeeper = Player::create([
             'team_id' => $team->id,
             'first_name' => 'Omar',
             'last_name' => 'Benali',
@@ -57,7 +58,7 @@ class DatabaseSeeder extends Seeder
             'number' => 1,
         ]);
 
-        Player::create([
+        $demoMidfielder = Player::create([
             'team_id' => $team->id,
             'first_name' => 'Karim',
             'last_name' => 'El Mansouri',
@@ -69,6 +70,14 @@ class DatabaseSeeder extends Seeder
             'manager_id' => $user->id,
             'name' => 'Lions FC',
             'city' => 'Taourirt',
+        ]);
+
+        $lionsPlayer = Player::create([
+            'team_id' => $secondTeam->id,
+            'first_name' => 'Youssef',
+            'last_name' => 'Amrani',
+            'position' => 'ST',
+            'number' => 9,
         ]);
 
         JoinRequest::create([
@@ -89,7 +98,7 @@ class DatabaseSeeder extends Seeder
 
         $tournament->teams()->syncWithoutDetaching([$team->id, $secondTeam->id]);
 
-        MatchGame::create([
+        $confirmedMatch = MatchGame::create([
             'tournament_id' => $tournament->id,
             'created_by' => $user->id,
             'home_team_id' => $team->id,
@@ -111,6 +120,30 @@ class DatabaseSeeder extends Seeder
             'away_score' => 1,
             'status' => 'played',
             'result_status' => 'disputed',
+        ]);
+
+        Statistic::create([
+            'match_game_id' => $confirmedMatch->id,
+            'team_id' => $team->id,
+            'player_id' => $demoGoalkeeper->id,
+            'stat_type' => 'goal',
+            'value' => 1,
+        ]);
+
+        Statistic::create([
+            'match_game_id' => $confirmedMatch->id,
+            'team_id' => $team->id,
+            'player_id' => $demoMidfielder->id,
+            'stat_type' => 'assist',
+            'value' => 1,
+        ]);
+
+        Statistic::create([
+            'match_game_id' => $confirmedMatch->id,
+            'team_id' => $secondTeam->id,
+            'player_id' => $lionsPlayer->id,
+            'stat_type' => 'yellow_card',
+            'value' => 1,
         ]);
     }
 }
