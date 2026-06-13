@@ -38,4 +38,14 @@ class Team extends Model
     {
         return $this->hasMany(JoinRequest::class);
     }
+
+    public function homeMatches(): HasMany
+    {
+        return $this->hasMany(MatchGame::class, 'home_team_id');
+    }
+
+    public function awayMatches(): HasMany
+    {
+        return $this->hasMany(MatchGame::class, 'away_team_id');
+    }
 }

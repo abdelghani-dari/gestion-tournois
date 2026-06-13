@@ -50,4 +50,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(JoinRequest::class, 'manager_id');
     }
+
+    public function createdMatches(): HasMany
+    {
+        return $this->hasMany(MatchGame::class, 'created_by');
+    }
 }
