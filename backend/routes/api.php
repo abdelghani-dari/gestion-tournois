@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminTournamentController;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\JoinRequestController;
 use App\Http\Controllers\Api\MatchGameController;
 use App\Http\Controllers\Api\PlayerController;
@@ -12,6 +13,15 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('health', function () {
     return response()->json(['status' => 'ok']);
+});
+
+Route::post('register', [AuthController::class, 'register']);
+Route::post('login', [AuthController::class, 'login']);
+
+Route::middleware('auth:api')->group(function () {
+    Route::get('me', [AuthController::class, 'me']);
+    Route::post('logout', [AuthController::class, 'logout']);
+    Route::post('refresh', [AuthController::class, 'refresh']);
 });
 
 Route::get('tournaments', [TournamentController::class, 'index']);
