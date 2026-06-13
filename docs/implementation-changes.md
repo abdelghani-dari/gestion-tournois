@@ -1,148 +1,261 @@
-# Changements à Implémenter — Gestion Tournois
+# Changements à Implémenter — Gestion Tournois Locaux
 
 ## 1. Objectif
 
 Ce document résume les changements techniques à implémenter dans le code Laravel/React pour adapter le projet à la nouvelle orientation.
 
-## 2. Changements base de données
+La nouvelle version gère uniquement les tournois locaux avec validation par l'administrateur.
+
+## 2. À supprimer ou ignorer
+
+### Tables / modules à supprimer
+
+```txt
+championships
+championship_team
+fake_payments
+```
+
+### Champs à supprimer ou ignorer
+
+```txt
+users.payment_status
+users.subscription_plan
+tournaments.level
+tournaments.source
+match_games.championship_id
+rankings.championship_id
+join_requests.championship_id
+statistics.championship_id si existe
+posts.championship_id si posts gardés
+```
+
+### Routes à supprimer
+
+```txt
+/api/championships
+/api/fake-payments
+```
+
+## 3. Modifications base de données
 
 ### Modifier users
 
-Ajouter :
+Garder seulement :
 
 ```txt
-role: admin / organizer / team_manager / viewer
-payment_status: unpaid / paid
-subscription_plan: free / organizer
+role: admin / user
 ```
 
-### Modifier championships
-
-Ajouter :
+Supprimer :
 
 ```txt
-created_by
-level: international / national / local
-source: official / user_created
-city
-country
+payment_status
+subscription_plan
 ```
 
 ### Modifier tournaments
 
-Ajouter :
+Ajouter ou garder :
 
 ```txt
 created_by
-level: international / national / local
-source: official / user_created
+name
+description
 city
-country
+location
+banner_path
+start_date
+end_date
+status: draft / open / active / finished / cancelled
+approval_status: pending / accepted / refused
+admin_note
+approved_by
+approved_at
 ```
 
 ### Modifier teams
 
-Ajouter :
+Garder :
 
 ```txt
 manager_id
-country
+name
+logo_path
+city
 ```
 
 ### Modifier match_games
 
-Ajouter :
+Garder uniquement :
 
 ```txt
+tournament_id
 created_by
-result_status: pending / confirmed / disputed
-```
-
-### Créer fake_payments
-
-```txt
-id
-user_id
-plan
-amount
+home_team_id
+away_team_id
+match_date
+home_score
+away_score
 status
-paid_at
-created_at
-updated_at
+result_status
 ```
 
-### Créer join_requests
+Supprimer :
 
 ```txt
-id
-championship_id nullable
-tournament_id nullable
+championship_id
+```
+
+### Modifier rankings
+
+Garder uniquement :
+
+```txt
+tournament_id
+team_id
+played
+wins
+draws
+losses
+goals_for
+goals_against
+goal_difference
+points
+```
+
+Supprimer :
+
+```txt
+championship_id
+```
+
+### Modifier join_requests
+
+Garder uniquement :
+
+```txt
+tournament_id
 team_id
 manager_id
-status: pending / accepted / refused
-message nullable
-created_at
-updated_at
+status
+message
 ```
 
-### Créer posts
+Supprimer :
 
 ```txt
-id
-user_id
-championship_id nullable
-tournament_id nullable
-content
-image_path nullable
-type: announcement / result / news / general
-created_at
-updated_at
+championship_id
 ```
 
-## 3. Ordre recommandé de développement
-
-```txt
-1. Migrations database
-2. Models + relations
-3. Auth / roles middleware
-4. Fake payment API
-5. Organizer local competitions API
-6. Team manager teams API
-7. Join requests API
-8. Match result validation API
-9. Posts/feed API
-10. Frontend pages
-```
-
-## 4. Règles métier importantes
+## 4. Nouvelles règles métier
 
 ```txt
 Admin:
-- peut tout gérer
-- gère les compétitions official
+- peut accepter ou refuser un tournoi.
+- peut voir les tournois en attente.
 
-Organizer:
-- doit avoir payment_status = paid
-- gère uniquement les championnats/tournois where created_by = auth user id
+User:
+- peut créer un tournoi.
+- peut créer une équipe.
+- peut ajouter des joueurs.
+- peut demander la participation à un tournoi accepté.
 
-Team Manager:
-- gère uniquement les teams where manager_id = auth user id
-- peut envoyer join request
-- peut confirmer ou contester un résultat
-
-Viewer:
-- peut consulter seulement
+Créateur du tournoi:
+- peut gérer uniquement ses propres tournois.
+- peut accepter/refuser les demandes de participation.
+- peut créer les matchs.
+- peut saisir les résultats.
+- peut recalculer le classement.
 ```
 
-## 5. Tests minimum à faire
+## 5. Routes backend recommandées
+
+### Admin
 
 ```txt
-php artisan migrate:fresh
+GET /api/admin/tournaments/pending
+PUT /api/admin/tournaments/{id}/accept
+PUT /api/admin/tournaments/{id}/refuse
+```
+
+### Tournaments
+
+```txt
+GET /api/tournaments
+POST /api/tournaments
+GET /api/tournaments/{id}
+PUT /api/tournaments/{id}
+DELETE /api/tournaments/{id}
+GET /api/my-tournaments
+```
+
+### Teams / Players
+
+```txt
+GET /api/teams
+POST /api/teams
+GET /api/my-teams
+GET /api/players
+POST /api/players
+```
+
+### Join Requests
+
+```txt
+POST /api/join-requests
+PUT /api/join-requests/{id}/accept
+PUT /api/join-requests/{id}/refuse
+```
+
+### Matches / Results
+
+```txt
+POST /api/matches
+PUT /api/matches/{id}/result
+PUT /api/matches/{id}/confirm-result
+PUT /api/matches/{id}/dispute-result
+```
+
+### Rankings / Statistics
+
+```txt
+GET /api/rankings?tournament_id=1
+POST /api/rankings/recalculate
+GET /api/statistics
+POST /api/statistics
+```
+
+## 6. Ordre recommandé de développement
+
+```txt
+1. Mettre à jour les migrations.
+2. Mettre à jour les modèles et relations.
+3. Supprimer ou ignorer Championships et FakePayments.
+4. Ajouter approval_status dans tournaments.
+5. Ajouter routes admin accept/refuse.
+6. Adapter JoinRequest pour tournament_id seulement.
+7. Adapter MatchGame pour tournament_id seulement.
+8. Adapter Ranking pour tournament_id seulement.
+9. Tester avec php artisan migrate:fresh --seed.
+10. Créer un frontend simple de test.
+```
+
+## 7. Tests minimum à faire
+
+```txt
+php artisan migrate:fresh --seed
 php artisan route:list
 php -l app/Models/*.php
 php -l app/Http/Controllers/Api/*.php
-curl GET /api/tournaments
-curl POST /api/fake-payments
-curl POST /api/join-requests
-curl PUT /api/matches/{id}/result
+GET /api/tournaments
+POST /api/tournaments
+GET /api/admin/tournaments/pending
+PUT /api/admin/tournaments/1/accept
+POST /api/teams
+POST /api/join-requests
+PUT /api/join-requests/1/accept
+POST /api/matches
+PUT /api/matches/1/result
+GET /api/rankings?tournament_id=1
 ```

@@ -1,19 +1,12 @@
-# Rapport d'Avancement 1 — Gestion Tournois
+# Rapport d'Avancement 1 — Gestion Tournois Locaux
 
 ## 1. Présentation
 
-Ce document présente le premier état d'avancement du projet Gestion Tournois.
+Ce document présente le premier état d'avancement du projet **Gestion Tournois Locaux**.
 
-Le projet consiste à développer une application web de gestion sportive orientée football.
+Le projet consiste à développer une application web permettant de gérer les tournois locaux de football.
 
-La nouvelle orientation du projet consiste à créer une plateforme permettant de gérer à la fois :
-
-- les compétitions officielles ou majeures ;
-- les compétitions locales créées par les organisateurs ;
-- les équipes, joueurs, matchs, compositions, classements et statistiques ;
-- les demandes de participation des équipes ;
-- un feed football simple ;
-- un paiement simulé pour l'activation du rôle organizer.
+Après recadrage, l'application ne gère plus les championnats, les compétitions officielles ou les paiements simulés. Elle se concentre uniquement sur la gestion complète des tournois locaux.
 
 ## 2. État d'avancement général
 
@@ -28,9 +21,9 @@ La nouvelle orientation du projet consiste à créer une plateforme permettant d
 | Frontend React installé | Terminé |
 | PostgreSQL configuré | Terminé |
 | Documentation setup commencée | Terminé |
-| Nouvelle orientation fonctionnelle | Terminé |
+| Recentrage du sujet sur les tournois locaux | Terminé |
 | Conception UML mise à jour | En cours |
-| Schéma de base de données mis à jour | En cours |
+| Schéma de base de données simplifié | En cours |
 
 ## 3. Technologies retenues
 
@@ -42,7 +35,7 @@ La nouvelle orientation du projet consiste à créer une plateforme permettant d
 | API | REST API |
 | Déploiement local | Docker + Docker Compose |
 | Versioning | Git + GitHub |
-| Conception | UML |
+| Conception | UML / Mermaid |
 
 ## 4. Travail réalisé
 
@@ -50,13 +43,13 @@ La nouvelle orientation du projet consiste à créer une plateforme permettant d
 
 Nous avons installé et configuré les outils nécessaires au développement :
 
-- Docker Desktop
-- PHP 8.4
-- Composer
-- Node.js / npm
-- Laravel
-- React
-- PostgreSQL
+- Docker Desktop ;
+- PHP ;
+- Composer ;
+- Node.js / npm ;
+- Laravel ;
+- React ;
+- PostgreSQL.
 
 ### 4.2 Configuration Docker
 
@@ -84,98 +77,87 @@ Le dépôt GitHub est :
 https://github.com/abdelghani-dari/gestion-tournois
 ```
 
-Une première configuration Docker a été créée, poussée dans une branche, puis fusionnée dans main.
-
 ### 4.4 Documentation
 
-Les premiers documents ont été créés :
+Les documents suivants ont été préparés ou mis à jour :
 
-- README setup
-- Fiche de cadrage
-- Cahier des charges mis à jour
-- Planning
-- Documentation technique
-- Document de conception
-- Diagramme de cas d'utilisation
-- Diagramme de classes
-- Schéma de base de données
-- Architecture technique
+- fiche de cadrage ;
+- cahier des charges ;
+- planning ;
+- documentation technique ;
+- document de conception ;
+- diagramme de cas d'utilisation ;
+- diagramme de classes ;
+- schéma de base de données ;
+- architecture technique ;
+- diagrammes de séquence.
 
-### 4.5 Nouvelle orientation fonctionnelle
+### 4.5 Recentrage fonctionnel
 
-Après discussion, nous avons décidé d'améliorer l'idée initiale pour rendre le projet plus réaliste.
+L'idée précédente était trop large car elle incluait :
 
-L'application ne sera pas seulement un outil d'administration interne. Elle devient une plateforme football permettant de gérer :
+- compétitions officielles ;
+- championnats ;
+- paiement simulé ;
+- feed football ;
+- plusieurs rôles complexes.
 
-- des compétitions officielles, créées par l'admin ;
-- des compétitions locales, créées par des organizers ;
-- des équipes locales, créées par des team managers ;
-- des résultats publics consultables par les viewers.
+La nouvelle version est plus simple et plus adaptée au projet tutoré :
 
-Les rôles retenus sont :
-
-```txt
-admin
-organizer
-team_manager
-viewer
-```
-
-Un système de paiement simulé est prévu pour activer le rôle organizer dans le prototype PFE.
+- un utilisateur crée un tournoi local ;
+- l'administrateur accepte ou refuse le tournoi ;
+- les équipes demandent à participer ;
+- le créateur du tournoi accepte/refuse les équipes ;
+- le créateur gère les matchs et les résultats ;
+- le système calcule le classement.
 
 ## 5. Problèmes rencontrés
 
-### 5.1 Configuration de l'environnement
+### 5.1 Périmètre trop large
 
-Certains membres peuvent rencontrer des problèmes avec le fichier `.env`, la génération de la clé Laravel ou la connexion à la base de données.
+La première conception contenait des fonctionnalités non nécessaires pour la première version.
 
-Solution proposée :
+Solution : limiter le projet aux tournois locaux uniquement.
 
-- mettre à jour `backend/.env.example` ;
-- documenter les commandes dans le README ;
-- utiliser Docker Compose pour uniformiser l'environnement.
+### 5.2 Complexité des rôles
 
-### 5.2 Choix du stockage des images
+Les rôles `organizer`, `team_manager` et `viewer` rendaient le projet plus complexe.
 
-Nous avons clarifié la stratégie suivante :
+Solution : garder seulement deux rôles :
 
-- les images uploadées sont stockées dans Laravel `storage/app/public` ;
-- la base de données stocke seulement le chemin de l'image ;
-- les images statiques de l'interface restent dans le frontend.
+```txt
+admin
+user
+```
 
-### 5.3 Élargissement du périmètre
+Le créateur du tournoi est identifié avec `tournaments.created_by`.
 
-La nouvelle idée peut devenir trop large si elle est développée comme un réseau social complet.
+### 5.3 Paiement simulé non nécessaire
 
-Solution proposée :
-
-- garder uniquement un feed simple ;
-- ne pas développer chat, likes, commentaires ou followers dans la première version ;
-- garder le paiement comme simulation seulement ;
-- ne pas intégrer d'API football réelle dans la première version.
+Le paiement simulé a été supprimé car l'application ne repose plus sur un abonnement organizer.
 
 ## 6. Travail en cours
 
 - Finalisation de la conception UML.
 - Validation du schéma de base de données.
-- Préparation des migrations Laravel.
-- Organisation du travail entre les membres.
-- Définition des permissions par rôle.
+- Adaptation des migrations Laravel.
+- Adaptation des contrôleurs API.
+- Préparation des pages frontend simples.
 
 ## 7. Prochaines étapes
 
-- Finaliser les diagrammes UML.
-- Valider le modèle de base de données.
-- Créer les migrations Laravel.
-- Développer les modèles Laravel.
-- Créer les contrôleurs API.
-- Développer les pages React.
-- Tester l'intégration frontend/backend.
-- Préparer la démonstration du paiement simulé.
-- Préparer la démonstration des résultats locaux.
+- Mettre à jour les migrations.
+- Supprimer ou ignorer les tables `championships` et `fake_payments`.
+- Adapter les modèles Laravel.
+- Adapter les contrôleurs API.
+- Ajouter les routes admin d'acceptation/refus.
+- Tester la création et validation des tournois.
+- Tester les demandes de participation.
+- Tester les matchs et classements.
+- Préparer un prototype frontend simple.
 
 ## 8. Conclusion
 
-Le projet est bien lancé. L'environnement technique est fonctionnel, la configuration Docker permet de lancer l'application facilement, et la conception a été améliorée pour rendre le projet plus réaliste.
+Le projet est bien lancé et son périmètre est maintenant plus clair. La nouvelle version est plus simple, plus réaliste et mieux adaptée au délai du projet tutoré.
 
-La prochaine étape principale est de valider la nouvelle conception avant de continuer le développement des fonctionnalités.
+La prochaine étape principale est l'adaptation technique du backend et la préparation d'un frontend simple pour la démonstration.
