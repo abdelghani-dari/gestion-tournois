@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Player;
+use App\Models\Team;
 use App\Models\Tournament;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -35,6 +37,28 @@ class DatabaseSeeder extends Seeder
             'end_date' => '2026-07-15',
             'status' => 'draft',
             'approval_status' => 'pending',
+        ]);
+
+        $team = Team::create([
+            'manager_id' => $user->id,
+            'name' => 'Demo Team',
+            'city' => 'Casablanca',
+        ]);
+
+        Player::create([
+            'team_id' => $team->id,
+            'first_name' => 'Omar',
+            'last_name' => 'Benali',
+            'position' => 'GK',
+            'number' => 1,
+        ]);
+
+        Player::create([
+            'team_id' => $team->id,
+            'first_name' => 'Karim',
+            'last_name' => 'El Mansouri',
+            'position' => 'MF',
+            'number' => 8,
         ]);
     }
 }

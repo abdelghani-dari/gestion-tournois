@@ -40,4 +40,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Tournament::class, 'approved_by');
     }
+
+    public function teams(): HasMany
+    {
+        return $this->hasMany(Team::class, 'manager_id');
+    }
 }
