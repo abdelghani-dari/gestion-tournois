@@ -37,4 +37,9 @@ class Player extends Model
     {
         return $this->hasMany(Statistic::class);
     }
+
+    public function compositions(): HasMany
+    {
+        return $this->hasMany(Composition::class);
+    }
 }

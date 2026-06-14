@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AdminTournamentController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CompositionController;
 use App\Http\Controllers\Api\JoinRequestController;
 use App\Http\Controllers\Api\MatchGameController;
 use App\Http\Controllers\Api\PlayerController;
@@ -23,6 +24,8 @@ Route::get('tournaments/{tournament}', [TournamentController::class, 'show']);
 Route::get('rankings', [RankingController::class, 'index']);
 Route::get('statistics', [StatisticController::class, 'index']);
 Route::get('statistics/{statistic}', [StatisticController::class, 'show']);
+Route::get('compositions', [CompositionController::class, 'index']);
+Route::get('compositions/{composition}', [CompositionController::class, 'show']);
 Route::get('matches', [MatchGameController::class, 'index']);
 Route::get('matches/{matchGame}', [MatchGameController::class, 'show']);
 
@@ -73,4 +76,10 @@ Route::middleware('auth:api')->group(function () {
     Route::post('statistics', [StatisticController::class, 'store']);
     Route::put('statistics/{statistic}', [StatisticController::class, 'update']);
     Route::delete('statistics/{statistic}', [StatisticController::class, 'destroy']);
+
+    Route::post('compositions', [CompositionController::class, 'store']);
+    Route::put('compositions/{composition}', [CompositionController::class, 'update']);
+    Route::delete('compositions/{composition}', [CompositionController::class, 'destroy']);
 });
+
+

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Composition;
 use App\Models\JoinRequest;
 use App\Models\MatchGame;
 use App\Models\Player;
@@ -145,5 +146,21 @@ class DatabaseSeeder extends Seeder
             'stat_type' => 'yellow_card',
             'value' => 1,
         ]);
+
+        Composition::create([
+            'match_game_id' => $confirmedMatch->id,
+            'team_id' => $team->id,
+            'player_id' => $demoGoalkeeper->id,
+            'role' => 'starter',
+        ]);
+
+        if ($demoMidfielder !== null) {
+            Composition::create([
+                'match_game_id' => $confirmedMatch->id,
+                'team_id' => $team->id,
+                'player_id' => $demoMidfielder->id,
+                'role' => 'substitute',
+            ]);
+        }
     }
 }
