@@ -147,42 +147,58 @@ classDiagram
         +timestamp updated_at
     }
 
-    User "1" --> "*" Tournament : created_by
-    User "1" --> "*" Team : manager_id
-    User "1" --> "*" JoinRequest : manager_id
-    User "1" --> "*" MatchGame : created_by
+    User "1" --> "0..*" Tournament : creates
+    User "0..1" --> "0..*" Tournament : approves
+    User "1" --> "0..*" Team : manages
+    User "1" --> "0..*" JoinRequest : sends
+    User "0..1" --> "0..*" MatchGame : creates
 
-    Tournament "1" --> "*" TournamentTeam
-    Team "1" --> "*" TournamentTeam
+    Tournament "1" --> "0..*" TournamentTeam : includes
+    Team "1" --> "0..*" TournamentTeam : participates
 
-    Team "1" --> "*" Player
+    Team "1" --> "0..*" Player : has
 
-    Tournament "1" --> "*" JoinRequest
-    Team "1" --> "*" JoinRequest
+    Tournament "1" --> "0..*" JoinRequest : receives
+    Team "1" --> "0..*" JoinRequest : makes
 
-    Tournament "1" --> "*" MatchGame
-    Team "1" --> "*" MatchGame : home_team
-    Team "1" --> "*" MatchGame : away_team
+    Tournament "1" --> "0..*" MatchGame : contains
+    Team "1" --> "0..*" MatchGame : home_team
+    Team "1" --> "0..*" MatchGame : away_team
 
-    MatchGame "1" --> "*" Composition
-    Team "1" --> "*" Composition
-    Player "1" --> "*" Composition
+    MatchGame "1" --> "0..*" Composition : has
+    Team "1" --> "0..*" Composition : uses
+    Player "1" --> "0..*" Composition : selected_in
 
-    Tournament "1" --> "*" Ranking
-    Team "1" --> "*" Ranking
+    Tournament "1" --> "0..*" Ranking : has
+    Team "1" --> "0..*" Ranking : ranked_in
 
-    MatchGame "1" --> "*" Statistic
-    Team "1" --> "*" Statistic
-    Player "1" --> "*" Statistic
+    MatchGame "0..1" --> "0..*" Statistic : has
+    Team "0..1" --> "0..*" Statistic : owns
+    Player "0..1" --> "0..*" Statistic : records
 ```
 
 ## 4. Remarques de conception
 
 - `User.role` contient seulement `admin` ou `user`.
-- `Tournament.created_by` permet de savoir qui est responsable du tournoi.
+- `Tournament.created_by` permet de savoir quel utilisateur a créé le tournoi.
+- `Tournament.approved_by` est optionnel : il reste vide tant que le tournoi est en attente.
 - `Tournament.approval_status` permet à l'admin d'accepter ou refuser un tournoi.
-- `Tournament.status` représente l'état sportif du tournoi.
-- `JoinRequest` permet à une équipe de demander la participation.
-- `TournamentTeam` contient uniquement les équipes acceptées.
-- `MatchGame.result_status` permet de gérer la validation des résultats.
-- `Ranking` dépend uniquement de `tournament_id`.
+- `Tournament.status` représente l'état sportif du tournoi : `draft`, `open`, `active`, `finished` ou `cancelled`.
+- `JoinRequest` permet à une équipe de demander la participation à un tournoi.
+- `TournamentTeam` est la table pivot qui contient uniquement les équipes acceptées dans un tournoi.
+- `MatchGame.home_team_id` et `MatchGame.away_team_id` représentent deux relations différentes vers `Team`.
+- `Composition` appartient à un match, une équipe et un joueur.
+- `Statistic` appartient directement à `MatchGame`, `Team` et `Player`.
+- Il n'y a pas de relation directe entre `Composition` et `Statistic`.
+- `Ranking` dépend de `tournament_id` et `team_id`.
+
+## 5. Contraintes importantes à respecter
+
+```txt
+home_team_id != away_team_id
+home_team_id et away_team_id doivent exister dans tournament_team pour le tournoi concerné
+player_id dans Composition doit appartenir à team_id
+tournament_team doit être unique par tournament_id + team_id
+rankings doit être unique par tournament_id + team_id
+join_requests doit éviter les doublons par tournament_id + team_id
+```
