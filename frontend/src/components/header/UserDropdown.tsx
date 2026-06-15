@@ -1,21 +1,28 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { clsx } from "clsx";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { useThemeTokens } from "../theme/useThemeTokens";
 import { useHeaderDropdown } from "../context/HeaderDropdownContext";
+import { useAuth } from "../../context/AuthContext";
 import { UserIcon, LockIcon, ChevronDownIcon } from "../../icons";
 import adminAvatar from "../../data/botola-pro-logo.png";
 
-const ADMIN = {
-  name: "Admin",
-  email: "admin@gestion-tournois.ma",
-  role: "admin",
-};
-
 export default function UserDropdown() {
+  const navigate = useNavigate();
   const t = useThemeTokens();
   const { isOpen, toggle, close } = useHeaderDropdown();
+  const { user, isAuthenticated, logout } = useAuth();
   const open = isOpen("profile");
+
+  const displayName = user?.name ?? "Invite";
+  const displayEmail = user?.email ?? "Non connecte";
+  const displayRole = user?.role ?? "guest";
+
+  const handleLogout = async () => {
+    await logout();
+    close();
+    navigate("/login");
+  };
 
   return (
     <div className="relative">
@@ -28,9 +35,9 @@ export default function UserDropdown() {
         )}
       >
         <span className={clsx("flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg p-1", t.metricBg)}>
-          <img src={adminAvatar} alt="Admin" className="h-full w-full object-contain" />
+          <img src={adminAvatar} alt="" className="h-full w-full object-contain" />
         </span>
-        <span className={clsx("hidden font-medium sm:block", t.textPrimary)}>{ADMIN.name}</span>
+        <span className={clsx("hidden font-medium sm:block", t.textPrimary)}>{displayName}</span>
         <ChevronDownIcon className={clsx("size-4 shrink-0 opacity-50 transition-transform", open && "rotate-180")} />
       </button>
 
@@ -44,41 +51,57 @@ export default function UserDropdown() {
             <img src={adminAvatar} alt="" className="h-full w-full object-contain" />
           </span>
           <div className="min-w-0">
-            <p className={clsx("truncate font-semibold", t.textPrimary)}>{ADMIN.name}</p>
-            <p className={clsx("truncate text-xs", t.textMuted)}>{ADMIN.email}</p>
+            <p className={clsx("truncate font-semibold", t.textPrimary)}>{displayName}</p>
+            <p className={clsx("truncate text-xs", t.textMuted)}>{displayEmail}</p>
             <span className="mt-1 inline-block rounded-sm bg-brand-500/15 px-2 py-0.5 text-xs font-medium text-brand-500">
-              {ADMIN.role}
+              {displayRole}
             </span>
           </div>
         </div>
 
         <div className={clsx("my-2 border-t", t.border)} />
 
-        <Link
-          to="/profile"
-          onClick={close}
-          className={clsx(
-            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-            t.textSecondary,
-            t.navHover
-          )}
-        >
-          <UserIcon className="size-5 shrink-0 opacity-70" />
-          Mon profil
-        </Link>
+        {isAuthenticated ? (
+          <Link
+            to="/profile"
+            onClick={close}
+            className={clsx(
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+              t.textSecondary,
+              t.navHover
+            )}
+          >
+            <UserIcon className="size-5 shrink-0 opacity-70" />
+            Mon profil
+          </Link>
+        ) : (
+          <Link
+            to="/login"
+            onClick={close}
+            className={clsx(
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+              t.textSecondary,
+              t.navHover
+            )}
+          >
+            <UserIcon className="size-5 shrink-0 opacity-70" />
+            Se connecter
+          </Link>
+        )}
 
-        <Link
-          to="/login"
-          onClick={close}
+        <button
+          type="button"
+          onClick={handleLogout}
+          disabled={!isAuthenticated}
           className={clsx(
-            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+            "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
             t.textSecondary,
             t.navHover
           )}
         >
           <LockIcon className="size-5 shrink-0 opacity-70" />
-          Déconnexion
-        </Link>
+          Deconnexion
+        </button>
       </Dropdown>
     </div>
   );

@@ -6,47 +6,48 @@ import Button from "../../components/common/Button";
 import Badge from "../../components/ui/Badge";
 import ProgressLine from "../../components/common/ProgressLine";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
+import { useAuth } from "../../context/AuthContext";
 import adminAvatar from "../../data/botola-pro-logo.png";
-
-const ADMIN = { name: "Admin", email: "admin@gestion-tournois.ma", role: "admin" };
 
 export default function ProfilePage() {
   const t = useThemeTokens();
+  const { user, loading } = useAuth();
+  const displayUser = user ?? { name: "Invite", email: "Non connecte", role: "guest" };
 
   return (
     <>
-      <XPageMeta title="Mon Profil" description="Profil administrateur" />
+      <XPageMeta title="Mon Profil" description="Profil utilisateur" />
       <PageStack>
         <div className={clsx("grid grid-cols-1 lg:grid-cols-3", GRID_GAP)}>
-          <ComponentCard title="Profil" desc="Compte administrateur">
+          <ComponentCard title="Profil" desc={loading ? "Chargement" : "Compte utilisateur"}>
             <div className="text-center">
               <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-xl border p-3" style={{ borderColor: "inherit" }}>
-                <img src={adminAvatar} alt="Admin" className="h-full w-full object-contain" />
+                <img src={adminAvatar} alt="" className="h-full w-full object-contain" />
               </div>
-              <h2 className={clsx("mt-4 text-lg font-semibold", t.textPrimary)}>{ADMIN.name}</h2>
-              <p className={clsx("text-sm", t.textSecondary)}>{ADMIN.email}</p>
-              <Badge color="primary">{ADMIN.role}</Badge>
+              <h2 className={clsx("mt-4 text-lg font-semibold", t.textPrimary)}>{displayUser.name}</h2>
+              <p className={clsx("text-sm", t.textSecondary)}>{displayUser.email}</p>
+              <Badge color={displayUser.role === "admin" ? "primary" : "light"}>{displayUser.role}</Badge>
             </div>
             <div className={clsx("mt-6 border-t pt-4", t.border)}>
-              <ProgressLine value={85} label="Profil complété" size="sm" />
+              <ProgressLine value={85} label="Profil complete" size="sm" />
             </div>
           </ComponentCard>
 
-          <ComponentCard title="Informations" desc="Modifier vos données" className="lg:col-span-2">
+          <ComponentCard title="Informations" desc="Donnees du compte" className="lg:col-span-2">
             <div className="space-y-4">
               <div>
                 <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom complet</label>
-                <input defaultValue={ADMIN.name} className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
+                <input value={displayUser.name} readOnly className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
               </div>
               <div>
                 <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Email</label>
-                <input defaultValue={ADMIN.email} type="email" className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
+                <input value={displayUser.email} readOnly type="email" className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
               </div>
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nouveau mot de passe</label>
-                <input type="password" placeholder="••••••••" className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
+                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Role</label>
+                <input value={displayUser.role} readOnly className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
               </div>
-              <Button>Enregistrer les modifications</Button>
+              <Button disabled>Modification desactivee</Button>
             </div>
           </ComponentCard>
         </div>

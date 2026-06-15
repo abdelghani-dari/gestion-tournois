@@ -1,4 +1,4 @@
-import { Route, useParams } from "react-router";
+import { Navigate, Route, useLocation, useParams } from "react-router";
 import XAppLayout from "../components/layout/AppLayout";
 import LandingPage from "./landing/LandingPage";
 import LoginPage from "./auth/LoginPage";
@@ -22,6 +22,26 @@ import GlassCard from "../components/common/GlassCard";
 import StatusBadge from "../components/common/StatusBadge";
 import NationalityFlag from "../components/ui/NationalityFlag";
 import { useSeasonData } from "../components/context/SeasonContext";
+import { useAuth } from "../context/AuthContext";
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-sm text-slate-400">
+        Chargement...
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  return children;
+}
 
 function ChampionshipDetail() {
   const { id } = useParams();
@@ -169,7 +189,7 @@ export const appRoutes = (
     <Route path="login" element={<LoginPage />} />
 
     <Route element={<XAppLayout />}>
-      <Route path="dashboard" element={<DashboardPage />} />
+      <Route path="dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
       <Route path="seasons" element={<SeasonsPage />} />
       <Route path="championships" element={<ChampionshipsPage />} />
       <Route path="championships/:id" element={<ChampionshipDetail />} />

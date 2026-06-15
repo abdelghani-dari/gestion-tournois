@@ -1,17 +1,63 @@
-export const API_BASE = "http://localhost:8000/api";
+export const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
-export type ApiResult = {
-  ok: boolean;
+const TOKEN_KEY = "auth_token";
+
+export class ApiError extends Error {
   status: number;
   data: unknown;
-};
 
-export async function apiRequest(
-  path: string,
-  token: string,
+  constructor(message: string, status: number, data: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.data = data;
+  }
+}
+
+export function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token: string) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearToken() {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+function getErrorMessage(data: unknown, fallback: string) {
+  if (data && typeof data === "object") {
+    const maybeMessage = (data as { message?: unknown }).message;
+    if (typeof maybeMessage === "string" && maybeMessage.trim()) {
+      return maybeMessage;
+    }
+  }
+  if (typeof data === "string" && data.trim()) {
+    return data;
+  }
+  return fallback;
+}
+
+async function parseResponse(response: Response) {
+  const text = await response.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return text;
+  }
+}
+
+export async function apiRequest<T>(
+  endpoint: string,
   options: RequestInit = {},
-): Promise<ApiResult> {
+): Promise<T> {
   const headers = new Headers(options.headers);
+  const token = getToken();
+
+  headers.set("Accept", "application/json");
 
   if (options.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -21,25 +67,20 @@ export async function apiRequest(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers,
   });
 
-  const text = await response.text();
-  let data: unknown = text;
+  const data = await parseResponse(response);
 
-  if (text) {
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = text;
-    }
+  if (!response.ok) {
+    throw new ApiError(
+      getErrorMessage(data, `Request failed with status ${response.status}`),
+      response.status,
+      data,
+    );
   }
 
-  return {
-    ok: response.ok,
-    status: response.status,
-    data,
-  };
+  return data as T;
 }
