@@ -84,3 +84,23 @@ export async function apiRequest<T>(
 
   return data as T;
 }
+
+export type PublicTournament = {
+  id: number;
+  name: string;
+  description?: string | null;
+  city?: string | null;
+  location?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  status?: string | null;
+  approval_status?: string | null;
+};
+
+type PublicTournamentsResponse = PublicTournament[] | { data?: PublicTournament[] };
+
+export async function getPublicTournaments() {
+  const response = await apiRequest<PublicTournamentsResponse>("/tournaments");
+  if (Array.isArray(response)) return response;
+  return response.data ?? [];
+}
