@@ -95,6 +95,7 @@ export type PublicTournament = {
   end_date?: string | null;
   status?: string | null;
   approval_status?: string | null;
+  admin_note?: string | null;
 };
 
 type PublicTournamentsResponse = PublicTournament[] | { data?: PublicTournament[] };
@@ -103,4 +104,30 @@ export async function getPublicTournaments() {
   const response = await apiRequest<PublicTournamentsResponse>("/tournaments");
   if (Array.isArray(response)) return response;
   return response.data ?? [];
+}
+
+export type MyTournament = PublicTournament;
+
+export type CreateTournamentPayload = {
+  name: string;
+  description?: string;
+  city?: string;
+  location?: string;
+  start_date: string;
+  end_date: string;
+};
+
+type MyTournamentsResponse = MyTournament[] | { data?: MyTournament[] };
+
+export async function getMyTournaments() {
+  const response = await apiRequest<MyTournamentsResponse>("/my-tournaments");
+  if (Array.isArray(response)) return response;
+  return response.data ?? [];
+}
+
+export async function createTournament(payload: CreateTournamentPayload) {
+  return apiRequest<MyTournament>("/tournaments", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
