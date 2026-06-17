@@ -25,11 +25,11 @@ import { useAuth } from "../../context/AuthContext";
 import { BoltIcon, PieChartIcon } from "../../icons";
 
 const statTypes: Array<{ value: StatisticType; label: string }> = [
-  { value: "goal", label: "Goal" },
-  { value: "assist", label: "Assist" },
-  { value: "yellow_card", label: "Yellow card" },
-  { value: "red_card", label: "Red card" },
-  { value: "clean_sheet", label: "Clean sheet" },
+  { value: "goal", label: "But" },
+  { value: "assist", label: "Passe décisive" },
+  { value: "yellow_card", label: "Carton jaune" },
+  { value: "red_card", label: "Carton rouge" },
+  { value: "clean_sheet", label: "Match sans but encaissé" },
 ];
 
 type StatisticForm = {
@@ -79,19 +79,19 @@ function playerName(player?: ApiPlayer | null) {
 }
 
 function teamName(teamId: number, teams: ApiTeam[], embedded?: ApiTeam | null) {
-  return embedded?.name ?? teams.find((team) => team.id === teamId)?.name ?? `Team #${teamId}`;
+  return embedded?.name ?? teams.find((team) => team.id === teamId)?.name ?? `Équipe #${teamId}`;
 }
 
 function playerLabel(playerId: number, players: ApiPlayer[], embedded?: ApiPlayer | null) {
-  return playerName(embedded) || playerName(players.find((player) => player.id === playerId)) || `Player #${playerId}`;
+  return playerName(embedded) || playerName(players.find((player) => player.id === playerId)) || `Joueur #${playerId}`;
 }
 
 function matchName(matchId: number, matches: ApiMatch[], embedded?: ApiMatch | null) {
   const match = embedded ?? matches.find((item) => item.id === matchId);
   if (!match) return `Match #${matchId}`;
 
-  const home = match.home_team?.name ?? `Team #${match.home_team_id}`;
-  const away = match.away_team?.name ?? `Team #${match.away_team_id}`;
+  const home = match.home_team?.name ?? `Équipe #${match.home_team_id}`;
+  const away = match.away_team?.name ?? `Équipe #${match.away_team_id}`;
   return `#${match.id} - ${home} vs ${away}`;
 }
 
@@ -116,7 +116,7 @@ function getRouteFilters(pathname: string, id?: string): StatisticFilters {
 
 function readableStatisticError(err: unknown, fallback: string) {
   if (err instanceof ApiError && err.status === 401) {
-    return "Your session has expired. Please log in again.";
+    return "Votre session a expiré. Veuillez vous reconnecter.";
   }
   return err instanceof Error ? err.message : fallback;
 }
@@ -175,7 +175,7 @@ export default function StatisticsPage() {
         player_id: current.player_id || (playersData[0]?.id ? String(playersData[0].id) : ""),
       }));
     } catch (err) {
-      setError(readableStatisticError(err, "Unable to load statistics."));
+      setError(readableStatisticError(err, "Impossible de charger les statistiques."));
     } finally {
       setLoading(false);
     }
@@ -213,7 +213,7 @@ export default function StatisticsPage() {
 
     try {
       await createStatistic(payload);
-      setSuccess("Statistic created.");
+      setSuccess("Statistique créée.");
       setForm((current) => ({
         ...emptyForm,
         match_game_id: current.match_game_id,
@@ -222,7 +222,7 @@ export default function StatisticsPage() {
       }));
       await loadData();
     } catch (err) {
-      setError(readableStatisticError(err, "Unable to create statistic."));
+      setError(readableStatisticError(err, "Impossible de créer la statistique."));
     } finally {
       setSubmitting(false);
     }
@@ -245,9 +245,9 @@ export default function StatisticsPage() {
       <PageStack>
         <div className={clsx("grid grid-cols-1 sm:grid-cols-3", GRID_GAP)}>
           {[
-            { label: "Goals", value: totals.goals, icon: <PieChartIcon className="size-5 text-emerald-400" /> },
-            { label: "Assists", value: totals.assists, icon: <BoltIcon className="size-5 text-sky-400" /> },
-            { label: "Cards", value: totals.cards, icon: <PieChartIcon className="size-5 text-amber-400" /> },
+            { label: "Buts", value: totals.goals, icon: <PieChartIcon className="size-5 text-emerald-400" /> },
+            { label: "Passes décisives", value: totals.assists, icon: <BoltIcon className="size-5 text-sky-400" /> },
+            { label: "Cartons", value: totals.cards, icon: <PieChartIcon className="size-5 text-amber-400" /> },
           ].map((stat) => (
             <div key={stat.label} className={clsx("rounded-md border p-5", t.card)}>
               <div className="flex items-center gap-3">
@@ -263,7 +263,7 @@ export default function StatisticsPage() {
 
         <ComponentCard title="Ajouter une statistique" desc={user ? `${user.email} - ${user.role}` : "Connexion requise"}>
           {!isAuthenticated && !authLoading ? (
-            <p className={clsx("text-sm", t.textSecondary)}>Login is required to add statistics. Public statistics remain visible.</p>
+            <p className={clsx("text-sm", t.textSecondary)}>La connexion est requise pour ajouter une statistique. Les statistiques publiques restent visibles.</p>
           ) : (
             <form onSubmit={handleCreate} className="grid grid-cols-1 gap-4 md:grid-cols-5">
               <div className="md:col-span-2">
@@ -275,7 +275,7 @@ export default function StatisticsPage() {
                   disabled={submitting || loading}
                   className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                 >
-                  <option value="">Select match</option>
+                  <option value="">Sélectionner un match</option>
                   {matches.map((match) => (
                     <option key={match.id} value={match.id}>
                       {matchName(match.id, matches, match)}
@@ -285,7 +285,7 @@ export default function StatisticsPage() {
               </div>
 
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Team *</label>
+                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe *</label>
                 <select
                   value={form.team_id}
                   onChange={(event) => updateForm("team_id", event.target.value)}
@@ -293,7 +293,7 @@ export default function StatisticsPage() {
                   disabled={submitting || loading}
                   className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                 >
-                  <option value="">Select team</option>
+                  <option value="">Sélectionner une équipe</option>
                   {teams.map((team) => (
                     <option key={team.id} value={team.id}>{team.name}</option>
                   ))}
@@ -301,7 +301,7 @@ export default function StatisticsPage() {
               </div>
 
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Player *</label>
+                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Joueur *</label>
                 <select
                   value={form.player_id}
                   onChange={(event) => updateForm("player_id", event.target.value)}
@@ -309,7 +309,7 @@ export default function StatisticsPage() {
                   disabled={submitting || loading}
                   className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                 >
-                  <option value="">Select player</option>
+                  <option value="">Sélectionner un joueur</option>
                   {players.map((player) => (
                     <option key={player.id} value={player.id}>{playerLabel(player.id, players, player)}</option>
                   ))}
@@ -332,7 +332,7 @@ export default function StatisticsPage() {
               </div>
 
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Value *</label>
+                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Valeur *</label>
                 <input
                   type="number"
                   min={0}
@@ -346,7 +346,7 @@ export default function StatisticsPage() {
 
               <div className="flex items-end md:col-span-4">
                 <Button type="submit" disabled={submitting || loading || matches.length === 0 || teams.length === 0 || players.length === 0}>
-                  {submitting ? "Saving..." : "Add statistic"}
+                  {submitting ? "Enregistrement..." : "Ajouter la statistique"}
                 </Button>
               </div>
             </form>
@@ -374,7 +374,7 @@ export default function StatisticsPage() {
                 disabled={loading}
                 className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
               >
-                <option value="">All matches</option>
+                <option value="">Tous les matchs</option>
                 {matches.map((match) => (
                   <option key={match.id} value={match.id}>{matchName(match.id, matches, match)}</option>
                 ))}
@@ -382,14 +382,14 @@ export default function StatisticsPage() {
             </div>
 
             <div>
-              <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Team</label>
+              <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe</label>
               <select
                 value={filters.team_id}
                 onChange={(event) => updateFilter("team_id", event.target.value)}
                 disabled={loading}
                 className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
               >
-                <option value="">All teams</option>
+                <option value="">Toutes les équipes</option>
                 {teams.map((team) => (
                   <option key={team.id} value={team.id}>{team.name}</option>
                 ))}
@@ -397,14 +397,14 @@ export default function StatisticsPage() {
             </div>
 
             <div>
-              <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Player</label>
+              <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Joueur</label>
               <select
                 value={filters.player_id}
                 onChange={(event) => updateFilter("player_id", event.target.value)}
                 disabled={loading}
                 className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
               >
-                <option value="">All players</option>
+                <option value="">Tous les joueurs</option>
                 {players.map((player) => (
                   <option key={player.id} value={player.id}>{playerLabel(player.id, players, player)}</option>
                 ))}
@@ -419,7 +419,7 @@ export default function StatisticsPage() {
                 disabled={loading}
                 className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
               >
-                <option value="">All types</option>
+                <option value="">Tous les types</option>
                 {statTypes.map((type) => (
                   <option key={type.value} value={type.value}>{type.label}</option>
                 ))}
@@ -428,22 +428,22 @@ export default function StatisticsPage() {
 
             <div className="flex items-end gap-2">
               <Button type="button" onClick={handleApplyFilters} disabled={loading}>
-                Apply
+                Appliquer
               </Button>
               <Button type="button" variant="secondary" onClick={handleResetFilters} disabled={loading}>
-                Reset
+                Réinitialiser
               </Button>
             </div>
           </div>
         </ComponentCard>
 
-        <ComponentCard title="Liste des statistiques" desc="Donnees backend">
+        <ComponentCard title="Liste des statistiques" desc="Données enregistrées">
           {loading && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Loading statistics...</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement des statistiques...</p>
           )}
 
           {!loading && !error && statistics.length === 0 && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>No statistics available yet.</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune statistique disponible.</p>
           )}
 
           {!loading && statistics.length > 0 && (
@@ -462,11 +462,11 @@ export default function StatisticsPage() {
                   <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
                     <th className="px-4 py-3">ID</th>
                     <th className="px-4 py-3">Match</th>
-                    <th className="px-4 py-3">Team</th>
-                    <th className="px-4 py-3">Player</th>
+                    <th className="px-4 py-3">Équipe</th>
+                    <th className="px-4 py-3">Joueur</th>
                     <th className="px-4 py-3">Type</th>
-                    <th className="px-4 py-3">Value</th>
-                    <th className="px-4 py-3">Created</th>
+                    <th className="px-4 py-3">Valeur</th>
+                    <th className="px-4 py-3">Création</th>
                   </tr>
                 </thead>
                 <tbody>

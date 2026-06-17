@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { clsx } from "clsx";
+import { Link } from "react-router";
 import { getPublicTournaments, type PublicTournament } from "../../api";
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
-import Button from "../../components/common/Button";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { PlusIcon } from "../../icons";
 
@@ -103,10 +103,13 @@ export default function TournamentsPage() {
           title={selected?.name ?? "Tournois publics"}
           desc={selected?.description || "Tournois locaux acceptes par l'administration"}
           action={
-            <Button className="gap-2" disabled>
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center justify-center gap-2 rounded-sm border border-brand-500/50 bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600"
+            >
               <PlusIcon className="size-4 shrink-0" />
-              <span>Creation plus tard</span>
-            </Button>
+              <span>Créer un tournoi</span>
+            </Link>
           }
         >
           {loading && (
@@ -123,7 +126,7 @@ export default function TournamentsPage() {
 
           {!loading && !error && tournaments.length === 0 && (
             <p className={clsx("py-10 text-center text-sm", t.textMuted)}>
-              No accepted tournaments yet.
+              Aucun tournoi accepté pour le moment.
             </p>
           )}
 
