@@ -38,6 +38,7 @@ const navItems: NavItem[] = [
   { name: "Matchs", path: "/matches", icon: <TableIcon className="size-5" />, color: "text-rose-400", borderColor: "border-rose-400" },
   { name: "Classements", path: "/rankings", icon: <TaskIcon className="size-5" />, color: "text-lime-400", borderColor: "border-lime-400" },
   { name: "Statistiques", path: "/statistics", icon: <PieChartIcon className="size-5" />, color: "text-orange-400", borderColor: "border-orange-400" },
+  { name: "Admin tournois", path: "/admin/tournaments", icon: <UserCircleIcon className="size-5" />, color: "text-purple-400", borderColor: "border-purple-400" },
   { name: "Utilisateurs", path: "/users", icon: <UserCircleIcon className="size-5" />, color: "text-fuchsia-400", borderColor: "border-fuchsia-400" },
 ];
 

@@ -153,7 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       token,
       isAuthenticated: Boolean(token && user),
-      isAdmin: user?.role === "admin",
+      isAdmin: user?.role?.trim() === "admin",
       loading,
       login,
       register,

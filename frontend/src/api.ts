@@ -96,6 +96,21 @@ export type PublicTournament = {
   status?: string | null;
   approval_status?: string | null;
   admin_note?: string | null;
+  creator?: {
+    id?: number;
+    name?: string | null;
+    email?: string | null;
+  } | null;
+  user?: {
+    id?: number;
+    name?: string | null;
+    email?: string | null;
+  } | null;
+  created_by_user?: {
+    id?: number;
+    name?: string | null;
+    email?: string | null;
+  } | null;
 };
 
 type PublicTournamentsResponse = PublicTournament[] | { data?: PublicTournament[] };
@@ -129,5 +144,34 @@ export async function createTournament(payload: CreateTournamentPayload) {
   return apiRequest<MyTournament>("/tournaments", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export type AdminTournament = PublicTournament;
+
+type AdminTournamentsResponse = AdminTournament[] | { data?: AdminTournament[] };
+
+export async function getPendingTournaments() {
+  const response = await apiRequest<AdminTournamentsResponse>("/admin/tournaments/pending");
+  if (Array.isArray(response)) return response;
+  return response.data ?? [];
+}
+
+export async function getAdminTournaments() {
+  const response = await apiRequest<AdminTournamentsResponse>("/admin/tournaments");
+  if (Array.isArray(response)) return response;
+  return response.data ?? [];
+}
+
+export async function acceptTournament(id: number) {
+  return apiRequest<AdminTournament>(`/admin/tournaments/${id}/accept`, {
+    method: "PUT",
+  });
+}
+
+export async function refuseTournament(id: number, admin_note?: string) {
+  return apiRequest<AdminTournament>(`/admin/tournaments/${id}/refuse`, {
+    method: "PUT",
+    body: JSON.stringify({ admin_note: admin_note?.trim() || undefined }),
   });
 }
