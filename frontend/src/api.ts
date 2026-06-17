@@ -462,3 +462,64 @@ export async function recalculateRankings(tournament_id: number | string) {
     body: JSON.stringify({ tournament_id: Number(tournament_id) }),
   });
 }
+
+export type StatisticType = "goal" | "assist" | "yellow_card" | "red_card" | "clean_sheet";
+
+export type ApiStatistic = {
+  id: number;
+  match_game_id: number;
+  team_id: number;
+  player_id: number;
+  stat_type: StatisticType | string;
+  value: number;
+  matchGame?: ApiMatch | null;
+  match_game?: ApiMatch | null;
+  team?: ApiTeam | null;
+  player?: ApiPlayer | null;
+  created_at?: string | null;
+};
+
+export type StatisticPayload = {
+  match_game_id: number;
+  team_id: number;
+  player_id: number;
+  stat_type: StatisticType;
+  value: number;
+};
+
+type StatisticsResponse = ApiStatistic[] | { data?: ApiStatistic[] };
+
+export async function getStatistics(params?: Record<string, string | number | undefined>) {
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params ?? {})) {
+    if (value !== undefined && value !== "") {
+      query.set(key, String(value));
+    }
+  }
+
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await apiRequest<StatisticsResponse>(`/statistics${suffix}`);
+  if (Array.isArray(response)) return response;
+  return response.data ?? [];
+}
+
+export async function createStatistic(payload: StatisticPayload) {
+  return apiRequest<ApiStatistic>("/statistics", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateStatistic(id: number, payload: StatisticPayload) {
+  return apiRequest<ApiStatistic>(`/statistics/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteStatistic(id: number) {
+  return apiRequest<unknown>(`/statistics/${id}`, {
+    method: "DELETE",
+  });
+}
