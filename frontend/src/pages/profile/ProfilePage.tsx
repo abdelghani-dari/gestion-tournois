@@ -2,12 +2,18 @@ import { clsx } from "clsx";
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
-import Button from "../../components/common/Button";
 import Badge from "../../components/ui/Badge";
-import ProgressLine from "../../components/common/ProgressLine";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
-import adminAvatar from "../../data/botola-pro-logo.png";
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "U";
+}
 
 export default function ProfilePage() {
   const t = useThemeTokens();
@@ -21,15 +27,12 @@ export default function ProfilePage() {
         <div className={clsx("grid grid-cols-1 lg:grid-cols-3", GRID_GAP)}>
           <ComponentCard title="Profil" desc={loading ? "Chargement" : "Compte utilisateur"}>
             <div className="text-center">
-              <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-xl border p-3" style={{ borderColor: "inherit" }}>
-                <img src={adminAvatar} alt="" className="h-full w-full object-contain" />
+              <div className={clsx("mx-auto flex h-24 w-24 items-center justify-center rounded-xl border text-2xl font-semibold text-brand-400", t.border, t.metricBg)}>
+                {initials(displayUser.name)}
               </div>
               <h2 className={clsx("mt-4 text-lg font-semibold", t.textPrimary)}>{displayUser.name}</h2>
               <p className={clsx("text-sm", t.textSecondary)}>{displayUser.email}</p>
               <Badge color={displayUser.role === "admin" ? "primary" : "light"}>{displayUser.role}</Badge>
-            </div>
-            <div className={clsx("mt-6 border-t pt-4", t.border)}>
-              <ProgressLine value={85} label="Profil complete" size="sm" />
             </div>
           </ComponentCard>
 
@@ -47,7 +50,6 @@ export default function ProfilePage() {
                 <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Role</label>
                 <input value={displayUser.role} readOnly className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
               </div>
-              <Button disabled>Modification desactivee</Button>
             </div>
           </ComponentCard>
         </div>

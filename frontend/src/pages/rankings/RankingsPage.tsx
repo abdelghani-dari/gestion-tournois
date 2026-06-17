@@ -19,12 +19,12 @@ import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
 
 function teamName(ranking: ApiRanking) {
-  return ranking.team?.name ?? `Team #${ranking.team_id}`;
+  return ranking.team?.name ?? `Équipe #${ranking.team_id}`;
 }
 
 function tournamentName(tournamentId: string, tournaments: PublicTournament[]) {
   const found = tournaments.find((tournament) => String(tournament.id) === tournamentId);
-  return found?.name ?? (tournamentId ? `Tournament #${tournamentId}` : "Select tournament");
+  return found?.name ?? (tournamentId ? `Tournoi #${tournamentId}` : "Sélectionner un tournoi");
 }
 
 function mergeTournaments(publicTournaments: PublicTournament[], myTournaments: MyTournament[]) {
@@ -45,10 +45,10 @@ function mergeTournaments(publicTournaments: PublicTournament[], myTournaments: 
 
 function readableRankingError(err: unknown, fallback: string) {
   if (err instanceof ApiError && err.status === 403) {
-    return "You can only recalculate rankings for tournaments you created.";
+    return "Vous pouvez seulement recalculer les classements des tournois que vous avez créés.";
   }
   if (err instanceof ApiError && err.status === 401) {
-    return "Your session has expired. Please log in again.";
+    return "Votre session a expiré. Veuillez vous reconnecter.";
   }
   return err instanceof Error ? err.message : fallback;
 }
@@ -92,7 +92,7 @@ export default function RankingsPage() {
         setSelectedTournamentId((current) => current || (merged[0]?.id ? String(merged[0].id) : ""));
       } catch (err) {
         if (!active) return;
-        setError(readableRankingError(err, "Unable to load tournaments."));
+        setError(readableRankingError(err, "Impossible de charger les tournois."));
       } finally {
         if (active) setLoadingTournaments(false);
       }
@@ -115,7 +115,7 @@ export default function RankingsPage() {
 
   const loadRankings = async () => {
     if (!selectedTournamentId) {
-      setError("Select a tournament first.");
+      setError("Sélectionnez d'abord un tournoi.");
       return;
     }
 
@@ -128,7 +128,7 @@ export default function RankingsPage() {
       setRankings(data);
     } catch (err) {
       setRankings([]);
-      setError(readableRankingError(err, "Unable to load ranking."));
+      setError(readableRankingError(err, "Impossible de charger le classement."));
     } finally {
       setLoadingRankings(false);
     }
@@ -136,7 +136,7 @@ export default function RankingsPage() {
 
   const handleRecalculate = async () => {
     if (!selectedTournamentId) {
-      setError("Select a tournament first.");
+      setError("Sélectionnez d'abord un tournoi.");
       return;
     }
 
@@ -146,11 +146,11 @@ export default function RankingsPage() {
 
     try {
       await recalculateRankings(selectedTournamentId);
-      setSuccess("Ranking recalculated.");
+      setSuccess("Classement recalculé.");
       const data = await getRankings(selectedTournamentId);
       setRankings(data);
     } catch (err) {
-      setError(readableRankingError(err, "Unable to recalculate ranking."));
+      setError(readableRankingError(err, "Impossible de recalculer le classement."));
     } finally {
       setRecalculating(false);
     }
@@ -181,7 +181,7 @@ export default function RankingsPage() {
                     t.textPrimary,
                   )}
                 >
-                  <option value="">Select tournament</option>
+                  <option value="">Sélectionner un tournoi</option>
                   {tournamentOptions.map((tournament) => (
                     <option key={tournament.id} value={tournament.id}>
                       #{tournament.id} - {tournament.name}
@@ -195,7 +195,7 @@ export default function RankingsPage() {
                 onClick={loadRankings}
                 disabled={loadingTournaments || loadingRankings || !selectedTournamentId}
               >
-                {loadingRankings ? "Loading..." : "Load Ranking"}
+                {loadingRankings ? "Chargement..." : "Charger le classement"}
               </Button>
 
               <Button
@@ -203,9 +203,9 @@ export default function RankingsPage() {
                 variant="secondary"
                 onClick={handleRecalculate}
                 disabled={!isAuthenticated || loadingTournaments || recalculating || !selectedTournamentId}
-                title={!isAuthenticated ? "Login required" : undefined}
+                title={!isAuthenticated ? "Connexion requise" : undefined}
               >
-                {recalculating ? "Recalculating..." : "Recalculate ranking"}
+                {recalculating ? "Recalcul..." : "Recalculer le classement"}
               </Button>
             </div>
 
@@ -222,12 +222,12 @@ export default function RankingsPage() {
 
             {!isAuthenticated && !authLoading && (
               <p className={clsx("mt-3 text-sm", t.textMuted)}>
-                Public rankings can be loaded without login. Login is required to recalculate.
+                Le classement public est consultable sans connexion. La connexion est requise pour recalculer.
               </p>
             )}
           </ComponentCard>
 
-          <ComponentCard title="Session" desc={user ? `${user.email} - ${user.role}` : "Public access"}>
+          <ComponentCard title="Session" desc={user ? `${user.email} - ${user.role}` : "Accès public"}>
             <div className={clsx("rounded-md border p-4", t.card)}>
               <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Tournoi selectionne</p>
               <p className={clsx("mt-1 truncate text-lg font-semibold", t.textPrimary)}>
@@ -240,17 +240,17 @@ export default function RankingsPage() {
           </ComponentCard>
         </div>
 
-        <ComponentCard title="Table de classement" desc="Donnees calculees par le backend">
+        <ComponentCard title="Table de classement" desc="Données enregistrées">
           {loadingTournaments && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Loading tournaments...</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement des tournois...</p>
           )}
 
           {!loadingTournaments && loadingRankings && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Loading ranking...</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement du classement...</p>
           )}
 
           {!loadingTournaments && !loadingRankings && rankings.length === 0 && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>No ranking available yet.</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucun classement disponible.</p>
           )}
 
           {!loadingRankings && rankings.length > 0 && (
@@ -271,14 +271,14 @@ export default function RankingsPage() {
                 <thead>
                   <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
                     <th className="px-4 py-3">Position</th>
-                    <th className="px-4 py-3">Team</th>
-                    <th className="px-4 py-3">Played</th>
-                    <th className="px-4 py-3">Wins</th>
-                    <th className="px-4 py-3">Draws</th>
-                    <th className="px-4 py-3">Losses</th>
-                    <th className="px-4 py-3">Goals For</th>
-                    <th className="px-4 py-3">Goals Against</th>
-                    <th className="px-4 py-3">Goal Difference</th>
+                    <th className="px-4 py-3">Équipe</th>
+                    <th className="px-4 py-3">Joués</th>
+                    <th className="px-4 py-3">Victoires</th>
+                    <th className="px-4 py-3">Nuls</th>
+                    <th className="px-4 py-3">Défaites</th>
+                    <th className="px-4 py-3">Buts pour</th>
+                    <th className="px-4 py-3">Buts contre</th>
+                    <th className="px-4 py-3">Différence</th>
                     <th className="px-4 py-3">Points</th>
                   </tr>
                 </thead>

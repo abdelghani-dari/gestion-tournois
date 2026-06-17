@@ -5,6 +5,7 @@ import { useXSidebar } from "../context/SidebarContext";
 import { useXTheme } from "../context/XThemeContext";
 import { useThemeTokens } from "../theme/useThemeTokens";
 import { APP_NAME } from "../data/seasonData";
+import { useAuth } from "../../context/AuthContext";
 import {
   GridIcon,
   ShootingStarIcon,
@@ -24,6 +25,7 @@ interface NavItem {
   icon: React.ReactNode;
   color: string;
   borderColor: string;
+  adminOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -35,7 +37,7 @@ const navItems: NavItem[] = [
   { name: "Matchs", path: "/matches", icon: <TableIcon className="size-5" />, color: "text-rose-400", borderColor: "border-rose-400" },
   { name: "Classements", path: "/rankings", icon: <TaskIcon className="size-5" />, color: "text-lime-400", borderColor: "border-lime-400" },
   { name: "Statistiques", path: "/statistics", icon: <PieChartIcon className="size-5" />, color: "text-orange-400", borderColor: "border-orange-400" },
-  { name: "Admin tournois", path: "/admin/tournaments", icon: <UserCircleIcon className="size-5" />, color: "text-purple-400", borderColor: "border-purple-400" },
+  { name: "Admin tournois", path: "/admin/tournaments", icon: <UserCircleIcon className="size-5" />, color: "text-purple-400", borderColor: "border-purple-400", adminOnly: true },
   { name: "Profil", path: "/profile", icon: <UserCircleIcon className="size-5" />, color: "text-fuchsia-400", borderColor: "border-fuchsia-400" },
 ];
 
@@ -61,6 +63,9 @@ export default function Sidebar() {
   const t = useThemeTokens();
   const location = useLocation();
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
+  const { isAdmin } = useAuth();
+
+  const visibleNavItems = navItems.filter((item) => !item.adminOnly || isAdmin);
 
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + "/");
@@ -102,7 +107,7 @@ export default function Sidebar() {
 
         <nav className="x-scroll flex-1 overflow-y-auto overflow-x-hidden py-4">
           <ul className="space-y-1 px-3">
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const active = isActive(item.path);
               return (
                 <li key={item.path} className="relative">
