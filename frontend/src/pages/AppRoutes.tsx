@@ -16,6 +16,7 @@ import StatisticsPage from "./statistics/StatisticsPage";
 import UsersPage from "./users/UsersPage";
 import ProfilePage from "./profile/ProfilePage";
 import AdminTournamentsPage from "./admin/AdminTournamentsPage";
+import JoinRequestsPage from "./join-requests/JoinRequestsPage";
 import NotFoundPage from "./errors/NotFoundPage";
 import DetailStub from "./shared/DetailStub";
 import { XPageMeta } from "../components/common/PageMeta";
@@ -204,6 +205,7 @@ export const appRoutes = (
       <Route path="players" element={<PlayersPage />} />
       <Route path="players/:id" element={<PlayerDetail />} />
       <Route path="players/:id/statistics" element={<StatisticsPage />} />
+      <Route path="join-requests" element={<JoinRequestsPage />} />
       <Route path="matches" element={<MatchesPage />} />
       <Route path="matches/create" element={<MatchCreatePage />} />
       <Route path="matches/:id/result" element={<MatchResultPage />} />

@@ -17,6 +17,7 @@ import {
   PieChartIcon,
   TaskIcon,
   UserCircleIcon,
+  PaperPlaneIcon,
   AngleLeftIcon,
 } from "../../icons";
 
@@ -35,6 +36,7 @@ const navItems: NavItem[] = [
   { name: "Tournois", path: "/tournaments", icon: <ShootingStarIcon className="size-5" />, color: "text-amber-400", borderColor: "border-amber-400" },
   { name: "Équipes", path: "/teams", icon: <GroupIcon className="size-5" />, color: "text-cyan-400", borderColor: "border-cyan-400" },
   { name: "Joueurs", path: "/players", icon: <UserIcon className="size-5" />, color: "text-indigo-400", borderColor: "border-indigo-400" },
+  { name: "Demandes", path: "/join-requests", icon: <PaperPlaneIcon className="size-5" />, color: "text-teal-400", borderColor: "border-teal-400" },
   { name: "Matchs", path: "/matches", icon: <TableIcon className="size-5" />, color: "text-rose-400", borderColor: "border-rose-400" },
   { name: "Classements", path: "/rankings", icon: <TaskIcon className="size-5" />, color: "text-lime-400", borderColor: "border-lime-400" },
   { name: "Statistiques", path: "/statistics", icon: <PieChartIcon className="size-5" />, color: "text-orange-400", borderColor: "border-orange-400" },

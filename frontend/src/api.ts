@@ -279,3 +279,67 @@ export async function deletePlayer(id: number) {
     method: "DELETE",
   });
 }
+
+export type JoinRequest = {
+  id: number;
+  tournament_id: number;
+  team_id: number;
+  status?: string | null;
+  message?: string | null;
+  admin_note?: string | null;
+  created_at?: string | null;
+  tournament?: PublicTournament | null;
+  team?: ApiTeam | null;
+  manager?: {
+    id?: number;
+    name?: string | null;
+    email?: string | null;
+  } | null;
+  user?: {
+    id?: number;
+    name?: string | null;
+    email?: string | null;
+  } | null;
+};
+
+export type JoinRequestPayload = {
+  tournament_id: number;
+  team_id: number;
+  message?: string;
+};
+
+type JoinRequestsResponse = JoinRequest[] | { data?: JoinRequest[] };
+
+export async function getJoinRequests(params?: Record<string, string | number | undefined>) {
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params ?? {})) {
+    if (value !== undefined && value !== "") {
+      query.set(key, String(value));
+    }
+  }
+
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await apiRequest<JoinRequestsResponse>(`/join-requests${suffix}`);
+  if (Array.isArray(response)) return response;
+  return response.data ?? [];
+}
+
+export async function createJoinRequest(payload: JoinRequestPayload) {
+  return apiRequest<JoinRequest>("/join-requests", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function acceptJoinRequest(id: number) {
+  return apiRequest<JoinRequest>(`/join-requests/${id}/accept`, {
+    method: "PUT",
+  });
+}
+
+export async function refuseJoinRequest(id: number) {
+  return apiRequest<JoinRequest>(`/join-requests/${id}/refuse`, {
+    method: "PUT",
+  });
+}
