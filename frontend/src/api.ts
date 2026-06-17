@@ -175,3 +175,107 @@ export async function refuseTournament(id: number, admin_note?: string) {
     body: JSON.stringify({ admin_note: admin_note?.trim() || undefined }),
   });
 }
+
+export type ApiTeam = {
+  id: number;
+  name: string;
+  city?: string | null;
+  created_at?: string | null;
+  manager?: {
+    id?: number;
+    name?: string | null;
+    email?: string | null;
+  } | null;
+  user?: {
+    id?: number;
+    name?: string | null;
+    email?: string | null;
+  } | null;
+};
+
+export type TeamPayload = {
+  name: string;
+  city?: string;
+};
+
+type TeamsResponse = ApiTeam[] | { data?: ApiTeam[] };
+
+export async function getMyTeams() {
+  const response = await apiRequest<TeamsResponse>("/my-teams");
+  if (Array.isArray(response)) return response;
+  return response.data ?? [];
+}
+
+export async function getTeams() {
+  const response = await apiRequest<TeamsResponse>("/teams");
+  if (Array.isArray(response)) return response;
+  return response.data ?? [];
+}
+
+export async function createTeam(payload: TeamPayload) {
+  return apiRequest<ApiTeam>("/teams", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateTeam(id: number, payload: TeamPayload) {
+  return apiRequest<ApiTeam>(`/teams/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteTeam(id: number) {
+  return apiRequest<unknown>(`/teams/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export type ApiPlayer = {
+  id: number;
+  team_id: number;
+  first_name: string;
+  last_name: string;
+  birth_date?: string | null;
+  position?: string | null;
+  number?: number | null;
+  team?: ApiTeam | null;
+};
+
+export type PlayerPayload = {
+  team_id: number;
+  first_name: string;
+  last_name: string;
+  birth_date?: string;
+  position?: string;
+  number?: number;
+};
+
+type PlayersResponse = ApiPlayer[] | { data?: ApiPlayer[] };
+
+export async function getPlayers() {
+  const response = await apiRequest<PlayersResponse>("/players");
+  if (Array.isArray(response)) return response;
+  return response.data ?? [];
+}
+
+export async function createPlayer(payload: PlayerPayload) {
+  return apiRequest<ApiPlayer>("/players", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updatePlayer(id: number, payload: PlayerPayload) {
+  return apiRequest<ApiPlayer>(`/players/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deletePlayer(id: number) {
+  return apiRequest<unknown>(`/players/${id}`, {
+    method: "DELETE",
+  });
+}
