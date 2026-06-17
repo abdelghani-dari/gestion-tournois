@@ -136,21 +136,7 @@ The active flow avoids mock-backed widgets and old season/championship dashboard
 
 ## 9. Removed mock/static data from active flow
 
-The active route tree no longer depends on:
-
-- `SeasonContext`
-- `mockData.ts`
-- `seasonData.ts`
-- `fotmobData.ts`
-- `players.json`
-- `flags.json`
-- Botola logo/avatar assets
-
-The app name was moved to `frontend/src/config/app.ts` so layout/header/landing/page metadata do not import old season data.
-
-## 10. Remaining unused/mock files, if any, and why kept
-
-The following legacy files remain in the repository because they are still referenced by unused legacy components and deleting them safely would require a broader cleanup pass:
+The active route tree no longer depends on mock/static data. The second cleanup pass physically removed the legacy mock/demo files that were outside the active API-connected route tree:
 
 - `frontend/src/components/data/mockData.ts`
 - `frontend/src/components/data/seasonData.ts`
@@ -158,9 +144,23 @@ The following legacy files remain in the repository because they are still refer
 - `frontend/src/data/players.json`
 - `frontend/src/data/flags.json`
 - `frontend/src/data/botola-pro-logo.png`
-- legacy season/championship/demo components and docs under `frontend/src`
+- `frontend/src/data/class-diagram.md`
+- `frontend/src/data/pages.md`
+- `frontend/src/components/context/SeasonContext.tsx`
+- `frontend/src/components/types.ts`
+- legacy championship, season, match-demo, widget, chart, team, player, and tournament demo components that depended on those files
 
-They are not imported by the active app route tree after this cleanup. They can be removed in a later dedicated legacy-code deletion pass.
+The app name was moved to `frontend/src/config/app.ts` so layout/header/landing/page metadata do not import old season data.
+
+## 10. Remaining unused/mock files, if any, and why kept
+
+No mock/static data files remain in the active frontend code.
+
+The remaining files under `frontend/src/data` are visual assets or asset helper files, not mock tournament data:
+
+- background/texture images
+- `field1.jpg`
+- `players-images.ts`
 
 ## 11. Manual test checklist
 
@@ -186,14 +186,12 @@ They are not imported by the active app route tree after this cleanup. They can 
 
 ## 12. Known limitations
 
-- Some legacy unused files remain in the repository.
 - Several legacy redirected routes intentionally no longer show detail pages because those old detail views were mock-backed.
 - The frontend still relies on backend validation messages for several protected actions.
 - API shape normalization is intentionally simple and expects either arrays or `{ data: [...] }` responses.
 
 ## 13. Suggested next improvements
 
-- Delete legacy mock/demo components in a dedicated cleanup PR.
 - Add frontend integration tests for auth, public tournaments, matches, rankings, statistics, and compositions.
 - Add route guards for admin-only pages in addition to hiding sidebar links.
 - Add typed API response normalization helpers if backend response shapes expand.
