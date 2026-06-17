@@ -4,7 +4,7 @@ import { clsx } from "clsx";
 import { useXSidebar } from "../context/SidebarContext";
 import { useThemeTokens } from "../theme/useThemeTokens";
 import { resolvePageMeta } from "../theme/pageMeta";
-import { APP_NAME } from "../data/seasonData";
+import { APP_NAME } from "../../config/app";
 import XThemeSwitcher from "./XThemeSwitcher";
 import UserDropdown from "../header/UserDropdown";
 import { ShootingStarIcon } from "../../icons";

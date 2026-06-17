@@ -1,4 +1,4 @@
-import { APP_NAME } from "../data/seasonData";
+import { APP_NAME } from "../../config/app";
 
 export interface PageMeta {
   title: string;

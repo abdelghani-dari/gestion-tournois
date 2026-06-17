@@ -4,7 +4,7 @@ import { clsx } from "clsx";
 import { useXSidebar } from "../context/SidebarContext";
 import { useXTheme } from "../context/XThemeContext";
 import { useThemeTokens } from "../theme/useThemeTokens";
-import { APP_NAME } from "../data/seasonData";
+import { APP_NAME } from "../../config/app";
 import { useAuth } from "../../context/AuthContext";
 import {
   GridIcon,

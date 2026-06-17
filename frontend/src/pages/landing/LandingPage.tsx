@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { XPageMeta } from "../../components/common/PageMeta";
-import { APP_NAME } from "../../components/data/seasonData";
+import { APP_NAME } from "../../config/app";
 import { ArrowRightIcon, ShootingStarIcon } from "../../icons";
 
 const FEATURES = [

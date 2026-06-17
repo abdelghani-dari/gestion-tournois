@@ -2,7 +2,6 @@ import { Outlet } from "react-router";
 import { clsx } from "clsx";
 import { XSidebarProvider, useXSidebar } from "../context/SidebarContext";
 import { useXTheme } from "../context/XThemeContext";
-import { XSeasonProvider } from "../context/SeasonContext";
 import { HeaderDropdownProvider } from "../context/HeaderDropdownContext";
 import Sidebar from "./Sidebar";
 import AppHeader from "./AppHeader";
@@ -34,10 +33,8 @@ function LayoutContent() {
 
 export default function XAppLayout() {
   return (
-    <XSeasonProvider>
-      <XSidebarProvider>
-        <LayoutContent />
-      </XSidebarProvider>
-    </XSeasonProvider>
+    <XSidebarProvider>
+      <LayoutContent />
+    </XSidebarProvider>
   );
 }
