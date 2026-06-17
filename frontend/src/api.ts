@@ -523,3 +523,66 @@ export async function deleteStatistic(id: number) {
     method: "DELETE",
   });
 }
+
+export type ApiComposition = {
+  id: number;
+  match_game_id: number;
+  team_id: number;
+  player_id: number;
+  role?: "starter" | "substitute" | string | null;
+  is_starter: boolean | number;
+  position?: string | null;
+  shirt_number?: number | null;
+  matchGame?: ApiMatch | null;
+  match_game?: ApiMatch | null;
+  team?: ApiTeam | null;
+  player?: ApiPlayer | null;
+  created_at?: string | null;
+};
+
+export type CompositionPayload = {
+  match_game_id: number;
+  team_id: number;
+  player_id: number;
+  role?: "starter" | "substitute";
+  is_starter: boolean;
+  position?: string;
+  shirt_number?: number;
+};
+
+type CompositionsResponse = ApiComposition[] | { data?: ApiComposition[] };
+
+export async function getCompositions(params?: Record<string, string | number | undefined>) {
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params ?? {})) {
+    if (value !== undefined && value !== "") {
+      query.set(key, String(value));
+    }
+  }
+
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await apiRequest<CompositionsResponse>(`/compositions${suffix}`);
+  if (Array.isArray(response)) return response;
+  return response.data ?? [];
+}
+
+export async function createComposition(payload: CompositionPayload) {
+  return apiRequest<ApiComposition>("/compositions", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateComposition(id: number, payload: CompositionPayload) {
+  return apiRequest<ApiComposition>(`/compositions/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteComposition(id: number) {
+  return apiRequest<unknown>(`/compositions/${id}`, {
+    method: "DELETE",
+  });
+}
