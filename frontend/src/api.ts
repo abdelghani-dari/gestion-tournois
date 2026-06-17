@@ -343,3 +343,90 @@ export async function refuseJoinRequest(id: number) {
     method: "PUT",
   });
 }
+
+export type ApiMatch = {
+  id: number;
+  tournament_id: number;
+  home_team_id: number;
+  away_team_id: number;
+  match_date?: string | null;
+  home_score?: number | null;
+  away_score?: number | null;
+  status?: string | null;
+  result_status?: string | null;
+  tournament?: PublicTournament | null;
+  home_team?: ApiTeam | null;
+  away_team?: ApiTeam | null;
+};
+
+export type MatchPayload = {
+  tournament_id: number;
+  home_team_id: number;
+  away_team_id: number;
+  match_date: string;
+};
+
+export type MatchResultPayload = {
+  home_score: number;
+  away_score: number;
+};
+
+type MatchesResponse = ApiMatch[] | { data?: ApiMatch[] };
+
+export async function getMatches(params?: Record<string, string | number | undefined>) {
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params ?? {})) {
+    if (value !== undefined && value !== "") {
+      query.set(key, String(value));
+    }
+  }
+
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await apiRequest<MatchesResponse>(`/matches${suffix}`);
+  if (Array.isArray(response)) return response;
+  return response.data ?? [];
+}
+
+export async function getMatch(id: number) {
+  return apiRequest<ApiMatch>(`/matches/${id}`);
+}
+
+export async function createMatch(payload: MatchPayload) {
+  return apiRequest<ApiMatch>("/matches", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateMatch(id: number, payload: MatchPayload) {
+  return apiRequest<ApiMatch>(`/matches/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteMatch(id: number) {
+  return apiRequest<unknown>(`/matches/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function enterMatchResult(id: number, payload: MatchResultPayload) {
+  return apiRequest<ApiMatch>(`/matches/${id}/result`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function confirmMatchResult(id: number) {
+  return apiRequest<ApiMatch>(`/matches/${id}/confirm-result`, {
+    method: "PUT",
+  });
+}
+
+export async function disputeMatchResult(id: number) {
+  return apiRequest<ApiMatch>(`/matches/${id}/dispute-result`, {
+    method: "PUT",
+  });
+}
