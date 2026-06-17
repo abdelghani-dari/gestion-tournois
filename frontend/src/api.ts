@@ -430,3 +430,35 @@ export async function disputeMatchResult(id: number) {
     method: "PUT",
   });
 }
+
+export type ApiRanking = {
+  id: number;
+  tournament_id: number;
+  team_id: number;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goals_for: number;
+  goals_against: number;
+  goal_difference: number;
+  points: number;
+  team?: ApiTeam | null;
+  tournament?: PublicTournament | null;
+};
+
+type RankingsResponse = ApiRanking[] | { data?: ApiRanking[] };
+
+export async function getRankings(tournament_id: number | string) {
+  const query = new URLSearchParams({ tournament_id: String(tournament_id) });
+  const response = await apiRequest<RankingsResponse>(`/rankings?${query.toString()}`);
+  if (Array.isArray(response)) return response;
+  return response.data ?? [];
+}
+
+export async function recalculateRankings(tournament_id: number | string) {
+  return apiRequest<unknown>("/rankings/recalculate", {
+    method: "POST",
+    body: JSON.stringify({ tournament_id: Number(tournament_id) }),
+  });
+}
