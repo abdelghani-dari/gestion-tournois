@@ -4,12 +4,9 @@ import { clsx } from "clsx";
 import { useXSidebar } from "../context/SidebarContext";
 import { useXTheme } from "../context/XThemeContext";
 import { useThemeTokens } from "../theme/useThemeTokens";
-import { BOTOLA_LOGO } from "../data/fotmobData";
 import { APP_NAME } from "../data/seasonData";
 import {
   GridIcon,
-  CalenderIcon,
-  BoxCubeIcon,
   ShootingStarIcon,
   GroupIcon,
   UserIcon,
@@ -31,17 +28,15 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { name: "Dashboard", path: "/dashboard", icon: <GridIcon className="size-5" />, color: "text-sky-400", borderColor: "border-sky-400" },
-  { name: "Saisons", path: "/seasons", icon: <CalenderIcon className="size-5" />, color: "text-violet-400", borderColor: "border-violet-400" },
-  { name: "Championnats", path: "/championships", icon: <BoxCubeIcon className="size-5" />, color: "text-emerald-400", borderColor: "border-emerald-400" },
   { name: "Tournois", path: "/tournaments", icon: <ShootingStarIcon className="size-5" />, color: "text-amber-400", borderColor: "border-amber-400" },
-  { name: "Équipes", path: "/teams", icon: <GroupIcon className="size-5" />, color: "text-cyan-400", borderColor: "border-cyan-400" },
+  { name: "Equipes", path: "/teams", icon: <GroupIcon className="size-5" />, color: "text-cyan-400", borderColor: "border-cyan-400" },
   { name: "Joueurs", path: "/players", icon: <UserIcon className="size-5" />, color: "text-indigo-400", borderColor: "border-indigo-400" },
   { name: "Demandes", path: "/join-requests", icon: <PaperPlaneIcon className="size-5" />, color: "text-teal-400", borderColor: "border-teal-400" },
   { name: "Matchs", path: "/matches", icon: <TableIcon className="size-5" />, color: "text-rose-400", borderColor: "border-rose-400" },
   { name: "Classements", path: "/rankings", icon: <TaskIcon className="size-5" />, color: "text-lime-400", borderColor: "border-lime-400" },
   { name: "Statistiques", path: "/statistics", icon: <PieChartIcon className="size-5" />, color: "text-orange-400", borderColor: "border-orange-400" },
   { name: "Admin tournois", path: "/admin/tournaments", icon: <UserCircleIcon className="size-5" />, color: "text-purple-400", borderColor: "border-purple-400" },
-  { name: "Utilisateurs", path: "/users", icon: <UserCircleIcon className="size-5" />, color: "text-fuchsia-400", borderColor: "border-fuchsia-400" },
+  { name: "Profil", path: "/profile", icon: <UserCircleIcon className="size-5" />, color: "text-fuchsia-400", borderColor: "border-fuchsia-400" },
 ];
 
 function NavTooltip({ label, visible }: { label: string; visible: boolean }) {
@@ -52,7 +47,7 @@ function NavTooltip({ label, visible }: { label: string; visible: boolean }) {
       className={clsx(
         "pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-medium shadow-lg backdrop-blur-xl",
         t.panel,
-        t.textPrimary
+        t.textPrimary,
       )}
     >
       {label}
@@ -85,17 +80,19 @@ export default function Sidebar() {
           "transition-[width] duration-200 ease-in-out",
           sidebarBg,
           isCollapsed ? "w-[72px]" : "w-[260px]",
-          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
         <div className={clsx("flex h-16 shrink-0 items-center border-b px-4", t.border)}>
           <Link to="/dashboard" className="flex items-center gap-3 overflow-hidden">
-            <img src={BOTOLA_LOGO} alt="" className="h-9 w-9 shrink-0 rounded-md object-contain" />
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-500/15 text-brand-400 ring-1 ring-brand-500/30">
+              <ShootingStarIcon className="size-5" />
+            </span>
             <span
               className={clsx(
                 "overflow-hidden whitespace-nowrap text-sm font-semibold transition-opacity duration-200",
                 t.textPrimary,
-                isCollapsed ? "w-0 opacity-0" : "opacity-100"
+                isCollapsed ? "w-0 opacity-0" : "opacity-100",
               )}
             >
               {APP_NAME}
@@ -118,7 +115,7 @@ export default function Sidebar() {
                       "relative flex items-center gap-3 rounded-sm px-3 py-2.5 transition-colors",
                       active
                         ? `${t.navActiveBg} ${item.color} border-l-2 ${item.borderColor}`
-                        : `border-l-2 border-transparent ${t.navText} ${t.navHover}`
+                        : `border-l-2 border-transparent ${t.navText} ${t.navHover}`,
                     )}
                   >
                     <span className={clsx("shrink-0", active ? item.color : t.textMuted)}>
@@ -127,7 +124,7 @@ export default function Sidebar() {
                     <span
                       className={clsx(
                         "overflow-hidden whitespace-nowrap text-sm font-medium transition-opacity duration-200",
-                        isCollapsed ? "w-0 opacity-0" : "opacity-100"
+                        isCollapsed ? "w-0 opacity-0" : "opacity-100",
                       )}
                     >
                       {item.name}
@@ -148,7 +145,7 @@ export default function Sidebar() {
         className={clsx(
           "fixed bottom-4 left-4 z-30 flex h-10 w-10 items-center justify-center rounded-md border backdrop-blur-md lg:hidden",
           t.card,
-          t.textPrimary
+          t.textPrimary,
         )}
       >
         <AngleLeftIcon className="size-5" />

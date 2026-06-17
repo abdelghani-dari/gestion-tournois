@@ -5,10 +5,9 @@ import { useXSidebar } from "../context/SidebarContext";
 import { useThemeTokens } from "../theme/useThemeTokens";
 import { resolvePageMeta } from "../theme/pageMeta";
 import { APP_NAME } from "../data/seasonData";
-import { BOTOLA_LOGO } from "../data/fotmobData";
-import SeasonSwitcher from "./SeasonSwitcher";
 import XThemeSwitcher from "./XThemeSwitcher";
 import UserDropdown from "../header/UserDropdown";
+import { ShootingStarIcon } from "../../icons";
 
 export default function AppHeader() {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
@@ -66,7 +65,9 @@ export default function AppHeader() {
           </div>
 
           <Link to="/dashboard" className="flex shrink-0 items-center gap-2 lg:hidden">
-            <img src={BOTOLA_LOGO} alt="" className="h-7 w-7 object-contain" />
+            <span className="flex h-7 w-7 items-center justify-center rounded bg-brand-500/15 text-brand-400 ring-1 ring-brand-500/30">
+              <ShootingStarIcon className="size-4" />
+            </span>
             <span className={clsx("text-sm font-semibold", t.textPrimary)}>{APP_NAME}</span>
           </Link>
 
@@ -89,7 +90,6 @@ export default function AppHeader() {
             "shadow-none"
           )}
         >
-          <SeasonSwitcher />
           <XThemeSwitcher />
           <UserDropdown />
         </div>

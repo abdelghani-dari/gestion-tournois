@@ -3,8 +3,6 @@ import XAppLayout from "../components/layout/AppLayout";
 import LandingPage from "./landing/LandingPage";
 import LoginPage from "./auth/LoginPage";
 import DashboardPage from "./dashboard/DashboardPage";
-import SeasonsPage from "./seasons/SeasonsPage";
-import ChampionshipsPage from "./championships/ChampionshipsPage";
 import TournamentsPage from "./tournaments/TournamentsPage";
 import TeamsPage from "./teams/TeamsPage";
 import PlayersPage from "./players/PlayersPage";
@@ -43,24 +41,6 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   }
 
   return children;
-}
-
-function ChampionshipDetail() {
-  const { id } = useParams();
-  const { getChampionshipById } = useSeasonData();
-  const c = getChampionshipById(Number(id));
-  if (!c) return <NotFoundPage />;
-  return (
-    <>
-      <XPageMeta title={c.name} description={c.description} />
-      <DetailStub backTo="/championships">
-        <GlassCard>
-          <StatusBadge status={c.status} />
-          <p className="mt-4 text-sm text-slate-300">{c.description}</p>
-        </GlassCard>
-      </DetailStub>
-    </>
-  );
 }
 
 function TournamentDetail() {
@@ -192,10 +172,10 @@ export const appRoutes = (
 
     <Route element={<XAppLayout />}>
       <Route path="dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
-      <Route path="seasons" element={<SeasonsPage />} />
-      <Route path="championships" element={<ChampionshipsPage />} />
-      <Route path="championships/:id" element={<ChampionshipDetail />} />
-      <Route path="championships/:id/ranking" element={<RankingsPage />} />
+      <Route path="seasons" element={<Navigate to="/tournaments" replace />} />
+      <Route path="championships" element={<Navigate to="/tournaments" replace />} />
+      <Route path="championships/:id" element={<Navigate to="/tournaments" replace />} />
+      <Route path="championships/:id/ranking" element={<Navigate to="/rankings" replace />} />
       <Route path="tournaments" element={<TournamentsPage />} />
       <Route path="tournaments/:id" element={<TournamentDetail />} />
       <Route path="tournaments/:id/ranking" element={<RankingsPage />} />

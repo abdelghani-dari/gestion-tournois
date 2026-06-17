@@ -1,14 +1,4 @@
-import { APP_NAME, buildSeasonSnapshot } from "../data/seasonData";
-import { formatPlayerName, formatDateTime } from "../data/fotmobData";
-
-function getActiveSeasonId(): number {
-  const stored = localStorage.getItem("x-season-id");
-  return stored ? Number(stored) : 1;
-}
-
-function seasonCtx() {
-  return buildSeasonSnapshot(getActiveSeasonId());
-}
+import { APP_NAME } from "../data/seasonData";
 
 export interface PageMeta {
   title: string;
@@ -16,97 +6,61 @@ export interface PageMeta {
 }
 
 const STATIC: Record<string, PageMeta> = {
-  "/dashboard": { title: "Dashboard", description: "Vue d'ensemble de la saison 2025-2026" },
-  "/seasons": { title: "Saisons", description: "Gestion des saisons sportives" },
-  "/championships": { title: "Championnat", description: "Classement et progression" },
-  "/tournaments": { title: "Tournois", description: "Compétitions à élimination directe" },
-  "/teams": { title: "Équipes", description: "Clubs de la saison" },
-  "/players": { title: "Joueurs", description: "Effectifs et statistiques" },
-  "/matches": { title: "Rencontres", description: "Calendrier et résultats" },
-  "/rankings": { title: "Classements", description: "Tableau général" },
-  "/statistics": { title: "Statistiques", description: "Performances de la saison" },
-  "/users": { title: "Utilisateurs", description: "Gestion des accès" },
-  "/profile": { title: "Mon Profil", description: "Informations personnelles" },
+  "/dashboard": { title: "Dashboard", description: "Vue d'ensemble des tournois locaux" },
+  "/tournaments": { title: "Tournois", description: "Tournois locaux acceptes" },
+  "/teams": { title: "Equipes", description: "Gestion des equipes" },
+  "/players": { title: "Joueurs", description: "Effectifs et profils joueurs" },
+  "/join-requests": { title: "Demandes", description: "Demandes d'inscription aux tournois" },
+  "/matches": { title: "Matchs", description: "Calendrier, resultats et gestion des matchs" },
+  "/rankings": { title: "Classements", description: "Classements des tournois" },
+  "/statistics": { title: "Statistiques", description: "Statistiques des matchs et joueurs" },
+  "/admin/tournaments": { title: "Admin tournois", description: "Validation des tournois" },
+  "/admin/tournaments/pending": { title: "Tournois en attente", description: "Validation admin" },
+  "/profile": { title: "Profil", description: "Informations personnelles" },
   "/matches/create": { title: "Planifier un match", description: "Nouvelle rencontre" },
 };
 
 export function resolvePageMeta(pathname: string): PageMeta {
-  const { season } = seasonCtx();
-  const seasonLabel = season.name.replace("Saison ", "");
-
-  if (STATIC[pathname]) {
-    const base = STATIC[pathname];
-    return { ...base, description: base.description ? `${base.description} · ${seasonLabel}` : seasonLabel };
-  }
+  if (STATIC[pathname]) return STATIC[pathname];
 
   const parts = pathname.split("/").filter(Boolean);
-
   if (parts.length === 0) return { title: APP_NAME };
 
   const [section, id, sub] = parts;
-  const numId = Number(id);
-
-  const ctx = seasonCtx();
-
-  if (section === "championships" && id) {
-    if (sub === "ranking") {
-      const c = ctx.championships.find((c) => c.id === numId);
-      return { title: "Classement", description: c?.name };
-    }
-    const c = ctx.championships.find((c) => c.id === numId);
-    if (c) return { title: c.name, description: c.description };
-  }
 
   if (section === "tournaments" && id) {
-    if (sub === "ranking") {
-      const t = ctx.tournaments.find((t) => t.id === numId);
-      return { title: "Classement", description: t?.name };
-    }
-    const t = ctx.tournaments.find((t) => t.id === numId);
-    if (t) return { title: t.name, description: t.description };
+    if (sub === "ranking") return { title: "Classement", description: `Tournoi #${id}` };
+    return { title: "Tournoi", description: `Tournoi #${id}` };
   }
 
   if (section === "teams" && id) {
-    const team = ctx.teams.find((t) => t.id === numId);
-    if (sub === "statistics") {
-      return { title: "Statistiques", description: team?.name };
-    }
-    if (team) return { title: team.name, description: `${team.player_count} joueurs` };
+    if (sub === "statistics") return { title: "Statistiques", description: `Equipe #${id}` };
+    return { title: "Equipe", description: `Equipe #${id}` };
   }
 
   if (section === "players" && id) {
-    const p = ctx.players.find((pl) => pl.id === numId);
-    const team = p ? ctx.teams.find((t) => t.id === p.team_id) : undefined;
-    if (sub === "statistics") {
-      return { title: "Statistiques", description: p ? formatPlayerName(p) : undefined };
-    }
-    if (p) return { title: formatPlayerName(p), description: `${p.position} · ${team?.name ?? ""}` };
+    if (sub === "statistics") return { title: "Statistiques", description: `Joueur #${id}` };
+    return { title: "Joueur", description: `Joueur #${id}` };
   }
 
   if (section === "matches" && id && id !== "create") {
-    const m = ctx.matches.find((match) => match.id === numId);
-    const home = m ? ctx.teams.find((t) => t.id === m.home_team_id) : undefined;
-    const away = m ? ctx.teams.find((t) => t.id === m.away_team_id) : undefined;
-    const vs = home && away ? `${home.name} vs ${away.name}` : undefined;
-
-    if (sub === "result") return { title: "Saisie du résultat", description: vs };
-    if (sub === "composition") return { title: "Composition", description: vs };
-    if (sub === "statistics") return { title: "Statistiques du match", description: vs };
-    if (m) return { title: "Détail du match", description: formatDateTime(m.match_date) };
+    if (sub === "result") return { title: "Resultat", description: `Match #${id}` };
+    if (sub === "composition") return { title: "Composition", description: `Match #${id}` };
+    if (sub === "statistics") return { title: "Statistiques du match", description: `Match #${id}` };
+    return { title: "Detail du match", description: `Match #${id}` };
   }
 
   const fallbacks: Record<string, PageMeta> = {
-    seasons: { title: "Saisons" },
-    championships: { title: "Championnats" },
     tournaments: { title: "Tournois" },
-    teams: { title: "Équipes" },
+    teams: { title: "Equipes" },
     players: { title: "Joueurs" },
+    "join-requests": { title: "Demandes" },
     matches: { title: "Matchs" },
     rankings: { title: "Classements" },
     statistics: { title: "Statistiques" },
-    users: { title: "Utilisateurs" },
     profile: { title: "Profil" },
     dashboard: { title: "Dashboard" },
+    admin: { title: "Admin" },
   };
 
   return fallbacks[section ?? ""] ?? { title: APP_NAME };

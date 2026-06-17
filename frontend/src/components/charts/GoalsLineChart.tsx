@@ -14,14 +14,14 @@ const options: ApexOptions = {
   },
   xaxis: {
     ...darkChartBase.xaxis,
-    categories: ["Aoû", "Sep", "Oct", "Nov", "Déc", "Jan", "Fév", "Mar", "Avr", "Mai", "Jun"],
+    categories: ["Aou", "Sep", "Oct", "Nov", "Dec", "Jan", "Fev", "Mar", "Avr", "Mai", "Jun"],
   },
   legend: { show: true, position: "top", horizontalAlign: "right" },
 };
 
 const series = [
-  { name: "Buts marqués", data: [12, 18, 15, 22, 19, 28, 24, 31, 27, 35, 29] },
-  { name: "Buts encaissés", data: [8, 11, 14, 10, 16, 13, 18, 15, 20, 17, 14] },
+  { name: "Buts marques", data: [12, 18, 15, 22, 19, 28, 24, 31, 27, 35, 29] },
+  { name: "Buts encaisses", data: [8, 11, 14, 10, 16, 13, 18, 15, 20, 17, 14] },
 ];
 
 export default function GoalsLineChart() {
@@ -29,8 +29,8 @@ export default function GoalsLineChart() {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-medium text-white">Évolution des buts</h3>
-          <p className="text-xs text-slate-500">Saison 2025-2026 — Botola Pro</p>
+          <h3 className="text-base font-medium text-white">Evolution des buts</h3>
+          <p className="text-xs text-slate-500">Tournois locaux</p>
         </div>
         <ChartTab />
       </div>

@@ -8,29 +8,21 @@ import {
   type CreateTournamentPayload,
   type MyTournament,
 } from "../../api";
+import Button from "../../components/common/Button";
+import ComponentCard from "../../components/common/ComponentCard";
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
-import ComponentCard from "../../components/common/ComponentCard";
-import Button from "../../components/common/Button";
-import ProgressLine from "../../components/common/ProgressLine";
-import TournamentMetrics from "../../components/widgets/TournamentMetrics";
-import GoalsLineChart from "../../components/charts/GoalsLineChart";
-import MatchBarChart from "../../components/charts/MatchBarChart";
-import RecentMatchesTable from "../../components/widgets/RecentMatchesTable";
-import TopScorersCard from "../../components/widgets/TopScorersCard";
-import RankingPreviewTable from "../../components/widgets/RankingPreviewTable";
-import {
-  ChampionshipPreviewList,
-  TournamentPreviewList,
-} from "../../components/widgets/CompetitionPreviewList";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
-import { useSeasonData } from "../../components/context/SeasonContext";
 import { useAuth } from "../../context/AuthContext";
-
-const SEASON_PROGRESS = 68;
-const MATCHDAYS_PLAYED = 22;
-const MATCHDAYS_TOTAL = 30;
-const RECENT_MATCHES_LIMIT = 4;
+import {
+  GroupIcon,
+  PaperPlaneIcon,
+  PieChartIcon,
+  ShootingStarIcon,
+  TableIcon,
+  TaskIcon,
+  UserIcon,
+} from "../../icons";
 
 const emptyForm: CreateTournamentPayload = {
   name: "",
@@ -74,7 +66,6 @@ function SmallStatus({ value }: { value?: string | null }) {
 
 export default function DashboardPage() {
   const t = useThemeTokens();
-  const { matches, season } = useSeasonData();
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [myTournaments, setMyTournaments] = useState<MyTournament[]>([]);
   const [myTournamentsLoading, setMyTournamentsLoading] = useState(false);
@@ -83,18 +74,15 @@ export default function DashboardPage() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState("");
 
-  const sortedMatches = useMemo(
-    () =>
-      [...matches].sort(
-        (a, b) => new Date(b.match_date).getTime() - new Date(a.match_date).getTime()
-      ),
-    [matches]
+  const pendingCount = useMemo(
+    () => myTournaments.filter((tr) => tr.approval_status === "pending").length,
+    [myTournaments],
   );
 
-  const hasMoreMatches = sortedMatches.length > RECENT_MATCHES_LIMIT;
-  const completedCount = matches.filter((m) => m.status === "completed").length;
-  const scheduledCount = matches.filter((m) => m.status === "scheduled").length;
-  const seasonLabel = season.name.replace("Saison ", "");
+  const acceptedCount = useMemo(
+    () => myTournaments.filter((tr) => tr.approval_status === "accepted").length,
+    [myTournaments],
+  );
 
   const loadMyTournaments = async () => {
     if (!isAuthenticated) return;
@@ -160,9 +148,19 @@ export default function DashboardPage() {
     }
   };
 
+  const quickLinks = [
+    { label: "Tournois publics", desc: "Consulter les tournois acceptes", to: "/tournaments", icon: <ShootingStarIcon className="size-5" /> },
+    { label: "Equipes", desc: "Creer et suivre vos equipes", to: "/teams", icon: <GroupIcon className="size-5" /> },
+    { label: "Joueurs", desc: "Gerer les effectifs", to: "/players", icon: <UserIcon className="size-5" /> },
+    { label: "Demandes", desc: "Inscription des equipes aux tournois", to: "/join-requests", icon: <PaperPlaneIcon className="size-5" /> },
+    { label: "Matchs", desc: "Calendrier, resultats et compositions", to: "/matches", icon: <TableIcon className="size-5" /> },
+    { label: "Classements", desc: "Voir et recalculer les classements", to: "/rankings", icon: <TaskIcon className="size-5" /> },
+    { label: "Statistiques", desc: "Suivre les evenements de match", to: "/statistics", icon: <PieChartIcon className="size-5" /> },
+  ];
+
   return (
     <>
-      <XPageMeta title="Dashboard" description="Vue generale de l'application" />
+      <XPageMeta title="Dashboard" description="Gestion des tournois locaux" />
       <PageStack>
         <div className={clsx("grid grid-cols-1 xl:grid-cols-3", GRID_GAP)}>
           <ComponentCard
@@ -176,23 +174,25 @@ export default function DashboardPage() {
                   <p className={clsx("mt-1 text-lg font-semibold", t.textPrimary)}>{user?.name}</p>
                   <p className={clsx("text-sm", t.textSecondary)}>{user?.email}</p>
                 </div>
-                <div className={clsx("grid grid-cols-2 gap-3 border-t pt-4", t.border)}>
+                <div className={clsx("grid grid-cols-3 gap-3 border-t pt-4", t.border)}>
                   <div className={clsx("rounded-md px-3 py-3 text-center", t.metricBg)}>
                     <p className="text-lg font-bold tabular-nums text-brand-400">{myTournaments.length}</p>
                     <p className={clsx("mt-0.5 text-xs", t.textMuted)}>Crees</p>
                   </div>
                   <div className={clsx("rounded-md px-3 py-3 text-center", t.metricBg)}>
-                    <p className="text-lg font-bold tabular-nums text-amber-400">
-                      {myTournaments.filter((tr) => tr.approval_status === "pending").length}
-                    </p>
+                    <p className="text-lg font-bold tabular-nums text-amber-400">{pendingCount}</p>
                     <p className={clsx("mt-0.5 text-xs", t.textMuted)}>En attente</p>
+                  </div>
+                  <div className={clsx("rounded-md px-3 py-3 text-center", t.metricBg)}>
+                    <p className="text-lg font-bold tabular-nums text-emerald-400">{acceptedCount}</p>
+                    <p className={clsx("mt-0.5 text-xs", t.textMuted)}>Acceptes</p>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="space-y-3">
                 <p className={clsx("text-sm", t.textSecondary)}>
-                  Connectez-vous pour creer et suivre vos tournois.
+                  Connectez-vous pour creer et suivre vos tournois locaux.
                 </p>
                 <Link to="/login" className="inline-flex text-sm font-medium text-brand-500 hover:text-brand-400">
                   Aller a la connexion
@@ -343,114 +343,24 @@ export default function DashboardPage() {
           )}
         </ComponentCard>
 
-        <TournamentMetrics />
-
-        <div className={clsx("grid grid-cols-12 items-stretch", GRID_GAP)}>
-          <div className="col-span-12 flex xl:col-span-8">
-            <ComponentCard
-              fill
-              title="Statistiques de la saison"
-              desc="Buts marques vs encaisses par mois"
+        <div className={clsx("grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4", GRID_GAP)}>
+          {quickLinks.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={clsx("rounded-md border p-5 transition-colors", t.card, t.cardHover)}
             >
-              <GoalsLineChart />
-            </ComponentCard>
-          </div>
-
-          <div className="col-span-12 flex xl:col-span-4">
-            <ComponentCard
-              fill
-              title="Meilleurs buteurs"
-              desc="Top 5 de la saison"
-              action={
-                <Link to="/players" className="text-xs font-medium text-brand-500 hover:text-brand-400">
-                  Voir plus
-                </Link>
-              }
-            >
-              <TopScorersCard fill />
-            </ComponentCard>
-          </div>
-
-          <div className="col-span-12 flex xl:col-span-8">
-            <ComponentCard
-              fill
-              title="Derniers matchs"
-              desc="Resultats recents"
-              action={
-                hasMoreMatches ? (
-                  <Link to="/matches" className="text-xs font-medium text-brand-500 hover:text-brand-400">
-                    Voir plus
-                  </Link>
-                ) : undefined
-              }
-            >
-              <RecentMatchesTable limit={RECENT_MATCHES_LIMIT} fill />
-            </ComponentCard>
-          </div>
-
-          <div className="col-span-12 flex xl:col-span-4">
-            <ComponentCard fill title="Progression" desc={seasonLabel}>
-              <div className="flex flex-1 flex-col justify-between gap-5">
-                <ProgressLine
-                  value={SEASON_PROGRESS}
-                  label="Saison completee"
-                  sublabel={`${MATCHDAYS_PLAYED} / ${MATCHDAYS_TOTAL} journees jouees`}
-                />
-                <div className={clsx("grid grid-cols-2 gap-3 border-t pt-4", t.border)}>
-                  <div className={clsx("rounded-md px-3 py-3 text-center", t.metricBg)}>
-                    <p className="text-lg font-bold tabular-nums text-emerald-400">{completedCount}</p>
-                    <p className={clsx("mt-0.5 text-xs", t.textMuted)}>Matchs joues</p>
-                  </div>
-                  <div className={clsx("rounded-md px-3 py-3 text-center", t.metricBg)}>
-                    <p className="text-lg font-bold tabular-nums text-brand-400">{scheduledCount}</p>
-                    <p className={clsx("mt-0.5 text-xs", t.textMuted)}>A venir</p>
-                  </div>
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-500/15 text-brand-400">
+                  {item.icon}
+                </span>
+                <div className="min-w-0">
+                  <p className={clsx("font-semibold", t.textPrimary)}>{item.label}</p>
+                  <p className={clsx("mt-1 text-sm", t.textSecondary)}>{item.desc}</p>
                 </div>
               </div>
-            </ComponentCard>
-          </div>
-        </div>
-
-        <ComponentCard
-          title="Classement"
-          desc={`Top 10 - ${seasonLabel}`}
-          action={
-            <Link to="/rankings" className="text-xs font-medium text-brand-500 hover:text-brand-400">
-              Voir plus
             </Link>
-          }
-        >
-          <RankingPreviewTable limit={10} />
-        </ComponentCard>
-
-        <ComponentCard title="Forme des equipes" desc="Victoires / Nuls / Defaites">
-          <MatchBarChart fullWidth embedded />
-        </ComponentCard>
-
-        <div className={clsx("grid grid-cols-1 items-stretch lg:grid-cols-2", GRID_GAP)}>
-          <ComponentCard
-            title="Championnats"
-            desc={seasonLabel}
-            action={
-              <Link to="/championships" className="text-xs font-medium text-brand-500 hover:text-brand-400">
-                Voir plus
-              </Link>
-            }
-          >
-            <ChampionshipPreviewList />
-          </ComponentCard>
-
-          <ComponentCard
-            title="Tournois"
-            desc={seasonLabel}
-            action={
-              <Link to="/tournaments" className="text-xs font-medium text-brand-500 hover:text-brand-400">
-                Voir plus
-              </Link>
-            }
-          >
-            <TournamentPreviewList />
-          </ComponentCard>
+          ))}
         </div>
       </PageStack>
     </>
