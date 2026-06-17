@@ -290,8 +290,10 @@ export default function MatchesPage() {
             ) : (
               <form onSubmit={handleCreateMatch} className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Tournoi *</label>
+                  <label htmlFor="match-tournament" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Tournoi *</label>
                   <select
+                    id="match-tournament"
+                    name="tournament_id"
                     value={matchForm.tournament_id}
                     onChange={(e) => updateMatchForm("tournament_id", e.target.value)}
                     required
@@ -304,8 +306,10 @@ export default function MatchesPage() {
                   </select>
                 </div>
                 <div>
-                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Date *</label>
+                  <label htmlFor="match-date" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Date *</label>
                   <input
+                    id="match-date"
+                    name="match_date"
                     type="datetime-local"
                     value={matchForm.match_date}
                     onChange={(e) => updateMatchForm("match_date", e.target.value)}
@@ -315,8 +319,10 @@ export default function MatchesPage() {
                   />
                 </div>
                 <div>
-                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Equipe domicile *</label>
+                  <label htmlFor="match-home-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Equipe domicile *</label>
                   <select
+                    id="match-home-team"
+                    name="home_team_id"
                     value={matchForm.home_team_id}
                     onChange={(e) => updateMatchForm("home_team_id", e.target.value)}
                     required
@@ -329,8 +335,10 @@ export default function MatchesPage() {
                   </select>
                 </div>
                 <div>
-                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Equipe exterieure *</label>
+                  <label htmlFor="match-away-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Equipe exterieure *</label>
                   <select
+                    id="match-away-team"
+                    name="away_team_id"
                     value={matchForm.away_team_id}
                     onChange={(e) => updateMatchForm("away_team_id", e.target.value)}
                     required
@@ -356,8 +364,10 @@ export default function MatchesPage() {
         <ComponentCard title="Resultat" desc="Saisie et validation">
           <form onSubmit={handleEnterResult} className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div className="md:col-span-2">
-              <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match *</label>
+              <label htmlFor="result-match" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match *</label>
               <select
+                id="result-match"
+                name="match_id"
                 value={resultForm.match_id}
                 onChange={(e) => updateResultForm("match_id", e.target.value)}
                 required
@@ -373,8 +383,10 @@ export default function MatchesPage() {
               </select>
             </div>
             <div>
-              <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Score domicile *</label>
+              <label htmlFor="result-home-score" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Score domicile *</label>
               <input
+                id="result-home-score"
+                name="home_score"
                 type="number"
                 min={0}
                 value={resultForm.home_score}
@@ -385,8 +397,10 @@ export default function MatchesPage() {
               />
             </div>
             <div>
-              <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Score exterieur *</label>
+              <label htmlFor="result-away-score" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Score exterieur *</label>
               <input
+                id="result-away-score"
+                name="away_score"
                 type="number"
                 min={0}
                 value={resultForm.away_score}
@@ -422,6 +436,8 @@ export default function MatchesPage() {
               placeholder="Rechercher un match..."
             />
             <select
+              id="matches-tournament-filter"
+              name="tournament_filter"
               value={tournamentFilter}
               onChange={(e) => setTournamentFilter(e.target.value)}
               className={clsx("rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}

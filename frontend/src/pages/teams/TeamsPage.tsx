@@ -136,8 +136,10 @@ export default function TeamsPage() {
               <ComponentCard title="Creer une equipe" desc="Le manager est deduit du JWT" className="xl:col-span-2">
                 <form onSubmit={handleCreateTeam} className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
+                    <label htmlFor="team-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
                     <input
+                      id="team-name"
+                      name="name"
                       value={form.name}
                       onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))}
                       required
@@ -146,8 +148,10 @@ export default function TeamsPage() {
                     />
                   </div>
                   <div>
-                    <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Ville</label>
+                    <label htmlFor="team-city" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Ville</label>
                     <input
+                      id="team-city"
+                      name="city"
                       value={form.city}
                       onChange={(e) => setForm((current) => ({ ...current, city: e.target.value }))}
                       disabled={submitting}

@@ -200,8 +200,10 @@ export default function PlayersPage() {
             ) : (
               <form onSubmit={handleCreatePlayer} className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
-                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Equipe *</label>
+                  <label htmlFor="player-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Equipe *</label>
                   <select
+                    id="player-team"
+                    name="team_id"
                     value={form.team_id}
                     onChange={(e) => updateForm("team_id", e.target.value)}
                     required
@@ -214,8 +216,10 @@ export default function PlayersPage() {
                   </select>
                 </div>
                 <div>
-                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Prenom *</label>
+                  <label htmlFor="player-first-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Prenom *</label>
                   <input
+                    id="player-first-name"
+                    name="first_name"
                     value={form.first_name}
                     onChange={(e) => updateForm("first_name", e.target.value)}
                     required
@@ -224,8 +228,10 @@ export default function PlayersPage() {
                   />
                 </div>
                 <div>
-                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
+                  <label htmlFor="player-last-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
                   <input
+                    id="player-last-name"
+                    name="last_name"
                     value={form.last_name}
                     onChange={(e) => updateForm("last_name", e.target.value)}
                     required
@@ -234,8 +240,10 @@ export default function PlayersPage() {
                   />
                 </div>
                 <div>
-                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Naissance</label>
+                  <label htmlFor="player-birth-date" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Naissance</label>
                   <input
+                    id="player-birth-date"
+                    name="birth_date"
                     type="date"
                     value={form.birth_date}
                     onChange={(e) => updateForm("birth_date", e.target.value)}
@@ -244,8 +252,10 @@ export default function PlayersPage() {
                   />
                 </div>
                 <div>
-                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Poste</label>
+                  <label htmlFor="player-position" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Poste</label>
                   <input
+                    id="player-position"
+                    name="position"
                     value={form.position}
                     onChange={(e) => updateForm("position", e.target.value)}
                     placeholder="ST"
@@ -254,8 +264,10 @@ export default function PlayersPage() {
                   />
                 </div>
                 <div>
-                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Numero</label>
+                  <label htmlFor="player-number" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Numero</label>
                   <input
+                    id="player-number"
+                    name="number"
                     type="number"
                     min={0}
                     value={form.number}

@@ -164,8 +164,10 @@ export default function RankingsPage() {
           <ComponentCard title="Tournoi" desc="Classement public par tournoi" className="lg:col-span-2">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto_auto] md:items-end">
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Tournoi</label>
+                <label htmlFor="rankings-tournament" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Tournoi</label>
                 <select
+                  id="rankings-tournament"
+                  name="tournament_id"
                   value={selectedTournamentId}
                   onChange={(event) => {
                     setSelectedTournamentId(event.target.value);

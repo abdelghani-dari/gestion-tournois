@@ -258,8 +258,10 @@ export default function JoinRequestsPage() {
                 ) : (
                   <form onSubmit={handleCreateRequest} className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Tournoi *</label>
+                      <label htmlFor="join-request-tournament" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Tournoi *</label>
                       <select
+                        id="join-request-tournament"
+                        name="tournament_id"
                         value={form.tournament_id}
                         onChange={(e) => updateForm("tournament_id", e.target.value)}
                         required
@@ -272,8 +274,10 @@ export default function JoinRequestsPage() {
                       </select>
                     </div>
                     <div>
-                      <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Equipe *</label>
+                      <label htmlFor="join-request-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Equipe *</label>
                       <select
+                        id="join-request-team"
+                        name="team_id"
                         value={form.team_id}
                         onChange={(e) => updateForm("team_id", e.target.value)}
                         required
@@ -286,8 +290,10 @@ export default function JoinRequestsPage() {
                       </select>
                     </div>
                     <div className="md:col-span-2">
-                      <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Message</label>
+                      <label htmlFor="join-request-message" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Message</label>
                       <textarea
+                        id="join-request-message"
+                        name="message"
                         value={form.message}
                         onChange={(e) => updateForm("message", e.target.value)}
                         rows={3}

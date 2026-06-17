@@ -92,8 +92,10 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               {mode === "register" && (
                 <div>
-                  <label className="mb-1.5 block text-sm text-slate-400">Nom</label>
+                  <label htmlFor="login-name" className="mb-1.5 block text-sm text-slate-400">Nom</label>
                   <input
+                    id="login-name"
+                    name="name"
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -105,10 +107,12 @@ export default function LoginPage() {
               )}
 
               <div>
-                <label className="mb-1.5 block text-sm text-slate-400">Email</label>
+                <label htmlFor="login-email" className="mb-1.5 block text-sm text-slate-400">Email</label>
                 <div className="relative">
                   <EnvelopeIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
                   <input
+                    id="login-email"
+                    name="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -120,10 +124,12 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm text-slate-400">Mot de passe</label>
+                <label htmlFor="login-password" className="mb-1.5 block text-sm text-slate-400">Mot de passe</label>
                 <div className="relative">
                   <LockIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
                   <input
+                    id="login-password"
+                    name="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -136,10 +142,12 @@ export default function LoginPage() {
 
               {mode === "register" && (
                 <div>
-                  <label className="mb-1.5 block text-sm text-slate-400">Confirmation</label>
+                  <label htmlFor="login-password-confirmation" className="mb-1.5 block text-sm text-slate-400">Confirmation</label>
                   <div className="relative">
                     <LockIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
                     <input
+                      id="login-password-confirmation"
+                      name="password_confirmation"
                       type="password"
                       value={passwordConfirmation}
                       onChange={(e) => setPasswordConfirmation(e.target.value)}

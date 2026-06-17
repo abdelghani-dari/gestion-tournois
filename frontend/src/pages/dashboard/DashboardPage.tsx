@@ -204,8 +204,10 @@ export default function DashboardPage() {
           <ComponentCard title="Creer un tournoi" desc="Validation admin requise" className="xl:col-span-2">
             <form onSubmit={handleCreateTournament} className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
+                <label htmlFor="dashboard-tournament-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
                 <input
+                  id="dashboard-tournament-name"
+                  name="name"
                   value={form.name}
                   onChange={(e) => updateForm("name", e.target.value)}
                   required
@@ -214,8 +216,10 @@ export default function DashboardPage() {
                 />
               </div>
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Ville</label>
+                <label htmlFor="dashboard-tournament-city" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Ville</label>
                 <input
+                  id="dashboard-tournament-city"
+                  name="city"
                   value={form.city}
                   onChange={(e) => updateForm("city", e.target.value)}
                   disabled={!isAuthenticated || submitting}
@@ -223,8 +227,10 @@ export default function DashboardPage() {
                 />
               </div>
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Lieu</label>
+                <label htmlFor="dashboard-tournament-location" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Lieu</label>
                 <input
+                  id="dashboard-tournament-location"
+                  name="location"
                   value={form.location}
                   onChange={(e) => updateForm("location", e.target.value)}
                   disabled={!isAuthenticated || submitting}
@@ -232,8 +238,10 @@ export default function DashboardPage() {
                 />
               </div>
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Description</label>
+                <label htmlFor="dashboard-tournament-description" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Description</label>
                 <input
+                  id="dashboard-tournament-description"
+                  name="description"
                   value={form.description}
                   onChange={(e) => updateForm("description", e.target.value)}
                   disabled={!isAuthenticated || submitting}
@@ -241,8 +249,10 @@ export default function DashboardPage() {
                 />
               </div>
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Date debut *</label>
+                <label htmlFor="dashboard-tournament-start-date" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Date debut *</label>
                 <input
+                  id="dashboard-tournament-start-date"
+                  name="start_date"
                   type="date"
                   value={form.start_date}
                   onChange={(e) => updateForm("start_date", e.target.value)}
@@ -252,8 +262,10 @@ export default function DashboardPage() {
                 />
               </div>
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Date fin *</label>
+                <label htmlFor="dashboard-tournament-end-date" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Date fin *</label>
                 <input
+                  id="dashboard-tournament-end-date"
+                  name="end_date"
                   type="date"
                   value={form.end_date}
                   onChange={(e) => updateForm("end_date", e.target.value)}
