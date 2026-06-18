@@ -5,6 +5,8 @@ import { getPublicTournaments, type PublicTournament } from "../../api";
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
+import Button from "../../components/common/Button";
+import XModal from "../../components/common/XModal";
 import { statusLabel, statusTone } from "../../components/common/statusLabels";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { PlusIcon } from "../../icons";
@@ -38,6 +40,7 @@ export default function TournamentsPage() {
   const t = useThemeTokens();
   const [tournaments, setTournaments] = useState<PublicTournament[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [detailsTournament, setDetailsTournament] = useState<PublicTournament | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -158,6 +161,7 @@ export default function TournamentsPage() {
                   <col className="w-[12%]" />
                   <col className="w-[11%]" />
                   <col className="w-[12%]" />
+                  <col className="w-[12%]" />
                 </colgroup>
                 <thead>
                   <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
@@ -170,6 +174,7 @@ export default function TournamentsPage() {
                     <th className="px-4 py-3 whitespace-nowrap">Fin</th>
                     <th className="px-4 py-3">Statut</th>
                     <th className="px-4 py-3">Validation</th>
+                    <th className="px-4 py-3">Détails</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -209,6 +214,11 @@ export default function TournamentsPage() {
                       <td className="px-4 py-3">
                         <TournamentStatus value={tr.approval_status} tone="approval" />
                       </td>
+                      <td className="px-4 py-3">
+                        <Button type="button" size="sm" variant="secondary" onClick={() => setDetailsTournament(tr)}>
+                          Détails
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -216,6 +226,32 @@ export default function TournamentsPage() {
             </div>
           </div>
         )}
+
+        <XModal
+          open={Boolean(detailsTournament)}
+          onClose={() => setDetailsTournament(null)}
+          title={detailsTournament?.name ?? "Détails du tournoi"}
+        >
+          {detailsTournament && (
+            <div className="space-y-3 text-sm">
+              {[
+                ["Nom", detailsTournament.name],
+                ["Ville", detailsTournament.city || "-"],
+                ["Lieu", detailsTournament.location || "-"],
+                ["Date début", formatDate(detailsTournament.start_date)],
+                ["Date fin", formatDate(detailsTournament.end_date)],
+                ["Statut", statusLabel(detailsTournament.status)],
+                ["Validation", statusLabel(detailsTournament.approval_status)],
+                ["Description", detailsTournament.description || "-"],
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-4">
+                  <span className={t.textMuted}>{label}</span>
+                  <span className={clsx("text-right", t.textPrimary)}>{value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </XModal>
       </PageStack>
     </>
   );

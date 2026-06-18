@@ -30,7 +30,7 @@ The previous season, championship, Botola, and official competition concepts are
 ## 4. Active routes/pages
 
 - `/login`: login/register UI connected to Laravel JWT auth.
-- `/dashboard`: authenticated user space with my tournaments and tournament creation.
+- `/dashboard`: authenticated role-aware dashboard. Normal users see their tournament/team/player workflow and tournament creation. Admins see validation-focused tournament metrics and admin links.
 - `/tournaments`: public accepted tournaments from the backend.
 - `/admin/tournaments`: admin tournament approval.
 - `/teams`: authenticated team management.
@@ -76,7 +76,14 @@ All active data flows use `frontend/src/api.ts`.
 
 ### Dashboard
 
-Shows the authenticated user's account summary, their created tournaments, and a form for creating a new tournament. Created tournaments are sent to the backend and start in the backend-controlled approval flow.
+Shows a different interface depending on the authenticated role.
+
+- Normal users see their tournament, team, player, join-request, and match overview, plus the tournament creation form.
+- Admin users see validation-focused metrics: pending, accepted, refused, and total tournaments, with links toward admin tournament validation.
+- The dashboard includes simple backend-driven horizontal charts for tournament status, match status, result status, and ranking points.
+- The dashboard includes a simple `Tableau du tournoi` bracket section built from backend matches.
+
+Admin users can still create tournaments through normal authenticated backend permissions, but tournament creation is no longer the main admin dashboard focus.
 
 ### Tournaments
 

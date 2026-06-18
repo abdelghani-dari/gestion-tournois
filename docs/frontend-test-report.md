@@ -138,6 +138,8 @@ Fixed during QA polish:
 - Cleaned visible French labels/statuses across active API-connected pages.
 - Removed technical wording such as backend/JWT references from normal user-facing labels.
 - Improved select placeholders and active list empty states.
+- Split the dashboard into distinct admin and normal-user experiences.
+- Added backend-driven dashboard charts, a simple tournament bracket, and details modals for tournaments, teams, and players.
 
 These were presentation/accessibility polish items and did not break the active API-connected flow.
 
@@ -146,6 +148,7 @@ These were presentation/accessibility polish items and did not break the active 
 - Improved French labels on the match composition page.
 - Improved form label wiring on active frontend forms, including dashboard tournament creation, teams, players, join requests, matches/results, rankings, statistics, match composition, and login.
 - Improved visible French labels/statuses, removed technical wording, and tightened select placeholders and empty states across active frontend pages.
+- Added role-specific dashboard sections, simple charts, a tournament bracket, and details modals on tournaments, teams, and players pages.
 
 ## 11. Final status
 

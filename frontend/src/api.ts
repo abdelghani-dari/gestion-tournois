@@ -240,6 +240,7 @@ export type ApiPlayer = {
   birth_date?: string | null;
   position?: string | null;
   number?: number | null;
+  created_at?: string | null;
   team?: ApiTeam | null;
 };
 

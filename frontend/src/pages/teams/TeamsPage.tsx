@@ -7,6 +7,7 @@ import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
 import Button from "../../components/common/Button";
 import FilterSearchInput from "../../components/common/FilterSearchInput";
+import XModal from "../../components/common/XModal";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
 import { PlusIcon } from "../../icons";
@@ -37,6 +38,7 @@ export default function TeamsPage() {
   const { isAuthenticated, loading: authLoading, user } = useAuth();
   const [teams, setTeams] = useState<ApiTeam[]>([]);
   const [form, setForm] = useState<TeamPayload>(emptyTeamForm);
+  const [detailsTeam, setDetailsTeam] = useState<ApiTeam | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -206,6 +208,7 @@ export default function TeamsPage() {
                       <col className="w-[20%]" />
                       <col className="w-[32%]" />
                       <col className="w-[20%]" />
+                      <col className="w-[14%]" />
                     </colgroup>
                     <thead>
                       <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
@@ -214,6 +217,7 @@ export default function TeamsPage() {
                         <th className="px-4 py-3">Ville</th>
                         <th className="px-4 py-3">Manager</th>
                         <th className="px-4 py-3">Création</th>
+                        <th className="px-4 py-3">Détails</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -226,6 +230,11 @@ export default function TeamsPage() {
                             <span className="block truncate" title={managerLabel(team)}>{managerLabel(team)}</span>
                           </td>
                           <td className={clsx("px-4 py-3 whitespace-nowrap tabular-nums", t.textSecondary)}>{formatDate(team.created_at)}</td>
+                          <td className="px-4 py-3">
+                            <Button type="button" size="sm" variant="secondary" onClick={() => setDetailsTeam(team)}>
+                              Détails
+                            </Button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -233,6 +242,29 @@ export default function TeamsPage() {
                 </div>
               )}
             </ComponentCard>
+
+            <XModal
+              open={Boolean(detailsTeam)}
+              onClose={() => setDetailsTeam(null)}
+              title={detailsTeam?.name ?? "Détails de l'équipe"}
+            >
+              {detailsTeam && (
+                <div className="space-y-3 text-sm">
+                  {[
+                    ["Nom", detailsTeam.name],
+                    ["Ville", detailsTeam.city || "-"],
+                    ["Manager", managerLabel(detailsTeam)],
+                    ["Création", formatDate(detailsTeam.created_at)],
+                    ["Joueurs", "Non disponible"],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex justify-between gap-4">
+                      <span className={t.textMuted}>{label}</span>
+                      <span className={clsx("text-right", t.textPrimary)}>{value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </XModal>
           </>
         )}
       </PageStack>

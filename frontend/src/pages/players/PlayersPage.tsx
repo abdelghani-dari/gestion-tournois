@@ -16,6 +16,7 @@ import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
 import Button from "../../components/common/Button";
 import FilterSearchInput from "../../components/common/FilterSearchInput";
+import XModal from "../../components/common/XModal";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
 import { PlusIcon } from "../../icons";
@@ -62,6 +63,7 @@ export default function PlayersPage() {
   const [teams, setTeams] = useState<ApiTeam[]>([]);
   const [myTeams, setMyTeams] = useState<ApiTeam[]>([]);
   const [form, setForm] = useState<PlayerForm>(emptyPlayerForm);
+  const [detailsPlayer, setDetailsPlayer] = useState<ApiPlayer | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [myTeamsLoading, setMyTeamsLoading] = useState(false);
@@ -326,6 +328,7 @@ export default function PlayersPage() {
                   <col className="w-[13%]" />
                   <col className="w-[10%]" />
                   <col className="w-[19%]" />
+                  <col className="w-[14%]" />
                 </colgroup>
                 <thead>
                   <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
@@ -336,6 +339,7 @@ export default function PlayersPage() {
                     <th className="px-4 py-3">Poste</th>
                     <th className="px-4 py-3">Numéro</th>
                     <th className="px-4 py-3">Naissance</th>
+                    <th className="px-4 py-3">Détails</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -350,6 +354,11 @@ export default function PlayersPage() {
                       <td className={clsx("px-4 py-3", t.textSecondary)}>{player.position || "-"}</td>
                       <td className={clsx("px-4 py-3 font-mono tabular-nums", t.textSecondary)}>{player.number ?? "-"}</td>
                       <td className={clsx("px-4 py-3 whitespace-nowrap tabular-nums", t.textSecondary)}>{formatDate(player.birth_date)}</td>
+                      <td className="px-4 py-3">
+                        <Button type="button" size="sm" variant="secondary" onClick={() => setDetailsPlayer(player)}>
+                          Détails
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -357,6 +366,29 @@ export default function PlayersPage() {
             </div>
           )}
         </ComponentCard>
+
+        <XModal
+          open={Boolean(detailsPlayer)}
+          onClose={() => setDetailsPlayer(null)}
+          title={detailsPlayer ? playerName(detailsPlayer) : "Détails du joueur"}
+        >
+          {detailsPlayer && (
+            <div className="space-y-3 text-sm">
+              {[
+                ["Nom", playerName(detailsPlayer)],
+                ["Poste", detailsPlayer.position || "-"],
+                ["Numéro", detailsPlayer.number != null ? String(detailsPlayer.number) : "-"],
+                ["Équipe", teamName(detailsPlayer, teams)],
+                ["Création", formatDate(detailsPlayer.created_at)],
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-4">
+                  <span className={t.textMuted}>{label}</span>
+                  <span className={clsx("text-right", t.textPrimary)}>{value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </XModal>
       </PageStack>
     </>
   );
