@@ -181,10 +181,10 @@ export default function LoginPage() {
 
             <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
               <Button type="button" variant="secondary" size="sm" onClick={() => fillCredentials("user@example.com")}>
-                Login as User
+                Connexion utilisateur
               </Button>
               <Button type="button" variant="secondary" size="sm" onClick={() => fillCredentials("admin@example.com")}>
-                Login as Admin
+                Connexion admin
               </Button>
             </div>
           </GlassCard>

@@ -374,7 +374,7 @@ export default function StatisticsPage() {
           )}
         </ComponentCard>
 
-        <ComponentCard title="Filtres" desc="Recherche simple par match, equipe, joueur ou type">
+        <ComponentCard title="Filtres" desc="Recherche simple par match, équipe, joueur ou type">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
             <div>
               <label htmlFor="statistics-filter-match" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match</label>

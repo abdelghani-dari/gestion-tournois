@@ -54,9 +54,9 @@ export default function TeamsPage() {
       setTeams(data);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        setError("Your session has expired. Please log in again.");
+        setError("Votre session a expiré. Veuillez vous reconnecter.");
       } else {
-        setError(err instanceof Error ? err.message : "Unable to load your teams.");
+        setError(err instanceof Error ? err.message : "Impossible de charger vos équipes.");
       }
     } finally {
       setLoading(false);
@@ -96,14 +96,14 @@ export default function TeamsPage() {
         name: form.name,
         city: form.city?.trim() || undefined,
       });
-      setSuccess("Team created.");
+      setSuccess("Équipe créée.");
       setForm(emptyTeamForm);
       await loadTeams();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        setError("Your session has expired. Please log in again.");
+        setError("Votre session a expiré. Veuillez vous reconnecter.");
       } else {
-        setError(err instanceof Error ? err.message : "Unable to create team.");
+        setError(err instanceof Error ? err.message : "Impossible de créer l'équipe.");
       }
     } finally {
       setSubmitting(false);
@@ -112,12 +112,12 @@ export default function TeamsPage() {
 
   return (
     <>
-      <XPageMeta title="Equipes" description="Mes equipes" />
+      <XPageMeta title="Équipes" description="Mes équipes" />
       <PageStack>
         {!authLoading && !isAuthenticated ? (
-          <ComponentCard title="Equipes" desc="Connexion requise">
+          <ComponentCard title="Équipes" desc="Connexion requise">
             <p className={clsx("text-sm", t.textSecondary)}>
-              Connectez-vous pour creer et gerer vos equipes.
+              Connectez-vous pour créer et gérer vos équipes.
             </p>
             <Link to="/login" className="mt-4 inline-flex text-sm font-medium text-brand-500 hover:text-brand-400">
               Aller a la connexion
@@ -126,14 +126,14 @@ export default function TeamsPage() {
         ) : (
           <>
             <div className={clsx("grid grid-cols-1 xl:grid-cols-3", GRID_GAP)}>
-              <ComponentCard title="Mon compte" desc={user ? `${user.email} - ${user.role}` : "Session"}>
+              <ComponentCard title="Mon compte" desc={user ? `${user.email} - ${user.role}` : "Compte connecté"}>
                 <div className={clsx("rounded-md border p-4", t.card)}>
-                  <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Equipes creees</p>
+                  <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Équipes créées</p>
                   <p className={clsx("mt-1 text-3xl font-bold", t.textPrimary)}>{teams.length}</p>
                 </div>
               </ComponentCard>
 
-              <ComponentCard title="Creer une equipe" desc="Le manager est deduit du JWT" className="xl:col-span-2">
+              <ComponentCard title="Créer une équipe" desc="Votre compte sera associé automatiquement" className="xl:col-span-2">
                 <form onSubmit={handleCreateTeam} className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
                     <label htmlFor="team-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
@@ -171,14 +171,14 @@ export default function TeamsPage() {
                     )}
                     <Button type="submit" disabled={submitting} className="gap-2">
                       <PlusIcon className="size-4 shrink-0" />
-                      {submitting ? "Creation..." : "Creer l'equipe"}
+                      {submitting ? "Création..." : "Créer l'équipe"}
                     </Button>
                   </div>
                 </form>
               </ComponentCard>
             </div>
 
-            <ComponentCard title="Mes equipes" desc="Equipes creees avec votre compte">
+            <ComponentCard title="Mes équipes" desc="Équipes créées avec votre compte">
               <div className="mb-4">
                 <FilterSearchInput
                   value={searchQuery}
@@ -188,12 +188,12 @@ export default function TeamsPage() {
               </div>
 
               {loading && (
-                <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement de vos equipes...</p>
+                <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement de vos équipes...</p>
               )}
 
               {!loading && !error && teams.length === 0 && (
                 <p className={clsx("py-10 text-center text-sm", t.textMuted)}>
-                  You have not created any teams yet.
+                  Aucune équipe disponible.
                 </p>
               )}
 
@@ -213,7 +213,7 @@ export default function TeamsPage() {
                         <th className="px-4 py-3">Nom</th>
                         <th className="px-4 py-3">Ville</th>
                         <th className="px-4 py-3">Manager</th>
-                        <th className="px-4 py-3">Creation</th>
+                        <th className="px-4 py-3">Création</th>
                       </tr>
                     </thead>
                     <tbody>

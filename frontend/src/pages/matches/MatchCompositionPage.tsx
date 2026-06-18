@@ -95,7 +95,7 @@ function compositionShirtNumber(composition: ApiComposition, players: ApiPlayer[
 
 function readableCompositionError(err: unknown, fallback: string) {
   if (err instanceof ApiError && err.status === 403) {
-    return "Vous pouvez seulement gerer les compositions des tournois que vous avez crees.";
+    return "Vous pouvez seulement gérer les compositions des tournois que vous avez créés.";
   }
   if (err instanceof ApiError && err.status === 401) {
     return "Votre session a expire. Veuillez vous reconnecter.";
@@ -199,7 +199,7 @@ export default function MatchCompositionPage() {
 
     try {
       await createComposition(payload);
-      setSuccess("Composition creee.");
+      setSuccess("Composition créée.");
       setForm((current) => ({
         ...emptyForm,
         match_game_id: current.match_game_id,
@@ -208,7 +208,7 @@ export default function MatchCompositionPage() {
       }));
       await loadData(matchFilter);
     } catch (err) {
-      setError(readableCompositionError(err, "Impossible de creer la composition."));
+      setError(readableCompositionError(err, "Impossible de créer la composition."));
     } finally {
       setSubmitting(false);
     }
@@ -230,7 +230,7 @@ export default function MatchCompositionPage() {
       <XPageMeta title="Composition" description="Compositions des matchs" />
       <PageStack>
         <div className={clsx("grid grid-cols-1 lg:grid-cols-3", GRID_GAP)}>
-          <ComponentCard title="Match" desc="Composition backend" className="lg:col-span-2">
+          <ComponentCard title="Match" desc="Composition enregistrée" className="lg:col-span-2">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto_auto] md:items-end">
               <div>
                 <label htmlFor="composition-match-filter" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match</label>
@@ -267,7 +267,7 @@ export default function MatchCompositionPage() {
             </div>
           </ComponentCard>
 
-          <ComponentCard title="Session" desc={user ? `${user.email} - ${user.role}` : "Acces public"}>
+          <ComponentCard title="Compte connecté" desc={user ? `${user.email} - ${user.role}` : "Accès public"}>
             <div className={clsx("rounded-md border p-4", t.card)}>
               <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Compositions</p>
               <p className={clsx("mt-1 text-3xl font-bold", t.textPrimary)}>{compositions.length}</p>
@@ -306,7 +306,7 @@ export default function MatchCompositionPage() {
               </div>
 
               <div>
-                <label htmlFor="composition-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Equipe *</label>
+                <label htmlFor="composition-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe *</label>
                 <select
                   id="composition-team"
                   name="team_id"
@@ -316,7 +316,7 @@ export default function MatchCompositionPage() {
                   disabled={submitting || loading}
                   className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                 >
-                  <option value="">Sélectionner une equipe</option>
+                  <option value="">Sélectionner une équipe</option>
                   {teamOptions.map((team) => (
                     <option key={team.id} value={team.id}>{team.name}</option>
                   ))}
@@ -337,7 +337,7 @@ export default function MatchCompositionPage() {
                   <option value="">Sélectionner un joueur</option>
                   {players.map((player) => (
                     <option key={player.id} value={player.id}>
-                      {playerLabel(player.id, players, player)} - Equipe #{player.team_id}
+                      {playerLabel(player.id, players, player)} - Équipe #{player.team_id}
                     </option>
                   ))}
                 </select>
@@ -358,7 +358,7 @@ export default function MatchCompositionPage() {
               </div>
 
               <div>
-                <label htmlFor="composition-shirt-number" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Numero de maillot</label>
+                <label htmlFor="composition-shirt-number" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Numéro de maillot</label>
                 <input
                   id="composition-shirt-number"
                   name="shirt_number"
@@ -404,7 +404,7 @@ export default function MatchCompositionPage() {
           )}
         </ComponentCard>
 
-        <ComponentCard title="Liste des compositions" desc="Donnees backend">
+        <ComponentCard title="Liste des compositions" desc="Données enregistrées">
           {loading && (
             <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement des compositions...</p>
           )}
@@ -430,12 +430,12 @@ export default function MatchCompositionPage() {
                   <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
                     <th className="px-4 py-3">ID</th>
                     <th className="px-4 py-3">Match</th>
-                    <th className="px-4 py-3">Equipe</th>
+                    <th className="px-4 py-3">Équipe</th>
                     <th className="px-4 py-3">Joueur</th>
                     <th className="px-4 py-3">Titulaire</th>
                     <th className="px-4 py-3">Poste</th>
                     <th className="px-4 py-3">Maillot</th>
-                    <th className="px-4 py-3">Creation</th>
+                    <th className="px-4 py-3">Création</th>
                   </tr>
                 </thead>
                 <tbody>

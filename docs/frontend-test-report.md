@@ -22,7 +22,7 @@ Notes:
 
 - TypeScript build completed.
 - Vite production build completed.
-- Output bundles: `dist/assets/index-tV3--Sla.css`, `dist/assets/index-CrgPTsi4.js`
+- Output bundles: `dist/assets/index-tV3--Sla.css`, `dist/assets/index-PlQCkBEG.js`
 - Warning observed: `vite-plugin-svgr` plugin timing warning only.
 
 ## 3. Backend API test result
@@ -135,6 +135,9 @@ Fixed during QA polish:
 
 - Added simple `id`/`name`/`htmlFor` wiring to active form fields where labels were missing explicit associations.
 - Replaced remaining obvious English visible labels on `/matches/3/composition` with French labels.
+- Cleaned visible French labels/statuses across active API-connected pages.
+- Removed technical wording such as backend/JWT references from normal user-facing labels.
+- Improved select placeholders and active list empty states.
 
 These were presentation/accessibility polish items and did not break the active API-connected flow.
 
@@ -142,6 +145,7 @@ These were presentation/accessibility polish items and did not break the active 
 
 - Improved French labels on the match composition page.
 - Improved form label wiring on active frontend forms, including dashboard tournament creation, teams, players, join requests, matches/results, rankings, statistics, match composition, and login.
+- Improved visible French labels/statuses, removed technical wording, and tightened select placeholders and empty states across active frontend pages.
 
 ## 11. Final status
 

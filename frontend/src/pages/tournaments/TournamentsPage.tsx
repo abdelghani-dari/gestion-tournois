@@ -5,6 +5,7 @@ import { getPublicTournaments, type PublicTournament } from "../../api";
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
+import { statusLabel, statusTone } from "../../components/common/statusLabels";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { PlusIcon } from "../../icons";
 
@@ -19,21 +20,16 @@ function formatDate(date?: string | null) {
 
 function TournamentStatus({ value, tone = "default" }: { value?: string | null; tone?: "default" | "approval" }) {
   const t = useThemeTokens();
-  const normalized = value ?? "-";
-  const positive = ["accepted", "open", "active", "approved"].includes(normalized);
-  const pending = ["pending", "upcoming"].includes(normalized);
+  const labelTone = statusTone(value);
 
   return (
     <span
       className={clsx(
-        "inline-flex rounded-sm px-2 py-0.5 text-xs font-medium capitalize",
-        positive && "bg-emerald-500/15 text-emerald-400",
-        pending && "bg-amber-500/15 text-amber-400",
-        !positive && !pending && tone === "approval" && "bg-slate-500/15 text-slate-300",
-        !positive && !pending && tone === "default" && clsx(t.metricBg, t.textSecondary),
+        "inline-flex rounded-sm px-2 py-0.5 text-xs font-medium",
+        labelTone || (tone === "approval" ? "bg-slate-500/15 text-slate-300" : clsx(t.metricBg, t.textSecondary)),
       )}
     >
-      {normalized}
+      {statusLabel(value)}
     </span>
   );
 }
@@ -59,7 +55,7 @@ export default function TournamentsPage() {
         setSelectedId(data[0]?.id ?? null);
       } catch (err) {
         if (!active) return;
-        setError(err instanceof Error ? err.message : "Unable to load public tournaments.");
+        setError(err instanceof Error ? err.message : "Impossible de charger les tournois publics.");
       } finally {
         if (active) setLoading(false);
       }
@@ -79,7 +75,7 @@ export default function TournamentsPage() {
 
   return (
     <>
-      <XPageMeta title="Tournois" description="Liste des tournois publics acceptes" />
+      <XPageMeta title="Tournois" description="Liste des tournois publics acceptés" />
       <PageStack>
         {tournaments.length > 1 && (
           <div className={clsx("flex flex-wrap gap-2 rounded-md border p-1.5", t.border)}>
@@ -101,7 +97,7 @@ export default function TournamentsPage() {
 
         <ComponentCard
           title={selected?.name ?? "Tournois publics"}
-          desc={selected?.description || "Tournois locaux acceptes par l'administration"}
+          desc={selected?.description || "Tournois locaux acceptés par l'administration"}
           action={
             <Link
               to="/dashboard"
@@ -126,14 +122,14 @@ export default function TournamentsPage() {
 
           {!loading && !error && tournaments.length === 0 && (
             <p className={clsx("py-10 text-center text-sm", t.textMuted)}>
-              Aucun tournoi accepté pour le moment.
+              Aucun tournoi disponible.
             </p>
           )}
 
           {!loading && !error && tournaments.length > 0 && (
             <div className={clsx("grid grid-cols-1 lg:grid-cols-3", GRID_GAP)}>
               <div className={clsx("rounded-md border p-5", t.card)}>
-                <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Tournois acceptes</p>
+                <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Tournois acceptés</p>
                 <p className={clsx("mt-1 text-2xl font-bold", t.textPrimary)}>{tournaments.length}</p>
               </div>
               <div className={clsx("rounded-md border p-5", t.card)}>
@@ -170,7 +166,7 @@ export default function TournamentsPage() {
                     <th className="px-4 py-3">Description</th>
                     <th className="px-4 py-3">Ville</th>
                     <th className="px-4 py-3">Lieu</th>
-                    <th className="px-4 py-3 whitespace-nowrap">Debut</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Début</th>
                     <th className="px-4 py-3 whitespace-nowrap">Fin</th>
                     <th className="px-4 py-3">Statut</th>
                     <th className="px-4 py-3">Validation</th>

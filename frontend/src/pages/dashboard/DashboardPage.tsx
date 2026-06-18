@@ -12,6 +12,7 @@ import Button from "../../components/common/Button";
 import ComponentCard from "../../components/common/ComponentCard";
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
+import { statusLabel, statusTone } from "../../components/common/statusLabels";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -44,22 +45,16 @@ function formatTournamentDate(date?: string | null) {
 
 function SmallStatus({ value }: { value?: string | null }) {
   const t = useThemeTokens();
-  const normalized = value ?? "-";
-  const positive = ["accepted", "open", "active", "approved"].includes(normalized);
-  const pending = ["pending", "draft", "upcoming"].includes(normalized);
-  const refused = ["refused", "rejected", "cancelled"].includes(normalized);
+  const tone = statusTone(value);
 
   return (
     <span
       className={clsx(
-        "inline-flex rounded-sm px-2 py-0.5 text-xs font-medium capitalize",
-        positive && "bg-emerald-500/15 text-emerald-400",
-        pending && "bg-amber-500/15 text-amber-400",
-        refused && "bg-red-500/15 text-red-300",
-        !positive && !pending && !refused && clsx(t.metricBg, t.textSecondary),
+        "inline-flex rounded-sm px-2 py-0.5 text-xs font-medium",
+        tone || clsx(t.metricBg, t.textSecondary),
       )}
     >
-      {normalized}
+      {statusLabel(value)}
     </span>
   );
 }
@@ -95,9 +90,9 @@ export default function DashboardPage() {
       setMyTournaments(data);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        setMyTournamentsError("Your session has expired. Please log in again.");
+        setMyTournamentsError("Votre session a expiré. Veuillez vous reconnecter.");
       } else {
-        setMyTournamentsError(err instanceof Error ? err.message : "Unable to load your tournaments.");
+        setMyTournamentsError(err instanceof Error ? err.message : "Impossible de charger vos tournois.");
       }
     } finally {
       setMyTournamentsLoading(false);
@@ -134,14 +129,14 @@ export default function DashboardPage() {
         start_date: form.start_date,
         end_date: form.end_date,
       });
-      setSuccess("Tournament created and sent for approval.");
+      setSuccess("Tournoi créé et envoyé pour validation.");
       setForm(emptyForm);
       await loadMyTournaments();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        setMyTournamentsError("Your session has expired. Please log in again.");
+        setMyTournamentsError("Votre session a expiré. Veuillez vous reconnecter.");
       } else {
-        setMyTournamentsError(err instanceof Error ? err.message : "Unable to create tournament.");
+        setMyTournamentsError(err instanceof Error ? err.message : "Impossible de créer le tournoi.");
       }
     } finally {
       setSubmitting(false);
@@ -149,13 +144,13 @@ export default function DashboardPage() {
   };
 
   const quickLinks = [
-    { label: "Tournois publics", desc: "Consulter les tournois acceptes", to: "/tournaments", icon: <ShootingStarIcon className="size-5" /> },
-    { label: "Equipes", desc: "Creer et suivre vos equipes", to: "/teams", icon: <GroupIcon className="size-5" /> },
-    { label: "Joueurs", desc: "Gerer les effectifs", to: "/players", icon: <UserIcon className="size-5" /> },
-    { label: "Demandes", desc: "Inscription des equipes aux tournois", to: "/join-requests", icon: <PaperPlaneIcon className="size-5" /> },
-    { label: "Matchs", desc: "Calendrier, resultats et compositions", to: "/matches", icon: <TableIcon className="size-5" /> },
+    { label: "Tournois publics", desc: "Consulter les tournois acceptés", to: "/tournaments", icon: <ShootingStarIcon className="size-5" /> },
+    { label: "Équipes", desc: "Créer et suivre vos équipes", to: "/teams", icon: <GroupIcon className="size-5" /> },
+    { label: "Joueurs", desc: "Gérer les effectifs", to: "/players", icon: <UserIcon className="size-5" /> },
+    { label: "Demandes", desc: "Inscription des équipes aux tournois", to: "/join-requests", icon: <PaperPlaneIcon className="size-5" /> },
+    { label: "Matchs", desc: "Calendrier, résultats et compositions", to: "/matches", icon: <TableIcon className="size-5" /> },
     { label: "Classements", desc: "Voir et recalculer les classements", to: "/rankings", icon: <TaskIcon className="size-5" /> },
-    { label: "Statistiques", desc: "Suivre les evenements de match", to: "/statistics", icon: <PieChartIcon className="size-5" /> },
+    { label: "Statistiques", desc: "Suivre les événements de match", to: "/statistics", icon: <PieChartIcon className="size-5" /> },
   ];
 
   return (
@@ -177,7 +172,7 @@ export default function DashboardPage() {
                 <div className={clsx("grid grid-cols-3 gap-3 border-t pt-4", t.border)}>
                   <div className={clsx("rounded-md px-3 py-3 text-center", t.metricBg)}>
                     <p className="text-lg font-bold tabular-nums text-brand-400">{myTournaments.length}</p>
-                    <p className={clsx("mt-0.5 text-xs", t.textMuted)}>Crees</p>
+                    <p className={clsx("mt-0.5 text-xs", t.textMuted)}>Créés</p>
                   </div>
                   <div className={clsx("rounded-md px-3 py-3 text-center", t.metricBg)}>
                     <p className="text-lg font-bold tabular-nums text-amber-400">{pendingCount}</p>
@@ -185,14 +180,14 @@ export default function DashboardPage() {
                   </div>
                   <div className={clsx("rounded-md px-3 py-3 text-center", t.metricBg)}>
                     <p className="text-lg font-bold tabular-nums text-emerald-400">{acceptedCount}</p>
-                    <p className={clsx("mt-0.5 text-xs", t.textMuted)}>Acceptes</p>
+                    <p className={clsx("mt-0.5 text-xs", t.textMuted)}>Acceptés</p>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="space-y-3">
                 <p className={clsx("text-sm", t.textSecondary)}>
-                  Connectez-vous pour creer et suivre vos tournois locaux.
+                  Connectez-vous pour créer et suivre vos tournois locaux.
                 </p>
                 <Link to="/login" className="inline-flex text-sm font-medium text-brand-500 hover:text-brand-400">
                   Aller a la connexion
@@ -201,7 +196,7 @@ export default function DashboardPage() {
             )}
           </ComponentCard>
 
-          <ComponentCard title="Creer un tournoi" desc="Validation admin requise" className="xl:col-span-2">
+          <ComponentCard title="Créer un tournoi" desc="Validation admin requise" className="xl:col-span-2">
             <form onSubmit={handleCreateTournament} className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div>
                 <label htmlFor="dashboard-tournament-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
@@ -286,21 +281,21 @@ export default function DashboardPage() {
                   </div>
                 )}
                 <Button type="submit" disabled={!isAuthenticated || submitting}>
-                  {submitting ? "Creation..." : "Creer le tournoi"}
+                  {submitting ? "Création..." : "Créer le tournoi"}
                 </Button>
               </div>
             </form>
           </ComponentCard>
         </div>
 
-        <ComponentCard title="Mes tournois" desc="Tournois crees avec votre compte">
+        <ComponentCard title="Mes tournois" desc="Tournois créés avec votre compte">
           {myTournamentsLoading && (
             <p className={clsx("py-8 text-center text-sm", t.textMuted)}>Chargement de vos tournois...</p>
           )}
 
           {!myTournamentsLoading && !myTournamentsError && myTournaments.length === 0 && (
             <p className={clsx("py-8 text-center text-sm", t.textMuted)}>
-              You have not created any tournaments yet.
+              Aucun tournoi disponible.
             </p>
           )}
 
@@ -324,7 +319,7 @@ export default function DashboardPage() {
                     <th className="px-4 py-3">Nom</th>
                     <th className="px-4 py-3">Ville</th>
                     <th className="px-4 py-3">Lieu</th>
-                    <th className="px-4 py-3">Debut</th>
+                    <th className="px-4 py-3">Début</th>
                     <th className="px-4 py-3">Fin</th>
                     <th className="px-4 py-3">Statut</th>
                     <th className="px-4 py-3">Validation</th>

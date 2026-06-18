@@ -13,6 +13,7 @@ import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
 import Button from "../../components/common/Button";
+import { statusLabel, statusTone } from "../../components/common/statusLabels";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
 
@@ -25,19 +26,11 @@ function formatDate(date?: string | null) {
   });
 }
 
-function statusTone(value?: string | null) {
-  const normalized = value ?? "";
-  if (["accepted", "open", "active", "approved"].includes(normalized)) return "bg-emerald-500/15 text-emerald-400";
-  if (["pending", "draft", "upcoming"].includes(normalized)) return "bg-amber-500/15 text-amber-400";
-  if (["refused", "rejected", "cancelled"].includes(normalized)) return "bg-red-500/15 text-red-300";
-  return "";
-}
-
 function StatusPill({ value }: { value?: string | null }) {
   const t = useThemeTokens();
   return (
-    <span className={clsx("inline-flex rounded-sm px-2 py-0.5 text-xs font-medium capitalize", statusTone(value) || clsx(t.metricBg, t.textSecondary))}>
-      {value ?? "-"}
+    <span className={clsx("inline-flex rounded-sm px-2 py-0.5 text-xs font-medium", statusTone(value) || clsx(t.metricBg, t.textSecondary))}>
+      {statusLabel(value)}
     </span>
   );
 }
@@ -69,7 +62,7 @@ function AdminTournamentTable({
   const t = useThemeTokens();
 
   if (tournaments.length === 0) {
-    return <p className={clsx("py-8 text-center text-sm", t.textMuted)}>No tournaments found.</p>;
+    return <p className={clsx("py-8 text-center text-sm", t.textMuted)}>Aucun tournoi disponible.</p>;
   }
 
   return (
@@ -91,10 +84,10 @@ function AdminTournamentTable({
           <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
             <th className="px-4 py-3">ID</th>
             <th className="px-4 py-3">Nom</th>
-            <th className="px-4 py-3">Createur</th>
+            <th className="px-4 py-3">Créateur</th>
             <th className="px-4 py-3">Ville</th>
             <th className="px-4 py-3">Lieu</th>
-            <th className="px-4 py-3">Debut</th>
+            <th className="px-4 py-3">Début</th>
             <th className="px-4 py-3">Fin</th>
             <th className="px-4 py-3">Statut</th>
             <th className="px-4 py-3">Validation</th>
@@ -175,11 +168,11 @@ export default function AdminTournamentsPage() {
       setAllTournaments(allData);
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
-        setError("Admin access required.");
+        setError("Accès administrateur requis.");
       } else if (err instanceof ApiError && err.status === 401) {
-        setError("Your session has expired. Please log in again.");
+        setError("Votre session a expiré. Veuillez vous reconnecter.");
       } else {
-        setError(err instanceof Error ? err.message : "Unable to load admin tournaments.");
+        setError(err instanceof Error ? err.message : "Impossible de charger les tournois.");
       }
     } finally {
       setLoading(false);
@@ -199,15 +192,15 @@ export default function AdminTournamentsPage() {
 
     try {
       await acceptTournament(id);
-      setSuccess("Tournament accepted.");
+      setSuccess("Tournoi accepté.");
       await loadAdminTournaments();
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
-        setError("Admin access required.");
+        setError("Accès administrateur requis.");
       } else if (err instanceof ApiError && err.status === 401) {
-        setError("Your session has expired. Please log in again.");
+        setError("Votre session a expiré. Veuillez vous reconnecter.");
       } else {
-        setError(err instanceof Error ? err.message : "Unable to accept tournament.");
+        setError(err instanceof Error ? err.message : "Impossible d'accepter le tournoi.");
       }
     } finally {
       setWorkingId(null);
@@ -221,16 +214,16 @@ export default function AdminTournamentsPage() {
 
     try {
       await refuseTournament(id, notes[id]);
-      setSuccess("Tournament refused.");
+      setSuccess("Tournoi refusé.");
       setNotes((current) => ({ ...current, [id]: "" }));
       await loadAdminTournaments();
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
-        setError("Admin access required.");
+        setError("Accès administrateur requis.");
       } else if (err instanceof ApiError && err.status === 401) {
-        setError("Your session has expired. Please log in again.");
+        setError("Votre session a expiré. Veuillez vous reconnecter.");
       } else {
-        setError(err instanceof Error ? err.message : "Unable to refuse tournament.");
+        setError(err instanceof Error ? err.message : "Impossible de refuser le tournoi.");
       }
     } finally {
       setWorkingId(null);
@@ -253,7 +246,7 @@ export default function AdminTournamentsPage() {
           <ComponentCard title="Administration" desc="Connexion requise">
             <p className={clsx("text-sm", t.textSecondary)}>Connectez-vous avec un compte admin pour valider les tournois.</p>
             <Link to="/login" className="mt-4 inline-flex text-sm font-medium text-brand-500 hover:text-brand-400">
-              Aller a la connexion
+              Aller à la connexion
             </Link>
           </ComponentCard>
         </PageStack>
@@ -268,7 +261,7 @@ export default function AdminTournamentsPage() {
         <PageStack>
           <ComponentCard title="Administration" desc={user ? `${user.email} - ${user.role}` : undefined}>
             <div className="rounded-sm border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-              Admin access required.
+              Accès administrateur requis.
             </div>
           </ComponentCard>
         </PageStack>
@@ -281,14 +274,14 @@ export default function AdminTournamentsPage() {
       <XPageMeta title="Admin Tournois" description="Validation des tournois" />
       <PageStack>
         <div className={clsx("grid grid-cols-1 lg:grid-cols-3", GRID_GAP)}>
-          <ComponentCard title="Admin" desc={user ? `${user.email} - ${user.role}` : "Session active"}>
+          <ComponentCard title="Admin" desc={user ? `${user.email} - ${user.role}` : "Compte connecté"}>
             <div className={clsx("rounded-md border p-4", t.card)}>
               <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Utilisateur</p>
               <p className={clsx("mt-1 text-lg font-semibold", t.textPrimary)}>{user?.name}</p>
               <p className={clsx("text-sm", t.textSecondary)}>{user?.email}</p>
             </div>
           </ComponentCard>
-          <ComponentCard title="En attente" desc="Tournois a valider">
+          <ComponentCard title="En attente" desc="Tournois à valider">
             <p className={clsx("text-3xl font-bold", t.textPrimary)}>{pending.length}</p>
           </ComponentCard>
           <ComponentCard title="Total" desc="Tous les tournois">

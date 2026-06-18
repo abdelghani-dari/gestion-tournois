@@ -229,9 +229,9 @@ export default function RankingsPage() {
             )}
           </ComponentCard>
 
-          <ComponentCard title="Session" desc={user ? `${user.email} - ${user.role}` : "Accès public"}>
+          <ComponentCard title="Compte connecté" desc={user ? `${user.email} - ${user.role}` : "Accès public"}>
             <div className={clsx("rounded-md border p-4", t.card)}>
-              <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Tournoi selectionne</p>
+              <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Tournoi sélectionné</p>
               <p className={clsx("mt-1 truncate text-lg font-semibold", t.textPrimary)}>
                 {tournamentName(selectedTournamentId, tournamentOptions)}
               </p>

@@ -19,6 +19,7 @@ import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
 import Button from "../../components/common/Button";
 import FilterSearchInput from "../../components/common/FilterSearchInput";
+import { statusLabel, statusTone } from "../../components/common/statusLabels";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
 import { PaperPlaneIcon } from "../../icons";
@@ -44,29 +45,21 @@ function formatDate(date?: string | null) {
   });
 }
 
-function statusClass(value?: string | null) {
-  const normalized = value ?? "";
-  if (["accepted", "approved"].includes(normalized)) return "bg-emerald-500/15 text-emerald-400";
-  if (["pending", "draft"].includes(normalized)) return "bg-amber-500/15 text-amber-400";
-  if (["refused", "rejected", "cancelled"].includes(normalized)) return "bg-red-500/15 text-red-300";
-  return "";
-}
-
 function StatusPill({ value }: { value?: string | null }) {
   const t = useThemeTokens();
   return (
-    <span className={clsx("inline-flex rounded-sm px-2 py-0.5 text-xs font-medium capitalize", statusClass(value) || clsx(t.metricBg, t.textSecondary))}>
-      {value ?? "-"}
+    <span className={clsx("inline-flex rounded-sm px-2 py-0.5 text-xs font-medium", statusTone(value) || clsx(t.metricBg, t.textSecondary))}>
+      {statusLabel(value)}
     </span>
   );
 }
 
 function requestTournamentName(request: JoinRequest, tournaments: PublicTournament[]) {
-  return request.tournament?.name ?? tournaments.find((tournament) => tournament.id === request.tournament_id)?.name ?? `Tournament #${request.tournament_id}`;
+  return request.tournament?.name ?? tournaments.find((tournament) => tournament.id === request.tournament_id)?.name ?? `Tournoi #${request.tournament_id}`;
 }
 
 function requestTeamName(request: JoinRequest, teams: ApiTeam[]) {
-  return request.team?.name ?? teams.find((team) => team.id === request.team_id)?.name ?? `Team #${request.team_id}`;
+  return request.team?.name ?? teams.find((team) => team.id === request.team_id)?.name ?? `Équipe #${request.team_id}`;
 }
 
 function requesterLabel(request: JoinRequest) {
@@ -81,9 +74,9 @@ function actionErrorMessage(err: unknown) {
     return "You can only manage requests for tournaments you created.";
   }
   if (err instanceof ApiError && err.status === 401) {
-    return "Your session has expired. Please log in again.";
+    return "Votre session a expiré. Veuillez vous reconnecter.";
   }
-  return err instanceof Error ? err.message : "Unable to update join request.";
+  return err instanceof Error ? err.message : "Impossible de mettre à jour la demande.";
 }
 
 export default function JoinRequestsPage() {
@@ -122,9 +115,9 @@ export default function JoinRequestsPage() {
       }));
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        setError("Your session has expired. Please log in again.");
+        setError("Votre session a expiré. Veuillez vous reconnecter.");
       } else {
-        setError(err instanceof Error ? err.message : "Unable to load join requests.");
+        setError(err instanceof Error ? err.message : "Impossible de charger les demandes.");
       }
     } finally {
       setLoading(false);
@@ -186,9 +179,9 @@ export default function JoinRequestsPage() {
       await loadData();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        setError("Your session has expired. Please log in again.");
+        setError("Votre session a expiré. Veuillez vous reconnecter.");
       } else {
-        setError(err instanceof Error ? err.message : "Unable to send join request.");
+        setError(err instanceof Error ? err.message : "Impossible d'envoyer la demande.");
       }
     } finally {
       setSubmitting(false);
@@ -202,7 +195,7 @@ export default function JoinRequestsPage() {
 
     try {
       await acceptJoinRequest(id);
-      setSuccess("Join request accepted.");
+      setSuccess("Demande acceptée.");
       await loadData();
     } catch (err) {
       setError(actionErrorMessage(err));
@@ -218,7 +211,7 @@ export default function JoinRequestsPage() {
 
     try {
       await refuseJoinRequest(id);
-      setSuccess("Join request refused.");
+      setSuccess("Demande refusée.");
       await loadData();
     } catch (err) {
       setError(actionErrorMessage(err));
@@ -243,18 +236,18 @@ export default function JoinRequestsPage() {
         ) : (
           <>
             <div className={clsx("grid grid-cols-1 xl:grid-cols-3", GRID_GAP)}>
-              <ComponentCard title="Session" desc={user ? `${user.email} - ${user.role}` : "Utilisateur"}>
+              <ComponentCard title="Compte connecté" desc={user ? `${user.email} - ${user.role}` : "Utilisateur"}>
                 <div className={clsx("rounded-md border p-4", t.card)}>
                   <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Demandes</p>
                   <p className={clsx("mt-1 text-3xl font-bold", t.textPrimary)}>{requests.length}</p>
                 </div>
               </ComponentCard>
 
-              <ComponentCard title="Envoyer une demande" desc="Equipe vers tournoi accepte" className="xl:col-span-2">
+              <ComponentCard title="Envoyer une demande" desc="Équipe vers tournoi accepté" className="xl:col-span-2">
                 {tournaments.length === 0 && !loading ? (
-                  <p className={clsx("text-sm", t.textSecondary)}>No accepted tournaments yet.</p>
+                  <p className={clsx("text-sm", t.textSecondary)}>Aucun tournoi disponible.</p>
                 ) : myTeams.length === 0 && !loading ? (
-                  <p className={clsx("text-sm", t.textSecondary)}>Create a team first.</p>
+                  <p className={clsx("text-sm", t.textSecondary)}>Créez d'abord une équipe.</p>
                 ) : (
                   <form onSubmit={handleCreateRequest} className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
@@ -268,13 +261,14 @@ export default function JoinRequestsPage() {
                         disabled={submitting || loading}
                         className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                       >
+                        <option value="">Sélectionner un tournoi</option>
                         {tournaments.map((tournament) => (
                           <option key={tournament.id} value={tournament.id}>{tournament.name}</option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label htmlFor="join-request-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Equipe *</label>
+                      <label htmlFor="join-request-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe *</label>
                       <select
                         id="join-request-team"
                         name="team_id"
@@ -284,6 +278,7 @@ export default function JoinRequestsPage() {
                         disabled={submitting || loading}
                         className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                       >
+                        <option value="">Sélectionner une équipe</option>
                         {myTeams.map((team) => (
                           <option key={team.id} value={team.id}>{team.name}</option>
                         ))}
@@ -298,7 +293,7 @@ export default function JoinRequestsPage() {
                         onChange={(e) => updateForm("message", e.target.value)}
                         rows={3}
                         disabled={submitting || loading}
-                        placeholder="We want to join"
+                        placeholder="Message pour l'organisateur"
                         className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                       />
                     </div>
@@ -323,7 +318,7 @@ export default function JoinRequestsPage() {
               </ComponentCard>
             </div>
 
-            <ComponentCard title="Demandes" desc="Demandes envoyees et demandes a gerer">
+            <ComponentCard title="Demandes" desc="Demandes envoyées et demandes à gérer">
               <div className="mb-4">
                 <FilterSearchInput
                   value={searchQuery}
@@ -337,7 +332,7 @@ export default function JoinRequestsPage() {
               )}
 
               {!loading && !error && requests.length === 0 && (
-                <p className={clsx("py-10 text-center text-sm", t.textMuted)}>No join requests yet.</p>
+                <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune demande disponible.</p>
               )}
 
               {!loading && requests.length > 0 && (
@@ -357,11 +352,11 @@ export default function JoinRequestsPage() {
                       <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
                         <th className="px-4 py-3">ID</th>
                         <th className="px-4 py-3">Tournoi</th>
-                        <th className="px-4 py-3">Equipe</th>
+                        <th className="px-4 py-3">Équipe</th>
                         <th className="px-4 py-3">Statut</th>
                         <th className="px-4 py-3">Message</th>
                         <th className="px-4 py-3">Manager</th>
-                        <th className="px-4 py-3">Creation</th>
+                        <th className="px-4 py-3">Création</th>
                         <th className="px-4 py-3">Actions</th>
                       </tr>
                     </thead>

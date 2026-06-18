@@ -52,7 +52,7 @@ function playerName(player: ApiPlayer) {
 }
 
 function teamName(player: ApiPlayer, teams: ApiTeam[]) {
-  return player.team?.name ?? teams.find((team) => team.id === player.team_id)?.name ?? `Team #${player.team_id}`;
+  return player.team?.name ?? teams.find((team) => team.id === player.team_id)?.name ?? `Équipe #${player.team_id}`;
 }
 
 export default function PlayersPage() {
@@ -78,7 +78,7 @@ export default function PlayersPage() {
       setPlayers(playersData);
       setTeams(teamsData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load players.");
+      setError(err instanceof Error ? err.message : "Impossible de charger les joueurs.");
     } finally {
       setLoading(false);
     }
@@ -101,9 +101,9 @@ export default function PlayersPage() {
       }));
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        setError("Your session has expired. Please log in again.");
+        setError("Votre session a expiré. Veuillez vous reconnecter.");
       } else {
-        setError(err instanceof Error ? err.message : "Unable to load your teams.");
+        setError(err instanceof Error ? err.message : "Impossible de charger vos équipes.");
       }
     } finally {
       setMyTeamsLoading(false);
@@ -166,9 +166,9 @@ export default function PlayersPage() {
       await loadPlayers();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        setError("Your session has expired. Please log in again.");
+        setError("Votre session a expiré. Veuillez vous reconnecter.");
       } else {
-        setError(err instanceof Error ? err.message : "Unable to create player.");
+        setError(err instanceof Error ? err.message : "Impossible de créer le joueur.");
       }
     } finally {
       setSubmitting(false);
@@ -180,27 +180,27 @@ export default function PlayersPage() {
       <XPageMeta title="Joueurs" description="Liste des joueurs" />
       <PageStack>
         <div className={clsx("grid grid-cols-1 xl:grid-cols-3", GRID_GAP)}>
-          <ComponentCard title="Joueurs" desc="Donnees backend">
+          <ComponentCard title="Joueurs" desc="Données enregistrées">
             <div className={clsx("rounded-md border p-4", t.card)}>
               <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Total joueurs</p>
               <p className={clsx("mt-1 text-3xl font-bold", t.textPrimary)}>{players.length}</p>
             </div>
           </ComponentCard>
 
-          <ComponentCard title="Creer un joueur" desc="Associe a une de vos equipes" className="xl:col-span-2">
+          <ComponentCard title="Créer un joueur" desc="Associé à une de vos équipes" className="xl:col-span-2">
             {!isAuthenticated && !authLoading ? (
               <div>
-                <p className={clsx("text-sm", t.textSecondary)}>Connectez-vous pour creer des joueurs.</p>
+                <p className={clsx("text-sm", t.textSecondary)}>Connectez-vous pour créer des joueurs.</p>
                 <Link to="/login" className="mt-4 inline-flex text-sm font-medium text-brand-500 hover:text-brand-400">
                   Aller a la connexion
                 </Link>
               </div>
             ) : myTeams.length === 0 && !myTeamsLoading ? (
-              <p className={clsx("text-sm", t.textSecondary)}>Create a team first.</p>
+              <p className={clsx("text-sm", t.textSecondary)}>Créez d'abord une équipe.</p>
             ) : (
               <form onSubmit={handleCreatePlayer} className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
-                  <label htmlFor="player-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Equipe *</label>
+                  <label htmlFor="player-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe *</label>
                   <select
                     id="player-team"
                     name="team_id"
@@ -210,6 +210,7 @@ export default function PlayersPage() {
                     disabled={submitting || myTeamsLoading}
                     className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                   >
+                    <option value="">Sélectionner une équipe</option>
                     {myTeams.map((team) => (
                       <option key={team.id} value={team.id}>{team.name}</option>
                     ))}
@@ -264,7 +265,7 @@ export default function PlayersPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="player-number" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Numero</label>
+                  <label htmlFor="player-number" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Numéro</label>
                   <input
                     id="player-number"
                     name="number"
@@ -289,7 +290,7 @@ export default function PlayersPage() {
                   )}
                   <Button type="submit" disabled={submitting || myTeams.length === 0} className="gap-2">
                     <PlusIcon className="size-4 shrink-0" />
-                    {submitting ? "Creation..." : "Creer le joueur"}
+                    {submitting ? "Création..." : "Créer le joueur"}
                   </Button>
                 </div>
               </form>
@@ -297,7 +298,7 @@ export default function PlayersPage() {
           </ComponentCard>
         </div>
 
-        <ComponentCard title="Liste des joueurs" desc="Joueurs enregistres">
+        <ComponentCard title="Liste des joueurs" desc="Joueurs enregistrés">
           <div className="mb-4">
             <FilterSearchInput
               value={searchQuery}
@@ -311,7 +312,7 @@ export default function PlayersPage() {
           )}
 
           {!loading && !error && players.length === 0 && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucun joueur.</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucun joueur disponible.</p>
           )}
 
           {!loading && players.length > 0 && (
@@ -329,11 +330,11 @@ export default function PlayersPage() {
                 <thead>
                   <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
                     <th className="px-4 py-3">ID</th>
-                    <th className="px-4 py-3">Prenom</th>
+                    <th className="px-4 py-3">Prénom</th>
                     <th className="px-4 py-3">Nom</th>
-                    <th className="px-4 py-3">Equipe</th>
+                    <th className="px-4 py-3">Équipe</th>
                     <th className="px-4 py-3">Poste</th>
-                    <th className="px-4 py-3">Numero</th>
+                    <th className="px-4 py-3">Numéro</th>
                     <th className="px-4 py-3">Naissance</th>
                   </tr>
                 </thead>

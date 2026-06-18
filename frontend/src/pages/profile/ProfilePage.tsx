@@ -18,7 +18,7 @@ function initials(name: string) {
 export default function ProfilePage() {
   const t = useThemeTokens();
   const { user, loading } = useAuth();
-  const displayUser = user ?? { name: "Invite", email: "Non connecte", role: "guest" };
+  const displayUser = user ?? { name: "Invité", email: "Non connecté", role: "guest" };
 
   return (
     <>
@@ -36,7 +36,7 @@ export default function ProfilePage() {
             </div>
           </ComponentCard>
 
-          <ComponentCard title="Informations" desc="Donnees du compte" className="lg:col-span-2">
+          <ComponentCard title="Informations" desc="Données du compte" className="lg:col-span-2">
             <div className="space-y-4">
               <div>
                 <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom complet</label>
@@ -47,7 +47,7 @@ export default function ProfilePage() {
                 <input value={displayUser.email} readOnly type="email" className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
               </div>
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Role</label>
+                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Rôle</label>
                 <input value={displayUser.role} readOnly className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
               </div>
             </div>
