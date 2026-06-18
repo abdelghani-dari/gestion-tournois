@@ -6,6 +6,7 @@ export type AuthUser = {
   name: string;
   email: string;
   role: "admin" | "user" | string;
+  avatar_url?: string | null;
 };
 
 type AuthResponse = {

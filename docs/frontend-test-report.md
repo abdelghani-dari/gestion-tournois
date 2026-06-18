@@ -149,6 +149,7 @@ These were presentation/accessibility polish items and did not break the active 
 - Improved form label wiring on active frontend forms, including dashboard tournament creation, teams, players, join requests, matches/results, rankings, statistics, match composition, and login.
 - Improved visible French labels/statuses, removed technical wording, and tightened select placeholders and empty states across active frontend pages.
 - Added role-specific dashboard sections, simple charts, a tournament bracket, and details modals on tournaments, teams, and players pages.
+- Added team short-name display and URL/path-based avatar, logo, photo, and tournament banner rendering with safe fallbacks.
 
 ## 11. Final status
 
@@ -160,4 +161,10 @@ Status: ready for review from a frontend QA perspective.
 - User role test passed.
 - Admin role test passed.
 - Active frontend code has no mock/static data references.
-- No backend files were changed.
+- Phase 2 adds backend schema/API support for user avatars and team short names while reusing existing image path fields.
+
+## 12. Phase 2 polish note
+
+- Team short names are supported and displayed on active team and match/bracket surfaces.
+- Optional image/profile fields are URL/path based only; no file upload flow was added.
+- Public/admin tournament lists, team lists, player lists, profile, header dropdown, dashboard, and detail modals render images with initials fallback.

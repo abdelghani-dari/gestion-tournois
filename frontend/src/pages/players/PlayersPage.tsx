@@ -14,6 +14,7 @@ import {
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
+import EntityImage from "../../components/common/EntityImage";
 import Button from "../../components/common/Button";
 import FilterSearchInput from "../../components/common/FilterSearchInput";
 import XModal from "../../components/common/XModal";
@@ -28,6 +29,7 @@ type PlayerForm = {
   birth_date: string;
   position: string;
   number: string;
+  photo_path: string;
 };
 
 const emptyPlayerForm: PlayerForm = {
@@ -37,6 +39,7 @@ const emptyPlayerForm: PlayerForm = {
   birth_date: "",
   position: "",
   number: "",
+  photo_path: "",
 };
 
 function formatDate(date?: string | null) {
@@ -159,6 +162,7 @@ export default function PlayersPage() {
       birth_date: form.birth_date || undefined,
       position: form.position.trim() || undefined,
       number: form.number ? Number(form.number) : undefined,
+      photo_path: form.photo_path.trim() || undefined,
     };
 
     try {
@@ -280,6 +284,18 @@ export default function PlayersPage() {
                   />
                 </div>
                 <div className="md:col-span-3">
+                  <label htmlFor="player-photo-path" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Photo</label>
+                  <input
+                    id="player-photo-path"
+                    name="photo_path"
+                    value={form.photo_path}
+                    onChange={(e) => updateForm("photo_path", e.target.value)}
+                    placeholder="https://..."
+                    disabled={submitting}
+                    className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+                  />
+                </div>
+                <div className="md:col-span-3">
                   {success && (
                     <div className="mb-3 rounded-sm border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
                       {success}
@@ -346,7 +362,12 @@ export default function PlayersPage() {
                   {filteredPlayers.map((player) => (
                     <tr key={player.id} className={clsx("transition-colors", t.tableRow, t.navHover)}>
                       <td className={clsx("px-4 py-3 font-mono", t.textMuted)}>{player.id}</td>
-                      <td className={clsx("px-4 py-3 font-medium", t.textPrimary)}>{player.first_name}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <EntityImage src={player.photo_path} name={playerName(player)} className="h-9 w-9 shrink-0 rounded-sm" />
+                          <span className={clsx("truncate font-medium", t.textPrimary)}>{player.first_name}</span>
+                        </div>
+                      </td>
                       <td className={clsx("px-4 py-3 font-medium", t.textPrimary)}>{player.last_name}</td>
                       <td className={clsx("px-4 py-3", t.textSecondary)}>
                         <span className="block truncate" title={teamName(player, teams)}>{teamName(player, teams)}</span>
@@ -374,6 +395,15 @@ export default function PlayersPage() {
         >
           {detailsPlayer && (
             <div className="space-y-3 text-sm">
+              <div className="flex items-center gap-4">
+                <EntityImage src={detailsPlayer.photo_path} name={playerName(detailsPlayer)} className="h-16 w-16 shrink-0 rounded-md" />
+                <div>
+                  <p className={clsx("text-base font-semibold", t.textPrimary)}>{playerName(detailsPlayer)}</p>
+                  <p className={clsx("text-sm", t.textSecondary)}>
+                    {teamName(detailsPlayer, teams)}{detailsPlayer.number != null ? ` - #${detailsPlayer.number}` : ""}
+                  </p>
+                </div>
+              </div>
               {[
                 ["Nom", playerName(detailsPlayer)],
                 ["Poste", detailsPlayer.position || "-"],

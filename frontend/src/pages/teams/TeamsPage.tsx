@@ -5,6 +5,7 @@ import { ApiError, createTeam, getMyTeams, type ApiTeam, type TeamPayload } from
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
+import EntityImage from "../../components/common/EntityImage";
 import Button from "../../components/common/Button";
 import FilterSearchInput from "../../components/common/FilterSearchInput";
 import XModal from "../../components/common/XModal";
@@ -14,6 +15,8 @@ import { PlusIcon } from "../../icons";
 
 const emptyTeamForm: TeamPayload = {
   name: "",
+  short_name: "",
+  logo_path: "",
   city: "",
 };
 
@@ -78,7 +81,7 @@ export default function TeamsPage() {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return teams;
     return teams.filter((team) =>
-      [team.name, team.city ?? "", managerLabel(team)]
+      [team.name, team.short_name ?? "", team.city ?? "", managerLabel(team)]
         .join(" ")
         .toLowerCase()
         .includes(q),
@@ -96,6 +99,8 @@ export default function TeamsPage() {
     try {
       await createTeam({
         name: form.name,
+        short_name: form.short_name?.trim() || undefined,
+        logo_path: form.logo_path?.trim() || undefined,
         city: form.city?.trim() || undefined,
       });
       setSuccess("Équipe créée.");
@@ -150,12 +155,37 @@ export default function TeamsPage() {
                     />
                   </div>
                   <div>
+                    <label htmlFor="team-short-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom court</label>
+                    <input
+                      id="team-short-name"
+                      name="short_name"
+                      value={form.short_name}
+                      onChange={(e) => setForm((current) => ({ ...current, short_name: e.target.value.toUpperCase().slice(0, 3) }))}
+                      maxLength={3}
+                      placeholder="ATF"
+                      disabled={submitting}
+                      className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm uppercase focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+                    />
+                  </div>
+                  <div>
                     <label htmlFor="team-city" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Ville</label>
                     <input
                       id="team-city"
                       name="city"
                       value={form.city}
                       onChange={(e) => setForm((current) => ({ ...current, city: e.target.value }))}
+                      disabled={submitting}
+                      className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label htmlFor="team-logo-path" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Logo</label>
+                    <input
+                      id="team-logo-path"
+                      name="logo_path"
+                      value={form.logo_path}
+                      onChange={(e) => setForm((current) => ({ ...current, logo_path: e.target.value }))}
+                      placeholder="https://..."
                       disabled={submitting}
                       className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                     />
@@ -224,7 +254,19 @@ export default function TeamsPage() {
                       {filteredTeams.map((team) => (
                         <tr key={team.id} className={clsx("transition-colors", t.tableRow, t.navHover)}>
                           <td className={clsx("px-4 py-3 font-mono", t.textMuted)}>{team.id}</td>
-                          <td className={clsx("px-4 py-3 font-medium", t.textPrimary)}>{team.name}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <EntityImage src={team.logo_path} name={team.name} className="h-9 w-9 shrink-0 rounded-sm" />
+                              <div className="min-w-0">
+                                <div className={clsx("truncate font-medium", t.textPrimary)}>{team.name}</div>
+                                {team.short_name && (
+                                  <span className="mt-1 inline-flex rounded-sm bg-brand-500/15 px-2 py-0.5 text-xs font-semibold text-brand-300">
+                                    {team.short_name}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
                           <td className={clsx("px-4 py-3", t.textSecondary)}>{team.city || "-"}</td>
                           <td className={clsx("px-4 py-3", t.textSecondary)}>
                             <span className="block truncate" title={managerLabel(team)}>{managerLabel(team)}</span>
@@ -250,8 +292,20 @@ export default function TeamsPage() {
             >
               {detailsTeam && (
                 <div className="space-y-3 text-sm">
+                  <div className="flex items-center gap-4">
+                    <EntityImage src={detailsTeam.logo_path} name={detailsTeam.name} className="h-16 w-16 shrink-0 rounded-md" />
+                    <div>
+                      <p className={clsx("text-base font-semibold", t.textPrimary)}>{detailsTeam.name}</p>
+                      {detailsTeam.short_name && (
+                        <span className="mt-1 inline-flex rounded-sm bg-brand-500/15 px-2 py-0.5 text-xs font-semibold text-brand-300">
+                          {detailsTeam.short_name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                   {[
                     ["Nom", detailsTeam.name],
+                    ["Nom court", detailsTeam.short_name || "-"],
                     ["Ville", detailsTeam.city || "-"],
                     ["Manager", managerLabel(detailsTeam)],
                     ["Création", formatDate(detailsTeam.created_at)],

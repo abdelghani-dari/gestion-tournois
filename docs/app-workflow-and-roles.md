@@ -75,15 +75,16 @@ The admin role is mainly implemented as a tournament validator. It is not a sepa
 4. An admin opens `/admin/tournaments` and accepts or refuses the pending tournament.
 5. If accepted, the backend sets `approval_status = accepted` and `status = open`; the tournament becomes visible through public tournament endpoints and `/tournaments`.
 6. The user creates teams from `/teams`. Each team is linked to the user through `manager_id`.
-7. The user creates players from `/players`. Backend validation requires the selected team to belong to the authenticated user.
-8. The user sends a join request from `/join-requests` for one of his teams to an accepted/open tournament.
-9. The tournament creator accepts or refuses the join request. When accepted, the backend attaches the team to the tournament through the `tournament_team` pivot table.
-10. The tournament creator creates matches from `/matches`. Backend validation requires the tournament to be accepted/open and both teams to already belong to the tournament.
-11. The tournament creator enters a result. The match becomes `played` and the result status remains `pending`.
-12. The tournament creator can confirm or dispute the result. Confirmed results are used for rankings.
-13. Rankings are recalculated from confirmed, played matches. Points are computed as 3 for a win, 1 for a draw, 0 for a loss.
-14. Statistics can be added for a match/team/player context.
-15. Match compositions can be created for a match, team, and player. Backend validation requires the player to belong to the selected team and the team to be part of the match.
+7. Teams can include a 3-letter short name and optional logo path. Users, players, and tournaments can also include optional URL/path-based images.
+8. The user creates players from `/players`. Backend validation requires the selected team to belong to the authenticated user.
+9. The user sends a join request from `/join-requests` for one of his teams to an accepted/open tournament.
+10. The tournament creator accepts or refuses the join request. When accepted, the backend attaches the team to the tournament through the `tournament_team` pivot table.
+11. The tournament creator creates matches from `/matches`. Backend validation requires the tournament to be accepted/open and both teams to already belong to the tournament.
+12. The tournament creator enters a result. The match becomes `played` and the result status remains `pending`.
+13. The tournament creator can confirm or dispute the result. Confirmed results are used for rankings.
+14. Rankings are recalculated from confirmed, played matches. Points are computed as 3 for a win, 1 for a draw, 0 for a loss.
+15. Statistics can be added for a match/team/player context.
+16. Match compositions can be created for a match, team, and player. Backend validation requires the player to belong to the selected team and the team to be part of the match.
 
 ## 4. Page-by-page explanation
 
@@ -343,7 +344,7 @@ Stores match squad selections. Each composition belongs to a match, team, and pl
 ## 9. Current limitations
 
 - The frontend still depends on backend validation for several permissions. Some pages load broad datasets, while protected mutations are blocked by backend ownership checks.
-- There is no real file upload flow implemented for team logos, player photos, or tournament banners even though path fields exist.
+- There is no real file upload flow implemented for user avatars, team logos, player photos, or tournament banners; these are URL/path-based fields.
 - There is no payment feature.
 - There are no notifications or real-time updates.
 - The role system is simple: mainly `user` and `admin`.

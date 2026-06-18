@@ -13,6 +13,7 @@ import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
 import Button from "../../components/common/Button";
+import EntityImage from "../../components/common/EntityImage";
 import { statusLabel, statusTone } from "../../components/common/statusLabels";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
@@ -98,8 +99,11 @@ function AdminTournamentTable({
           {tournaments.map((tr) => (
             <tr key={tr.id} className={clsx("transition-colors", t.tableRow, t.navHover)}>
               <td className={clsx("px-4 py-3 font-mono", t.textMuted)}>{tr.id}</td>
-              <td className={clsx("px-4 py-3 font-medium", t.textPrimary)}>
-                <span className="block truncate" title={tr.name}>{tr.name}</span>
+              <td className="px-4 py-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <EntityImage src={tr.banner_path} name={tr.name} className="h-10 w-14 shrink-0 rounded-sm" />
+                  <span className={clsx("block truncate font-medium", t.textPrimary)} title={tr.name}>{tr.name}</span>
+                </div>
               </td>
               <td className={clsx("px-4 py-3", t.textSecondary)}>
                 <span className="block truncate" title={creatorText(tr)}>{creatorText(tr)}</span>

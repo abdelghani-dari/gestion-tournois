@@ -2,23 +2,15 @@ import { clsx } from "clsx";
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
+import EntityImage from "../../components/common/EntityImage";
 import Badge from "../../components/ui/Badge";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "U";
-}
-
 export default function ProfilePage() {
   const t = useThemeTokens();
   const { user, loading } = useAuth();
-  const displayUser = user ?? { name: "Invité", email: "Non connecté", role: "guest" };
+  const displayUser = user ?? { name: "Invité", email: "Non connecté", role: "guest", avatar_url: null };
 
   return (
     <>
@@ -27,9 +19,11 @@ export default function ProfilePage() {
         <div className={clsx("grid grid-cols-1 lg:grid-cols-3", GRID_GAP)}>
           <ComponentCard title="Profil" desc={loading ? "Chargement" : "Compte utilisateur"}>
             <div className="text-center">
-              <div className={clsx("mx-auto flex h-24 w-24 items-center justify-center rounded-xl border text-2xl font-semibold text-brand-400", t.border, t.metricBg)}>
-                {initials(displayUser.name)}
-              </div>
+              <EntityImage
+                src={displayUser.avatar_url}
+                name={displayUser.name}
+                className={clsx("mx-auto h-24 w-24 rounded-xl text-2xl", t.border)}
+              />
               <h2 className={clsx("mt-4 text-lg font-semibold", t.textPrimary)}>{displayUser.name}</h2>
               <p className={clsx("text-sm", t.textSecondary)}>{displayUser.email}</p>
               <Badge color={displayUser.role === "admin" ? "primary" : "light"}>{displayUser.role}</Badge>

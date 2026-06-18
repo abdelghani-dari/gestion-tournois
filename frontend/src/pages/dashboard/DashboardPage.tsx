@@ -21,6 +21,7 @@ import {
 } from "../../api";
 import Button from "../../components/common/Button";
 import ComponentCard from "../../components/common/ComponentCard";
+import EntityImage from "../../components/common/EntityImage";
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import { statusLabel, statusTone } from "../../components/common/statusLabels";
@@ -42,6 +43,7 @@ const emptyForm: CreateTournamentPayload = {
   description: "",
   city: "",
   location: "",
+  banner_path: "",
   start_date: "",
   end_date: "",
 };
@@ -57,6 +59,10 @@ function formatDate(date?: string | null) {
 
 function teamName(teamId: number, teams: ApiTeam[], embedded?: ApiTeam | null) {
   return embedded?.name ?? teams.find((team) => team.id === teamId)?.name ?? `Équipe #${teamId}`;
+}
+
+function teamData(teamId: number, teams: ApiTeam[], embedded?: ApiTeam | null) {
+  return embedded ?? teams.find((team) => team.id === teamId) ?? null;
 }
 
 function matchWinner(match: ApiMatch) {
@@ -143,8 +149,10 @@ function TournamentBracket({ matches, teams }: { matches: ApiMatch[]; teams: Api
       <div className="flex min-w-[720px] gap-4">
         {matches.slice(0, 6).map((match, index) => {
           const winnerId = matchWinner(match);
-          const home = teamName(match.home_team_id, teams, match.home_team);
-          const away = teamName(match.away_team_id, teams, match.away_team);
+          const homeTeam = teamData(match.home_team_id, teams, match.home_team);
+          const awayTeam = teamData(match.away_team_id, teams, match.away_team);
+          const home = teamName(match.home_team_id, teams, homeTeam);
+          const away = teamName(match.away_team_id, teams, awayTeam);
 
           return (
             <div key={match.id} className={clsx("w-64 shrink-0 rounded-md border p-4", t.card)}>
@@ -154,11 +162,17 @@ function TournamentBracket({ matches, teams }: { matches: ApiMatch[]; teams: Api
               </div>
               <div className="space-y-2">
                 <div className={clsx("flex items-center justify-between gap-3 rounded-sm px-3 py-2", winnerId === match.home_team_id ? "bg-emerald-500/10 text-emerald-300" : t.metricBg)}>
-                  <span className="truncate">{home}</span>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <EntityImage src={homeTeam?.logo_path} name={home} className="h-7 w-7 shrink-0 rounded-sm" />
+                    <span className="truncate">{homeTeam?.short_name ? `${homeTeam.short_name} - ${home}` : home}</span>
+                  </span>
                   <span className="font-mono tabular-nums">{match.home_score ?? "-"}</span>
                 </div>
                 <div className={clsx("flex items-center justify-between gap-3 rounded-sm px-3 py-2", winnerId === match.away_team_id ? "bg-emerald-500/10 text-emerald-300" : t.metricBg)}>
-                  <span className="truncate">{away}</span>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <EntityImage src={awayTeam?.logo_path} name={away} className="h-7 w-7 shrink-0 rounded-sm" />
+                    <span className="truncate">{awayTeam?.short_name ? `${awayTeam.short_name} - ${away}` : away}</span>
+                  </span>
                   <span className="font-mono tabular-nums">{match.away_score ?? "-"}</span>
                 </div>
               </div>
@@ -277,6 +291,7 @@ export default function DashboardPage() {
         description: form.description?.trim() || undefined,
         city: form.city?.trim() || undefined,
         location: form.location?.trim() || undefined,
+        banner_path: form.banner_path?.trim() || undefined,
         start_date: form.start_date,
         end_date: form.end_date,
       });
@@ -317,11 +332,16 @@ export default function DashboardPage() {
         <div className={clsx("grid grid-cols-1 xl:grid-cols-4", GRID_GAP)}>
           <ComponentCard title={isAdmin ? "Dashboard admin" : "Mon dashboard"} desc={user ? `${user.email} - ${user.role}` : "Compte connecté"}>
             <div className={clsx("rounded-md border p-4", t.card)}>
-              <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>{isAdmin ? "Validation" : "Organisation"}</p>
-              <p className={clsx("mt-1 text-lg font-semibold", t.textPrimary)}>{user?.name}</p>
-              <p className={clsx("text-sm", t.textSecondary)}>
-                {isAdmin ? "Priorité aux tournois à valider." : "Suivi de vos tournois, équipes et matchs."}
-              </p>
+              <div className="flex items-center gap-3">
+                <EntityImage src={user?.avatar_url} name={user?.name ?? "Compte"} className="h-12 w-12 shrink-0 rounded-md" />
+                <div className="min-w-0">
+                  <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>{isAdmin ? "Validation" : "Organisation"}</p>
+                  <p className={clsx("mt-1 truncate text-lg font-semibold", t.textPrimary)}>{user?.name}</p>
+                  <p className={clsx("text-sm", t.textSecondary)}>
+                    {isAdmin ? "Priorité aux tournois à valider." : "Suivi de vos tournois, équipes et matchs."}
+                  </p>
+                </div>
+              </div>
             </div>
             {isAdmin && (
               <Link to="/dashboard" className="mt-4 inline-flex text-sm font-medium text-brand-500 hover:text-brand-400">
@@ -412,6 +432,10 @@ export default function DashboardPage() {
                 <div>
                   <label htmlFor="dashboard-tournament-description" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Description</label>
                   <input id="dashboard-tournament-description" name="description" value={form.description} onChange={(e) => updateForm("description", e.target.value)} disabled={submitting} className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
+                </div>
+                <div className="lg:col-span-2">
+                  <label htmlFor="dashboard-tournament-banner" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Image du tournoi</label>
+                  <input id="dashboard-tournament-banner" name="banner_path" value={form.banner_path} onChange={(e) => updateForm("banner_path", e.target.value)} placeholder="https://..." disabled={submitting} className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
                 </div>
                 <div>
                   <label htmlFor="dashboard-tournament-start-date" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Date début *</label>

@@ -18,9 +18,11 @@ class TeamController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'short_name' => ['nullable', 'string', 'max:3'],
             'logo_path' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
         ]);
+        $validated['short_name'] = $this->normalizeShortName($validated['short_name'] ?? null, $validated['name']);
 
         $team = Team::create([
             ...$validated,
@@ -43,9 +45,11 @@ class TeamController extends Controller
 
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'short_name' => ['nullable', 'string', 'max:3'],
             'logo_path' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
         ]);
+        $validated['short_name'] = $this->normalizeShortName($validated['short_name'] ?? null, $validated['name'] ?? $team->name);
 
         $team->update($validated);
 
@@ -68,5 +72,19 @@ class TeamController extends Controller
         return response()->json(
             Team::where('manager_id', auth('api')->id())->latest()->get()
         );
+    }
+
+    private function normalizeShortName(?string $shortName, string $name): ?string
+    {
+        $value = trim((string) $shortName);
+
+        if ($value === '') {
+            $parts = preg_split('/\s+/', trim($name)) ?: [];
+            $value = implode('', array_map(static fn (string $part): string => $part[0] ?? '', array_slice($parts, 0, 3)));
+        }
+
+        $value = strtoupper(substr($value, 0, 3));
+
+        return $value !== '' ? $value : null;
     }
 }

@@ -203,3 +203,12 @@ The remaining files under `frontend/src/data` are visual assets or asset helper 
 - Add route guards for admin-only pages in addition to hiding sidebar links.
 - Add typed API response normalization helpers if backend response shapes expand.
 - Replace large shared `api.ts` with small domain API modules if it becomes harder to maintain.
+
+## 14. Phase 2 profile/image fields
+
+- Teams now support a 3-letter `short_name` and display it beside the team name.
+- User avatars, team logos, player photos, and tournament banners are URL/path based.
+- Existing backend image fields are reused: `logo_path`, `photo_path`, and `banner_path`.
+- No real file upload is implemented yet.
+- Active pages render images with initials fallback when a URL/path is missing or fails to load.
+- Tournament, team, and player detail modals now include the relevant image and identity fields.

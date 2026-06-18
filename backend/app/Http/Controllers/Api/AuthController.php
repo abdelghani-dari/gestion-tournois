@@ -16,6 +16,7 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
+            'avatar_url' => ['nullable', 'string', 'max:255'],
         ]);
 
         $user = User::create([
@@ -23,6 +24,7 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => 'user',
+            'avatar_url' => $validated['avatar_url'] ?? null,
         ]);
 
         $token = auth('api')->login($user);

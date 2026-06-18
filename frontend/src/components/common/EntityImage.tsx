@@ -1,0 +1,41 @@
+import { clsx } from "clsx";
+import { useState } from "react";
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "?";
+}
+
+type EntityImageProps = {
+  src?: string | null;
+  name: string;
+  alt?: string;
+  className?: string;
+  imageClassName?: string;
+};
+
+export default function EntityImage({ src, name, alt, className, imageClassName }: EntityImageProps) {
+  const [failed, setFailed] = useState(false);
+  const canShowImage = Boolean(src) && !failed;
+
+  return (
+    <div className={clsx("relative overflow-hidden border border-white/10 bg-brand-500/15 text-brand-200", className)}>
+      {canShowImage ? (
+        <img
+          src={src ?? undefined}
+          alt={alt ?? name}
+          className={clsx("h-full w-full object-cover", imageClassName)}
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-sm font-semibold uppercase">
+          {initials(name)}
+        </div>
+      )}
+    </div>
+  );
+}

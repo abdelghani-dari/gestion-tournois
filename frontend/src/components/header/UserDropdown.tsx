@@ -1,19 +1,11 @@
 import { Link, useNavigate } from "react-router";
 import { clsx } from "clsx";
 import { Dropdown } from "../ui/dropdown/Dropdown";
+import EntityImage from "../common/EntityImage";
 import { useThemeTokens } from "../theme/useThemeTokens";
 import { useHeaderDropdown } from "../context/HeaderDropdownContext";
 import { useAuth } from "../../context/AuthContext";
 import { UserIcon, LockIcon, ChevronDownIcon } from "../../icons";
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "U";
-}
 
 export default function UserDropdown() {
   const navigate = useNavigate();
@@ -42,9 +34,7 @@ export default function UserDropdown() {
           t.headerIconBtn
         )}
       >
-        <span className={clsx("flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg p-1", t.metricBg)}>
-          <span className="text-xs font-semibold text-brand-400">{initials(displayName)}</span>
-        </span>
+        <EntityImage src={user?.avatar_url} name={displayName} className={clsx("h-8 w-8 shrink-0 rounded-lg", t.metricBg)} />
         <span className={clsx("hidden font-medium sm:block", t.textPrimary)}>{displayName}</span>
         <ChevronDownIcon className={clsx("size-4 shrink-0 opacity-50 transition-transform", open && "rotate-180")} />
       </button>
@@ -55,9 +45,7 @@ export default function UserDropdown() {
         className={clsx("w-72 border p-2", t.headerDropdown)}
       >
         <div className={clsx("flex items-center gap-3 rounded-lg px-3 py-3", t.metricBg)}>
-          <span className={clsx("flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border p-1.5", t.border)}>
-            <span className="text-sm font-semibold text-brand-400">{initials(displayName)}</span>
-          </span>
+          <EntityImage src={user?.avatar_url} name={displayName} className={clsx("h-11 w-11 shrink-0 rounded-lg", t.border)} />
           <div className="min-w-0">
             <p className={clsx("truncate font-semibold", t.textPrimary)}>{displayName}</p>
             <p className={clsx("truncate text-xs", t.textMuted)}>{displayEmail}</p>

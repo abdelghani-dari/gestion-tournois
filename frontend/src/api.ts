@@ -91,6 +91,7 @@ export type PublicTournament = {
   description?: string | null;
   city?: string | null;
   location?: string | null;
+  banner_path?: string | null;
   start_date?: string | null;
   end_date?: string | null;
   status?: string | null;
@@ -128,6 +129,7 @@ export type CreateTournamentPayload = {
   description?: string;
   city?: string;
   location?: string;
+  banner_path?: string;
   start_date: string;
   end_date: string;
 };
@@ -179,6 +181,8 @@ export async function refuseTournament(id: number, admin_note?: string) {
 export type ApiTeam = {
   id: number;
   name: string;
+  short_name?: string | null;
+  logo_path?: string | null;
   city?: string | null;
   created_at?: string | null;
   manager?: {
@@ -195,6 +199,8 @@ export type ApiTeam = {
 
 export type TeamPayload = {
   name: string;
+  short_name?: string;
+  logo_path?: string;
   city?: string;
 };
 
@@ -240,6 +246,7 @@ export type ApiPlayer = {
   birth_date?: string | null;
   position?: string | null;
   number?: number | null;
+  photo_path?: string | null;
   created_at?: string | null;
   team?: ApiTeam | null;
 };
@@ -251,6 +258,7 @@ export type PlayerPayload = {
   birth_date?: string;
   position?: string;
   number?: number;
+  photo_path?: string;
 };
 
 type PlayersResponse = ApiPlayer[] | { data?: ApiPlayer[] };

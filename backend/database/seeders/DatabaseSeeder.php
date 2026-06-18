@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'admin@example.com',
             'password' => Hash::make('password'),
             'role' => 'admin',
+            'avatar_url' => 'https://ui-avatars.com/api/?name=Admin+Principal&background=2563eb&color=fff',
         ]);
 
         $organizer = User::create([
@@ -30,6 +31,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'user@example.com',
             'password' => Hash::make('password'),
             'role' => 'user',
+            'avatar_url' => 'https://ui-avatars.com/api/?name=Organisateur+Local&background=059669&color=fff',
         ]);
 
         $manager = User::create([
@@ -37,6 +39,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'manager@example.com',
             'password' => Hash::make('password'),
             'role' => 'user',
+            'avatar_url' => 'https://ui-avatars.com/api/?name=Manager+Atlas&background=7c3aed&color=fff',
         ]);
 
         $ramadanTournament = Tournament::create([
@@ -45,6 +48,7 @@ class DatabaseSeeder extends Seeder
             'description' => 'Tournoi local de football organisé à Rabat pendant le mois de Ramadan.',
             'city' => 'Rabat',
             'location' => 'Terrain Municipal de Rabat',
+            'banner_path' => 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=1200&q=80',
             'start_date' => '2026-07-01',
             'end_date' => '2026-07-15',
             'status' => 'open',
@@ -60,6 +64,7 @@ class DatabaseSeeder extends Seeder
             'description' => 'Demande de tournoi de quartier en attente de validation.',
             'city' => 'Salé',
             'location' => 'Stade de Proximité Salé',
+            'banner_path' => 'https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=1200&q=80',
             'start_date' => '2026-08-01',
             'end_date' => '2026-08-10',
             'status' => 'draft',
@@ -75,6 +80,7 @@ class DatabaseSeeder extends Seeder
             'description' => 'Demande refusée pour dossier incomplet.',
             'city' => 'Témara',
             'location' => 'Terrain Local Témara',
+            'banner_path' => 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&w=1200&q=80',
             'start_date' => '2026-09-01',
             'end_date' => '2026-09-08',
             'status' => 'draft',
@@ -87,24 +93,32 @@ class DatabaseSeeder extends Seeder
         $atlas = Team::create([
             'manager_id' => $organizer->id,
             'name' => 'Atlas FC',
+            'short_name' => 'ATF',
+            'logo_path' => 'https://ui-avatars.com/api/?name=ATF&background=1d4ed8&color=fff',
             'city' => 'Rabat',
         ]);
 
         $najm = Team::create([
             'manager_id' => $organizer->id,
             'name' => 'Najm FC',
+            'short_name' => 'NJM',
+            'logo_path' => 'https://ui-avatars.com/api/?name=NJM&background=0f766e&color=fff',
             'city' => 'Rabat',
         ]);
 
         $amal = Team::create([
             'manager_id' => $manager->id,
             'name' => 'Amal Salé',
+            'short_name' => 'AMS',
+            'logo_path' => 'https://ui-avatars.com/api/?name=AMS&background=be123c&color=fff',
             'city' => 'Salé',
         ]);
 
         $lions = Team::create([
             'manager_id' => $manager->id,
             'name' => 'Lions Témara',
+            'short_name' => 'LTM',
+            'logo_path' => 'https://ui-avatars.com/api/?name=LTM&background=ca8a04&color=fff',
             'city' => 'Témara',
         ]);
 
@@ -222,6 +236,29 @@ class DatabaseSeeder extends Seeder
                 'number' => 1,
             ]),
         ];
+
+        foreach ([
+            'atlasYassine' => 'Yassine+El+Amrani',
+            'atlasOmar' => 'Omar+Benali',
+            'atlasHamza' => 'Hamza+Idrissi',
+            'atlasAnas' => 'Anas+Rahimi',
+            'najmMehdi' => 'Mehdi+Alaoui',
+            'najmBilal' => 'Bilal+Karimi',
+            'najmSoufiane' => 'Soufiane+Naciri',
+            'najmKarim' => 'Karim+Essafi',
+            'amalAyoub' => 'Ayoub+Mansouri',
+            'amalReda' => 'Reda+Fathi',
+            'amalZakaria' => 'Zakaria+Rami',
+            'amalNabil' => 'Nabil+Chafi',
+            'lionsAdam' => 'Adam+Berrada',
+            'lionsIlyas' => 'Ilyas+Hakimi',
+            'lionsSamir' => 'Samir+El+Kadi',
+            'lionsTaha' => 'Taha+Mouline',
+        ] as $key => $name) {
+            $players[$key]->update([
+                'photo_path' => "https://ui-avatars.com/api/?name={$name}&background=111827&color=fff",
+            ]);
+        }
 
         $ramadanTournament->teams()->syncWithoutDetaching([$atlas->id, $najm->id]);
 

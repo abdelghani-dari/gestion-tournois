@@ -6,6 +6,7 @@ import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
 import Button from "../../components/common/Button";
+import EntityImage from "../../components/common/EntityImage";
 import XModal from "../../components/common/XModal";
 import { statusLabel, statusTone } from "../../components/common/statusLabels";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
@@ -111,6 +112,14 @@ export default function TournamentsPage() {
             </Link>
           }
         >
+          {selected && (
+            <EntityImage
+              src={selected.banner_path}
+              name={selected.name}
+              className="mb-5 h-44 w-full rounded-md"
+            />
+          )}
+
           {loading && (
             <p className={clsx("py-10 text-center text-sm", t.textMuted)}>
               Chargement des tournois publics...
@@ -182,14 +191,17 @@ export default function TournamentsPage() {
                     <tr key={tr.id} className={clsx("transition-colors", t.tableRow, t.navHover)}>
                       <td className={clsx("px-4 py-3 font-mono", t.textMuted)}>{tr.id}</td>
                       <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedId(tr.id)}
-                          className="block max-w-full truncate text-left font-medium text-brand-500 hover:text-brand-400"
-                          title={tr.name}
-                        >
-                          {tr.name}
-                        </button>
+                        <div className="flex min-w-0 items-center gap-3">
+                          <EntityImage src={tr.banner_path} name={tr.name} className="h-10 w-14 shrink-0 rounded-sm" />
+                          <button
+                            type="button"
+                            onClick={() => setSelectedId(tr.id)}
+                            className="block max-w-full truncate text-left font-medium text-brand-500 hover:text-brand-400"
+                            title={tr.name}
+                          >
+                            {tr.name}
+                          </button>
+                        </div>
                       </td>
                       <td className={clsx("px-4 py-3", t.textSecondary)}>
                         <span className="block truncate" title={tr.description ?? ""}>
@@ -234,6 +246,11 @@ export default function TournamentsPage() {
         >
           {detailsTournament && (
             <div className="space-y-3 text-sm">
+              <EntityImage
+                src={detailsTournament.banner_path}
+                name={detailsTournament.name}
+                className="h-36 w-full rounded-md"
+              />
               {[
                 ["Nom", detailsTournament.name],
                 ["Ville", detailsTournament.city || "-"],
