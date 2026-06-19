@@ -96,6 +96,7 @@ export type PublicTournament = {
   end_date?: string | null;
   status?: string | null;
   approval_status?: string | null;
+  teams?: ApiTeam[];
   admin_note?: string | null;
   creator?: {
     id?: number;
@@ -366,6 +367,8 @@ export type ApiMatch = {
   tournament?: PublicTournament | null;
   home_team?: ApiTeam | null;
   away_team?: ApiTeam | null;
+  homeTeam?: ApiTeam | null;
+  awayTeam?: ApiTeam | null;
 };
 
 export type MatchPayload = {

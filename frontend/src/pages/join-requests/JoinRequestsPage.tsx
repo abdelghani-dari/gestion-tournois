@@ -111,7 +111,7 @@ export default function JoinRequestsPage() {
       setForm((current) => ({
         ...current,
         tournament_id: current.tournament_id || (tournamentData[0]?.id ? String(tournamentData[0].id) : ""),
-        team_id: current.team_id || (teamData[0]?.id ? String(teamData[0].id) : ""),
+        team_id: current.team_id,
       }));
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -154,8 +154,33 @@ export default function JoinRequestsPage() {
     );
   }, [requests, tournaments, myTeams, searchQuery]);
 
+  const availableTeams = useMemo(() => {
+    const tournamentId = Number(form.tournament_id);
+    if (!tournamentId) return [];
+
+    const unavailableTeamIds = new Set(
+      requests
+        .filter((request) => request.tournament_id === tournamentId)
+        .map((request) => request.team_id),
+    );
+    const selectedTournament = tournaments.find((tournament) => tournament.id === tournamentId);
+    selectedTournament?.teams?.forEach((team) => unavailableTeamIds.add(team.id));
+
+    return myTeams.filter((team) => !unavailableTeamIds.has(team.id));
+  }, [form.tournament_id, myTeams, requests, tournaments]);
+
+  useEffect(() => {
+    if (!form.tournament_id) return;
+    if (availableTeams.some((team) => String(team.id) === form.team_id)) return;
+    setForm((current) => ({ ...current, team_id: availableTeams[0]?.id ? String(availableTeams[0].id) : "" }));
+  }, [availableTeams, form.team_id, form.tournament_id]);
+
   const updateForm = (key: keyof JoinRequestForm, value: string) => {
-    setForm((current) => ({ ...current, [key]: value }));
+    setForm((current) => ({
+      ...current,
+      [key]: value,
+      ...(key === "tournament_id" ? { team_id: "" } : {}),
+    }));
   };
 
   const handleCreateRequest = async (e: FormEvent) => {
@@ -279,10 +304,13 @@ export default function JoinRequestsPage() {
                         className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                       >
                         <option value="">Sélectionner une équipe</option>
-                        {myTeams.map((team) => (
+                        {availableTeams.map((team) => (
                           <option key={team.id} value={team.id}>{team.name}</option>
                         ))}
                       </select>
+                      {form.tournament_id && availableTeams.length === 0 && !loading && (
+                        <p className={clsx("mt-2 text-sm", t.textMuted)}>Aucune équipe disponible pour cette demande.</p>
+                      )}
                     </div>
                     <div className="md:col-span-2">
                       <label htmlFor="join-request-message" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Message</label>
@@ -308,7 +336,7 @@ export default function JoinRequestsPage() {
                           {error}
                         </div>
                       )}
-                      <Button type="submit" disabled={submitting || loading || myTeams.length === 0 || tournaments.length === 0} className="gap-2">
+                      <Button type="submit" disabled={submitting || loading || availableTeams.length === 0 || tournaments.length === 0} className="gap-2">
                         <PaperPlaneIcon className="size-4 shrink-0" />
                         {submitting ? "Envoi..." : "Envoyer la demande"}
                       </Button>

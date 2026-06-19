@@ -505,12 +505,24 @@ export default function MatchesPage() {
                       <td className="px-4 py-3"><StatusPill value={match.result_status} /></td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-2">
-                          <Button size="sm" variant="secondary" disabled={workingId === match.id} onClick={() => handleConfirm(match.id)}>
-                            Confirmer
-                          </Button>
-                          <Button size="sm" variant="danger" disabled={workingId === match.id} onClick={() => handleDispute(match.id)}>
-                            Contester
-                          </Button>
+                          {match.status === "played" && match.home_score != null && match.away_score != null && match.result_status === "pending" && (
+                            <>
+                              <Button size="sm" variant="secondary" disabled={workingId === match.id} onClick={() => handleConfirm(match.id)}>
+                                Confirmer
+                              </Button>
+                              <Button size="sm" variant="danger" disabled={workingId === match.id} onClick={() => handleDispute(match.id)}>
+                                Contester
+                              </Button>
+                            </>
+                          )}
+                          {match.status === "played" && match.home_score != null && match.away_score != null && match.result_status === "disputed" && (
+                            <Button size="sm" variant="secondary" disabled={workingId === match.id} onClick={() => handleConfirm(match.id)}>
+                              Confirmer
+                            </Button>
+                          )}
+                          {(match.status !== "played" || match.home_score == null || match.away_score == null || match.result_status === "confirmed") && (
+                            <span className={t.textMuted}>-</span>
+                          )}
                         </div>
                       </td>
                     </tr>

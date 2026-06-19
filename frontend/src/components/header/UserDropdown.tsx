@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router";
 import { clsx } from "clsx";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import EntityImage from "../common/EntityImage";
+import { roleLabel } from "../common/roleLabels";
 import { useThemeTokens } from "../theme/useThemeTokens";
 import { useHeaderDropdown } from "../context/HeaderDropdownContext";
 import { useAuth } from "../../context/AuthContext";
@@ -50,7 +51,7 @@ export default function UserDropdown() {
             <p className={clsx("truncate font-semibold", t.textPrimary)}>{displayName}</p>
             <p className={clsx("truncate text-xs", t.textMuted)}>{displayEmail}</p>
             <span className="mt-1 inline-block rounded-sm bg-brand-500/15 px-2 py-0.5 text-xs font-medium text-brand-500">
-              {displayRole}
+              {roleLabel(displayRole)}
             </span>
           </div>
         </div>

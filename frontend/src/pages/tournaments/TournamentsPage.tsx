@@ -55,8 +55,9 @@ export default function TournamentsPage() {
       try {
         const data = await getPublicTournaments();
         if (!active) return;
-        setTournaments(data);
-        setSelectedId(data[0]?.id ?? null);
+        const acceptedTournaments = data.filter((tournament) => tournament.approval_status === "accepted");
+        setTournaments(acceptedTournaments);
+        setSelectedId(acceptedTournaments[0]?.id ?? null);
       } catch (err) {
         if (!active) return;
         setError(err instanceof Error ? err.message : "Impossible de charger les tournois publics.");

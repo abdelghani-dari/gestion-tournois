@@ -12,7 +12,10 @@ class TournamentController extends Controller
     public function index(): JsonResponse
     {
         return response()->json(
-            Tournament::where('approval_status', 'accepted')->latest()->get()
+            Tournament::with('teams')
+                ->where('approval_status', 'accepted')
+                ->latest()
+                ->get()
         );
     }
 

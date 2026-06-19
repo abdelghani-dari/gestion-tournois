@@ -90,8 +90,8 @@ function matchName(matchId: number, matches: ApiMatch[], embedded?: ApiMatch | n
   const match = embedded ?? matches.find((item) => item.id === matchId);
   if (!match) return `Match #${matchId}`;
 
-  const home = match.home_team?.name ?? `Équipe #${match.home_team_id}`;
-  const away = match.away_team?.name ?? `Équipe #${match.away_team_id}`;
+  const home = match.homeTeam?.name ?? match.home_team?.name ?? `Équipe #${match.home_team_id}`;
+  const away = match.awayTeam?.name ?? match.away_team?.name ?? `Équipe #${match.away_team_id}`;
   return `#${match.id} - ${home} vs ${away}`;
 }
 
