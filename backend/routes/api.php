@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AdminTournamentController;
 use App\Http\Controllers\Api\JoinRequestController;
+use App\Http\Controllers\Api\MatchGameController;
 use App\Http\Controllers\Api\PlayerController;
 use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\TournamentController;
@@ -40,3 +41,12 @@ Route::post('join-requests', [JoinRequestController::class, 'store']);
 Route::get('join-requests/{joinRequest}', [JoinRequestController::class, 'show']);
 Route::put('join-requests/{joinRequest}/accept', [JoinRequestController::class, 'accept']);
 Route::put('join-requests/{joinRequest}/refuse', [JoinRequestController::class, 'refuse']);
+
+Route::get('matches', [MatchGameController::class, 'index']);
+Route::post('matches', [MatchGameController::class, 'store']);
+Route::get('matches/{matchGame}', [MatchGameController::class, 'show']);
+Route::put('matches/{matchGame}', [MatchGameController::class, 'update']);
+Route::delete('matches/{matchGame}', [MatchGameController::class, 'destroy']);
+Route::put('matches/{matchGame}/result', [MatchGameController::class, 'result']);
+Route::put('matches/{matchGame}/confirm-result', [MatchGameController::class, 'confirmResult']);
+Route::put('matches/{matchGame}/dispute-result', [MatchGameController::class, 'disputeResult']);
