@@ -410,7 +410,7 @@ export default function MatchCompositionPage() {
           )}
 
           {!loading && !error && compositions.length === 0 && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune composition disponible.</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune donnée disponible.</p>
           )}
 
           {!loading && compositions.length > 0 && (

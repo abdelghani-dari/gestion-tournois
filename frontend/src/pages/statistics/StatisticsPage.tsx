@@ -461,7 +461,7 @@ export default function StatisticsPage() {
           )}
 
           {!loading && !error && statistics.length === 0 && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune statistique disponible.</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune donnée disponible.</p>
           )}
 
           {!loading && statistics.length > 0 && (

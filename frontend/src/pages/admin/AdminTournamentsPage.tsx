@@ -1,22 +1,36 @@
 import { Link } from "react-router";
 import { clsx } from "clsx";
-import { useCallback, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 import {
   acceptTournament,
   ApiError,
+  createTournament,
   getAdminTournaments,
   getPendingTournaments,
   refuseTournament,
   type AdminTournament,
+  type CreateTournamentPayload,
 } from "../../api";
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
 import Button from "../../components/common/Button";
 import EntityImage from "../../components/common/EntityImage";
+import ImageSourceInput, { type ImageSourceMode } from "../../components/common/ImageSourceInput";
 import { statusLabel, statusTone } from "../../components/common/statusLabels";
+import XModal from "../../components/common/XModal";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
+
+const emptyForm: CreateTournamentPayload = {
+  name: "",
+  description: "",
+  city: "",
+  location: "",
+  banner_path: "",
+  start_date: "",
+  end_date: "",
+};
 
 function formatDate(date?: string | null) {
   if (!date) return "-";
@@ -63,7 +77,7 @@ function AdminTournamentTable({
   const t = useThemeTokens();
 
   if (tournaments.length === 0) {
-    return <p className={clsx("py-8 text-center text-sm", t.textMuted)}>Aucun tournoi disponible.</p>;
+    return <p className={clsx("py-8 text-center text-sm", t.textMuted)}>Aucune donnée disponible.</p>;
   }
 
   return (
@@ -154,6 +168,11 @@ export default function AdminTournamentsPage() {
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(false);
   const [workingId, setWorkingId] = useState<number | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState<CreateTournamentPayload>(emptyForm);
+  const [bannerMode, setBannerMode] = useState<ImageSourceMode>("url");
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -185,8 +204,10 @@ export default function AdminTournamentsPage() {
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && isAdmin) {
-      void loadAdminTournaments();
+      const timer = window.setTimeout(() => void loadAdminTournaments(), 0);
+      return () => window.clearTimeout(timer);
     }
+    return undefined;
   }, [authLoading, isAuthenticated, isAdmin, loadAdminTournaments]);
 
   const handleAccept = async (id: number) => {
@@ -234,6 +255,40 @@ export default function AdminTournamentsPage() {
     }
   };
 
+  const closeCreate = () => {
+    setCreateOpen(false);
+    setForm(emptyForm);
+    setBannerMode("url");
+    setBannerFile(null);
+  };
+
+  const handleCreate = async (event: FormEvent) => {
+    event.preventDefault();
+    setCreating(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      await createTournament({
+        name: form.name,
+        description: form.description?.trim() || undefined,
+        city: form.city?.trim() || undefined,
+        location: form.location?.trim() || undefined,
+        banner: bannerFile,
+        banner_url: form.banner_path?.trim() || undefined,
+        start_date: form.start_date,
+        end_date: form.end_date,
+      });
+      closeCreate();
+      setSuccess("Tournoi créé.");
+      await loadAdminTournaments();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossible de créer le tournoi.");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="flex min-h-[320px] items-center justify-center text-sm text-slate-400">
@@ -277,6 +332,10 @@ export default function AdminTournamentsPage() {
     <>
       <XPageMeta title="Admin Tournois" description="Validation des tournois" />
       <PageStack>
+        <div className="flex justify-end">
+          <Button type="button" onClick={() => setCreateOpen(true)}>Créer un tournoi</Button>
+        </div>
+
         <div className={clsx("grid grid-cols-1 lg:grid-cols-3", GRID_GAP)}>
           <ComponentCard title="Admin" desc={user ? `${user.email} - ${user.role}` : "Compte connecté"}>
             <div className={clsx("rounded-md border p-4", t.card)}>
@@ -335,6 +394,53 @@ export default function AdminTournamentsPage() {
             />
           )}
         </ComponentCard>
+
+        <XModal open={createOpen} onClose={closeCreate} title="Créer un tournoi" className="max-w-3xl">
+          <form onSubmit={handleCreate} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label htmlFor="admin-tournament-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
+              <input id="admin-tournament-name" value={form.name} required disabled={creating} onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))} className={clsx("w-full rounded-sm border px-3 py-2 text-sm", t.border, t.metricBg, t.textPrimary)} />
+            </div>
+            <div>
+              <label htmlFor="admin-tournament-city" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Ville</label>
+              <input id="admin-tournament-city" value={form.city} disabled={creating} onChange={(e) => setForm((current) => ({ ...current, city: e.target.value }))} className={clsx("w-full rounded-sm border px-3 py-2 text-sm", t.border, t.metricBg, t.textPrimary)} />
+            </div>
+            <div>
+              <label htmlFor="admin-tournament-location" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Lieu</label>
+              <input id="admin-tournament-location" value={form.location} disabled={creating} onChange={(e) => setForm((current) => ({ ...current, location: e.target.value }))} className={clsx("w-full rounded-sm border px-3 py-2 text-sm", t.border, t.metricBg, t.textPrimary)} />
+            </div>
+            <div>
+              <label htmlFor="admin-tournament-description" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Description</label>
+              <input id="admin-tournament-description" value={form.description} disabled={creating} onChange={(e) => setForm((current) => ({ ...current, description: e.target.value }))} className={clsx("w-full rounded-sm border px-3 py-2 text-sm", t.border, t.metricBg, t.textPrimary)} />
+            </div>
+            <div>
+              <label htmlFor="admin-tournament-start-date" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Date de début *</label>
+              <input id="admin-tournament-start-date" type="date" value={form.start_date} required disabled={creating} onChange={(e) => setForm((current) => ({ ...current, start_date: e.target.value }))} className={clsx("w-full rounded-sm border px-3 py-2 text-sm", t.border, t.metricBg, t.textPrimary)} />
+            </div>
+            <div>
+              <label htmlFor="admin-tournament-end-date" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Date de fin *</label>
+              <input id="admin-tournament-end-date" type="date" value={form.end_date} min={form.start_date || undefined} required disabled={creating} onChange={(e) => setForm((current) => ({ ...current, end_date: e.target.value }))} className={clsx("w-full rounded-sm border px-3 py-2 text-sm", t.border, t.metricBg, t.textPrimary)} />
+            </div>
+            <div className="md:col-span-2">
+              <ImageSourceInput
+                label="Bannière"
+                name="banner"
+                mode={bannerMode}
+                onModeChange={setBannerMode}
+                file={bannerFile}
+                onFileChange={setBannerFile}
+                url={form.banner_path ?? ""}
+                onUrlChange={(value) => setForm((current) => ({ ...current, banner_path: value }))}
+                previewName={form.name || "Tournoi"}
+                disabled={creating}
+              />
+            </div>
+            <div className="flex justify-end gap-2 md:col-span-2">
+              <Button type="button" variant="secondary" onClick={closeCreate} disabled={creating}>Annuler</Button>
+              <Button type="submit" disabled={creating}>{creating ? "Création..." : "Créer le tournoi"}</Button>
+            </div>
+          </form>
+        </XModal>
       </PageStack>
     </>
   );

@@ -23,6 +23,8 @@ class DatabaseSeeder extends Seeder
             'email' => 'admin@example.com',
             'password' => Hash::make('password'),
             'role' => 'admin',
+            'account_status' => 'active',
+            'approved_at' => now(),
             'avatar_url' => 'https://ui-avatars.com/api/?name=Admin+Principal&background=2563eb&color=fff',
         ]);
 
@@ -31,6 +33,9 @@ class DatabaseSeeder extends Seeder
             'email' => 'user@example.com',
             'password' => Hash::make('password'),
             'role' => 'user',
+            'account_status' => 'active',
+            'approved_by' => $admin->id,
+            'approved_at' => now(),
             'avatar_url' => 'https://ui-avatars.com/api/?name=Organisateur+Local&background=059669&color=fff',
         ]);
 
@@ -39,6 +44,9 @@ class DatabaseSeeder extends Seeder
             'email' => 'manager@example.com',
             'password' => Hash::make('password'),
             'role' => 'user',
+            'account_status' => 'active',
+            'approved_by' => $admin->id,
+            'approved_at' => now(),
             'avatar_url' => 'https://ui-avatars.com/api/?name=Manager+Atlas&background=7c3aed&color=fff',
         ]);
 

@@ -1,8 +1,12 @@
 <?php
 
+use App\Http\Controllers\Api\AdminDataController;
 use App\Http\Controllers\Api\AdminTournamentController;
+use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CompositionController;
+use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\JoinRequestController;
 use App\Http\Controllers\Api\MatchGameController;
 use App\Http\Controllers\Api\PlayerController;
@@ -12,9 +16,7 @@ use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\TournamentController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('health', function () {
-    return response()->json(['status' => 'ok']);
-});
+Route::get('health', [HealthController::class, 'show']);
 
 Route::post('register', [AuthController::class, 'register']);
 Route::post('login', [AuthController::class, 'login']);
@@ -35,6 +37,7 @@ Route::get('players', [PlayerController::class, 'index']);
 Route::get('players/{player}', [PlayerController::class, 'show']);
 
 Route::middleware('auth:api')->group(function () {
+    Route::get('dashboard/summary', [DashboardController::class, 'summary']);
     Route::get('me', [AuthController::class, 'me']);
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('refresh', [AuthController::class, 'refresh']);
@@ -48,6 +51,17 @@ Route::middleware('auth:api')->group(function () {
     Route::get('admin/tournaments', [AdminTournamentController::class, 'index']);
     Route::put('admin/tournaments/{tournament}/accept', [AdminTournamentController::class, 'accept']);
     Route::put('admin/tournaments/{tournament}/refuse', [AdminTournamentController::class, 'refuse']);
+    Route::get('admin/users', [AdminUserController::class, 'index']);
+    Route::get('admin/users/pending', [AdminUserController::class, 'pending']);
+    Route::put('admin/users/{user}/accept', [AdminUserController::class, 'accept']);
+    Route::put('admin/users/{user}/refuse', [AdminUserController::class, 'refuse']);
+    Route::get('admin/teams', [AdminDataController::class, 'teams']);
+    Route::post('admin/teams', [AdminDataController::class, 'storeTeam']);
+    Route::get('admin/teams/{team}', [AdminDataController::class, 'showTeam']);
+    Route::get('admin/players', [AdminDataController::class, 'players']);
+    Route::post('admin/players', [AdminDataController::class, 'storePlayer']);
+    Route::get('admin/join-requests', [AdminDataController::class, 'joinRequests']);
+    Route::get('admin/matches', [AdminDataController::class, 'matches']);
 
     Route::post('teams', [TeamController::class, 'store']);
     Route::put('teams/{team}', [TeamController::class, 'update']);
@@ -81,5 +95,3 @@ Route::middleware('auth:api')->group(function () {
     Route::put('compositions/{composition}', [CompositionController::class, 'update']);
     Route::delete('compositions/{composition}', [CompositionController::class, 'destroy']);
 });
-
-

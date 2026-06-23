@@ -7,6 +7,7 @@ use App\Models\Player;
 use App\Models\Team;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 
 class PlayerController extends Controller
 {
@@ -24,8 +25,12 @@ class PlayerController extends Controller
             'birth_date' => ['nullable', 'date'],
             'position' => ['nullable', 'string', 'max:255'],
             'number' => ['nullable', 'integer', 'min:1', 'max:99'],
-            'photo_path' => ['nullable', 'string', 'max:255'],
+            'photo_path' => ['nullable', 'url', 'max:255'],
+            'photo_url' => ['nullable', 'url', 'max:255'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
         ]);
+        $validated['photo_path'] = $this->imagePath($request, 'photo', 'players', 'photo') ?? $validated['photo_url'] ?? $validated['photo_path'] ?? null;
+        unset($validated['photo'], $validated['photo_url']);
 
         $team = Team::findOrFail($validated['team_id']);
 
@@ -55,8 +60,15 @@ class PlayerController extends Controller
             'birth_date' => ['nullable', 'date'],
             'position' => ['nullable', 'string', 'max:255'],
             'number' => ['nullable', 'integer', 'min:1', 'max:99'],
-            'photo_path' => ['nullable', 'string', 'max:255'],
+            'photo_path' => ['nullable', 'url', 'max:255'],
+            'photo_url' => ['nullable', 'url', 'max:255'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
         ]);
+        $imagePath = $this->imagePath($request, 'photo', 'players', 'photo');
+        if ($imagePath || array_key_exists('photo_url', $validated) || array_key_exists('photo_path', $validated)) {
+            $validated['photo_path'] = $imagePath ?? $validated['photo_url'] ?? $validated['photo_path'] ?? null;
+        }
+        unset($validated['photo'], $validated['photo_url']);
 
         $player->update($validated);
 
@@ -72,5 +84,17 @@ class PlayerController extends Controller
         $player->delete();
 
         return response()->json(['message' => 'Player deleted.']);
+    }
+
+    private function imagePath(Request $request, string $field, string $directory, string $prefix): ?string
+    {
+        if (! $request->hasFile($field)) {
+            return null;
+        }
+
+        /** @var UploadedFile $file */
+        $file = $request->file($field);
+
+        return $file->storeAs($directory, uniqid($prefix.'-', true).'.'.$file->extension(), 'public');
     }
 }

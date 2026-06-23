@@ -10,6 +10,7 @@ import EntityImage from "../../components/common/EntityImage";
 import XModal from "../../components/common/XModal";
 import { statusLabel, statusTone } from "../../components/common/statusLabels";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
+import { useAuth } from "../../context/AuthContext";
 import { PlusIcon } from "../../icons";
 
 function formatDate(date?: string | null) {
@@ -39,6 +40,7 @@ function TournamentStatus({ value, tone = "default" }: { value?: string | null; 
 
 export default function TournamentsPage() {
   const t = useThemeTokens();
+  const { isAuthenticated, isAdmin } = useAuth();
   const [tournaments, setTournaments] = useState<PublicTournament[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detailsTournament, setDetailsTournament] = useState<PublicTournament | null>(null);
@@ -105,7 +107,7 @@ export default function TournamentsPage() {
           desc={selected?.description || "Tournois locaux acceptés par l'administration"}
           action={
             <Link
-              to="/dashboard"
+              to={isAdmin ? "/admin/tournaments" : isAuthenticated ? "/dashboard" : "/login"}
               className="inline-flex items-center justify-center gap-2 rounded-sm border border-brand-500/50 bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600"
             >
               <PlusIcon className="size-4 shrink-0" />
@@ -135,7 +137,7 @@ export default function TournamentsPage() {
 
           {!loading && !error && tournaments.length === 0 && (
             <p className={clsx("py-10 text-center text-sm", t.textMuted)}>
-              Aucun tournoi disponible.
+              Aucune donnée disponible.
             </p>
           )}
 

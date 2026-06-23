@@ -360,7 +360,7 @@ export default function JoinRequestsPage() {
               )}
 
               {!loading && !error && requests.length === 0 && (
-                <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune demande disponible.</p>
+                <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune donnée disponible.</p>
               )}
 
               {!loading && requests.length > 0 && (

@@ -252,7 +252,7 @@ export default function RankingsPage() {
           )}
 
           {!loadingTournaments && !loadingRankings && rankings.length === 0 && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucun classement disponible.</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune donnée disponible.</p>
           )}
 
           {!loadingRankings && rankings.length > 0 && (

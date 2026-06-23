@@ -450,7 +450,7 @@ export default function MatchesPage() {
           )}
 
           {!loading && !error && matches.length === 0 && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucun match disponible.</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune donnée disponible.</p>
           )}
 
           {!loading && matches.length > 0 && (

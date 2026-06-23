@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 import { Link } from "react-router";
 import { clsx } from "clsx";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
@@ -6,6 +7,7 @@ import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
 import EntityImage from "../../components/common/EntityImage";
+import ImageSourceInput, { type ImageSourceMode } from "../../components/common/ImageSourceInput";
 import Button from "../../components/common/Button";
 import FilterSearchInput from "../../components/common/FilterSearchInput";
 import XModal from "../../components/common/XModal";
@@ -41,6 +43,8 @@ export default function TeamsPage() {
   const { isAuthenticated, loading: authLoading, user } = useAuth();
   const [teams, setTeams] = useState<ApiTeam[]>([]);
   const [form, setForm] = useState<TeamPayload>(emptyTeamForm);
+  const [logoMode, setLogoMode] = useState<ImageSourceMode>("url");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [detailsTeam, setDetailsTeam] = useState<ApiTeam | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -100,11 +104,13 @@ export default function TeamsPage() {
       await createTeam({
         name: form.name,
         short_name: form.short_name?.trim() || undefined,
-        logo_path: form.logo_path?.trim() || undefined,
+        logo: logoFile,
+        logo_url: form.logo_path?.trim() || undefined,
         city: form.city?.trim() || undefined,
       });
       setSuccess("Équipe créée.");
       setForm(emptyTeamForm);
+      setLogoFile(null);
       await loadTeams();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -179,15 +185,17 @@ export default function TeamsPage() {
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label htmlFor="team-logo-path" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Logo</label>
-                    <input
-                      id="team-logo-path"
-                      name="logo_path"
-                      value={form.logo_path}
-                      onChange={(e) => setForm((current) => ({ ...current, logo_path: e.target.value }))}
-                      placeholder="https://..."
+                    <ImageSourceInput
+                      label="Logo"
+                      name="logo"
+                      mode={logoMode}
+                      onModeChange={setLogoMode}
+                      file={logoFile}
+                      onFileChange={setLogoFile}
+                      url={form.logo_path ?? ""}
+                      onUrlChange={(value) => setForm((current) => ({ ...current, logo_path: value }))}
+                      previewName={form.name || "Équipe"}
                       disabled={submitting}
-                      className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -225,7 +233,7 @@ export default function TeamsPage() {
 
               {!loading && !error && teams.length === 0 && (
                 <p className={clsx("py-10 text-center text-sm", t.textMuted)}>
-                  Aucune équipe disponible.
+                  Aucune donnée disponible.
                 </p>
               )}
 

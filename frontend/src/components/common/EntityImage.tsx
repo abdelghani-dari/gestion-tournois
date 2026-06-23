@@ -1,5 +1,6 @@
 import { clsx } from "clsx";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { APP_BASE } from "../../api";
 
 function initials(name: string) {
   return name
@@ -19,12 +20,9 @@ type EntityImageProps = {
 };
 
 export default function EntityImage({ src, name, alt, className, imageClassName }: EntityImageProps) {
-  const [failed, setFailed] = useState(false);
-  const canShowImage = Boolean(src) && !failed;
-
-  useEffect(() => {
-    setFailed(false);
-  }, [src]);
+  const imageSrc = src && /^(https?:|blob:|data:)/i.test(src) ? src : src ? `${APP_BASE}/storage/${src.replace(/^\/+/, "")}` : undefined;
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const canShowImage = Boolean(imageSrc) && failedSrc !== imageSrc;
 
   return (
     <div className={clsx("relative overflow-hidden border border-white/10 bg-brand-500/15 text-brand-200", className)}>
@@ -33,10 +31,11 @@ export default function EntityImage({ src, name, alt, className, imageClassName 
       </div>
       {canShowImage && (
         <img
-          src={src ?? undefined}
+          key={imageSrc}
+          src={imageSrc}
           alt={alt ?? name}
           className={clsx("absolute inset-0 h-full w-full object-cover", imageClassName)}
-          onError={() => setFailed(true)}
+          onError={() => setFailedSrc(imageSrc ?? null)}
         />
       )}
     </div>

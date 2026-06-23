@@ -1,4 +1,7 @@
-export const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
+
+export const API_BASE = (configuredApiUrl || "http://localhost:8000/api").replace(/\/+$/, "");
+export const APP_BASE = API_BASE.replace(/\/api$/, "");
 
 const TOKEN_KEY = "auth_token";
 
@@ -50,6 +53,21 @@ async function parseResponse(response: Response) {
   }
 }
 
+function toFormData(payload: Record<string, unknown>) {
+  const formData = new FormData();
+
+  for (const [key, value] of Object.entries(payload)) {
+    if (value === undefined || value === null || value === "") continue;
+    if (value instanceof File) {
+      formData.append(key, value);
+    } else {
+      formData.append(key, String(value));
+    }
+  }
+
+  return formData;
+}
+
 export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {},
@@ -59,7 +77,7 @@ export async function apiRequest<T>(
 
   headers.set("Accept", "application/json");
 
-  if (options.body && !headers.has("Content-Type")) {
+  if (options.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -67,22 +85,52 @@ export async function apiRequest<T>(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers,
+      signal: options.signal ?? AbortSignal.timeout(10_000),
+    });
+  } catch (error) {
+    console.error(`API request failed: ${endpoint}`, error);
+    throw new ApiError(
+      error instanceof DOMException && error.name === "TimeoutError"
+        ? "Le serveur met trop de temps à répondre."
+        : "Impossible de contacter le serveur.",
+      0,
+      error,
+    );
+  }
 
   const data = await parseResponse(response);
 
   if (!response.ok) {
-    throw new ApiError(
+    const error = new ApiError(
       getErrorMessage(data, `Request failed with status ${response.status}`),
       response.status,
       data,
     );
+    console.error(`API request failed: ${endpoint} (${response.status})`, error);
+    throw error;
   }
 
   return data as T;
+}
+
+function extractArray<T>(response: unknown): T[] {
+  if (Array.isArray(response)) return response as T[];
+  if (!response || typeof response !== "object") return [];
+
+  const data = (response as { data?: unknown }).data;
+  if (Array.isArray(data)) return data as T[];
+  if (data && typeof data === "object") {
+    const nestedData = (data as { data?: unknown }).data;
+    if (Array.isArray(nestedData)) return nestedData as T[];
+  }
+
+  return [];
 }
 
 export type PublicTournament = {
@@ -119,8 +167,7 @@ type PublicTournamentsResponse = PublicTournament[] | { data?: PublicTournament[
 
 export async function getPublicTournaments() {
   const response = await apiRequest<PublicTournamentsResponse>("/tournaments");
-  if (Array.isArray(response)) return response;
-  return response.data ?? [];
+  return extractArray<PublicTournament>(response);
 }
 
 export type MyTournament = PublicTournament;
@@ -131,6 +178,8 @@ export type CreateTournamentPayload = {
   city?: string;
   location?: string;
   banner_path?: string;
+  banner_url?: string;
+  banner?: File | null;
   start_date: string;
   end_date: string;
 };
@@ -139,14 +188,13 @@ type MyTournamentsResponse = MyTournament[] | { data?: MyTournament[] };
 
 export async function getMyTournaments() {
   const response = await apiRequest<MyTournamentsResponse>("/my-tournaments");
-  if (Array.isArray(response)) return response;
-  return response.data ?? [];
+  return extractArray<MyTournament>(response);
 }
 
 export async function createTournament(payload: CreateTournamentPayload) {
   return apiRequest<MyTournament>("/tournaments", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: toFormData(payload),
   });
 }
 
@@ -156,14 +204,12 @@ type AdminTournamentsResponse = AdminTournament[] | { data?: AdminTournament[] }
 
 export async function getPendingTournaments() {
   const response = await apiRequest<AdminTournamentsResponse>("/admin/tournaments/pending");
-  if (Array.isArray(response)) return response;
-  return response.data ?? [];
+  return extractArray<AdminTournament>(response);
 }
 
 export async function getAdminTournaments() {
   const response = await apiRequest<AdminTournamentsResponse>("/admin/tournaments");
-  if (Array.isArray(response)) return response;
-  return response.data ?? [];
+  return extractArray<AdminTournament>(response);
 }
 
 export async function acceptTournament(id: number) {
@@ -179,13 +225,52 @@ export async function refuseTournament(id: number, admin_note?: string) {
   });
 }
 
+export type AdminUser = {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  account_status: "pending" | "active" | "refused" | string;
+  admin_note?: string | null;
+  approved_at?: string | null;
+  created_at?: string | null;
+};
+
+type AdminUsersResponse = AdminUser[] | { data?: AdminUser[] };
+
+export async function getPendingUsers() {
+  const response = await apiRequest<AdminUsersResponse>("/admin/users/pending");
+  return extractArray<AdminUser>(response);
+}
+
+export async function getAdminUsers() {
+  const response = await apiRequest<AdminUsersResponse>("/admin/users");
+  return extractArray<AdminUser>(response);
+}
+
+export async function acceptUser(id: number) {
+  return apiRequest<AdminUser>(`/admin/users/${id}/accept`, {
+    method: "PUT",
+  });
+}
+
+export async function refuseUser(id: number, admin_note?: string) {
+  return apiRequest<AdminUser>(`/admin/users/${id}/refuse`, {
+    method: "PUT",
+    body: JSON.stringify({ admin_note: admin_note?.trim() || undefined }),
+  });
+}
+
 export type ApiTeam = {
   id: number;
+  manager_id?: number | null;
   name: string;
   short_name?: string | null;
   logo_path?: string | null;
   city?: string | null;
   created_at?: string | null;
+  players_count?: number;
+  players?: ApiPlayer[];
   manager?: {
     id?: number;
     name?: string | null;
@@ -202,27 +287,47 @@ export type TeamPayload = {
   name: string;
   short_name?: string;
   logo_path?: string;
+  logo_url?: string;
+  logo?: File | null;
   city?: string;
+  manager_id?: number | "";
 };
 
 type TeamsResponse = ApiTeam[] | { data?: ApiTeam[] };
 
 export async function getMyTeams() {
   const response = await apiRequest<TeamsResponse>("/my-teams");
-  if (Array.isArray(response)) return response;
-  return response.data ?? [];
+  return extractArray<ApiTeam>(response);
 }
 
 export async function getTeams() {
   const response = await apiRequest<TeamsResponse>("/teams");
-  if (Array.isArray(response)) return response;
-  return response.data ?? [];
+  return extractArray<ApiTeam>(response);
+}
+
+export async function getAdminTeams() {
+  const response = await apiRequest<TeamsResponse>("/admin/teams");
+  return extractArray<ApiTeam>(response);
+}
+
+export async function getAdminTeam(id: number | string) {
+  return apiRequest<ApiTeam>(`/admin/teams/${id}`);
+}
+
+export async function createAdminTeam(payload: TeamPayload) {
+  return apiRequest<ApiTeam>("/admin/teams", {
+    method: "POST",
+    body: toFormData({
+      ...payload,
+      manager_id: payload.manager_id || undefined,
+    }),
+  });
 }
 
 export async function createTeam(payload: TeamPayload) {
   return apiRequest<ApiTeam>("/teams", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: toFormData(payload),
   });
 }
 
@@ -260,20 +365,33 @@ export type PlayerPayload = {
   position?: string;
   number?: number;
   photo_path?: string;
+  photo_url?: string;
+  photo?: File | null;
 };
 
 type PlayersResponse = ApiPlayer[] | { data?: ApiPlayer[] };
 
 export async function getPlayers() {
   const response = await apiRequest<PlayersResponse>("/players");
-  if (Array.isArray(response)) return response;
-  return response.data ?? [];
+  return extractArray<ApiPlayer>(response);
+}
+
+export async function getAdminPlayers() {
+  const response = await apiRequest<PlayersResponse>("/admin/players");
+  return extractArray<ApiPlayer>(response);
+}
+
+export async function createAdminPlayer(payload: PlayerPayload) {
+  return apiRequest<ApiPlayer>("/admin/players", {
+    method: "POST",
+    body: toFormData(payload),
+  });
 }
 
 export async function createPlayer(payload: PlayerPayload) {
   return apiRequest<ApiPlayer>("/players", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: toFormData(payload),
   });
 }
 
@@ -331,8 +449,12 @@ export async function getJoinRequests(params?: Record<string, string | number | 
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
   const response = await apiRequest<JoinRequestsResponse>(`/join-requests${suffix}`);
-  if (Array.isArray(response)) return response;
-  return response.data ?? [];
+  return extractArray<JoinRequest>(response);
+}
+
+export async function getAdminJoinRequests() {
+  const response = await apiRequest<JoinRequestsResponse>("/admin/join-requests");
+  return extractArray<JoinRequest>(response);
 }
 
 export async function createJoinRequest(payload: JoinRequestPayload) {
@@ -385,19 +507,23 @@ export type MatchResultPayload = {
 
 type MatchesResponse = ApiMatch[] | { data?: ApiMatch[] };
 
-export async function getMatches(params?: Record<string, string | number | undefined>) {
+export async function getMatches(params?: Record<string, string | number | null | undefined>) {
   const query = new URLSearchParams();
 
   for (const [key, value] of Object.entries(params ?? {})) {
-    if (value !== undefined && value !== "") {
+    if (value != null && value !== "") {
       query.set(key, String(value));
     }
   }
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
   const response = await apiRequest<MatchesResponse>(`/matches${suffix}`);
-  if (Array.isArray(response)) return response;
-  return response.data ?? [];
+  return extractArray<ApiMatch>(response);
+}
+
+export async function getAdminMatches() {
+  const response = await apiRequest<MatchesResponse>("/admin/matches");
+  return extractArray<ApiMatch>(response);
 }
 
 export async function getMatch(id: number) {
@@ -459,13 +585,45 @@ export type ApiRanking = {
   tournament?: PublicTournament | null;
 };
 
+export type DashboardSummary = {
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    avatar_url?: string | null;
+  };
+  counts: {
+    my_tournaments: number;
+    my_teams: number;
+    my_players: number;
+    pending_requests: number;
+    join_requests: number;
+    matches: number;
+    confirmed_results: number;
+  };
+  tournament_status: Record<string, number>;
+  match_status: Record<string, number>;
+  result_status: Record<string, number>;
+  first_tournament_id: number | null;
+  ranking_preview: ApiRanking[];
+  match_preview: ApiMatch[];
+  pending_tournaments: MyTournament[];
+};
+
+export async function getDashboardSummary() {
+  return apiRequest<DashboardSummary>("/dashboard/summary");
+}
+
 type RankingsResponse = ApiRanking[] | { data?: ApiRanking[] };
 
 export async function getRankings(tournament_id: number | string) {
+  if (tournament_id == null || tournament_id === "" || !Number.isFinite(Number(tournament_id))) {
+    throw new ApiError("Un tournoi valide est requis pour charger le classement.", 0, null);
+  }
   const query = new URLSearchParams({ tournament_id: String(tournament_id) });
   const response = await apiRequest<RankingsResponse>(`/rankings?${query.toString()}`);
-  if (Array.isArray(response)) return response;
-  return response.data ?? [];
+  return extractArray<ApiRanking>(response);
 }
 
 export async function recalculateRankings(tournament_id: number | string) {
@@ -501,19 +659,18 @@ export type StatisticPayload = {
 
 type StatisticsResponse = ApiStatistic[] | { data?: ApiStatistic[] };
 
-export async function getStatistics(params?: Record<string, string | number | undefined>) {
+export async function getStatistics(params?: Record<string, string | number | null | undefined>) {
   const query = new URLSearchParams();
 
   for (const [key, value] of Object.entries(params ?? {})) {
-    if (value !== undefined && value !== "") {
+    if (value != null && value !== "") {
       query.set(key, String(value));
     }
   }
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
   const response = await apiRequest<StatisticsResponse>(`/statistics${suffix}`);
-  if (Array.isArray(response)) return response;
-  return response.data ?? [];
+  return extractArray<ApiStatistic>(response);
 }
 
 export async function createStatistic(payload: StatisticPayload) {
@@ -575,8 +732,7 @@ export async function getCompositions(params?: Record<string, string | number | 
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
   const response = await apiRequest<CompositionsResponse>(`/compositions${suffix}`);
-  if (Array.isArray(response)) return response;
-  return response.data ?? [];
+  return extractArray<ApiComposition>(response);
 }
 
 export async function createComposition(payload: CompositionPayload) {

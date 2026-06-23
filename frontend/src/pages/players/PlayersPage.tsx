@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 import { Link } from "react-router";
 import { clsx } from "clsx";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
@@ -15,6 +16,7 @@ import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
 import EntityImage from "../../components/common/EntityImage";
+import ImageSourceInput, { type ImageSourceMode } from "../../components/common/ImageSourceInput";
 import Button from "../../components/common/Button";
 import FilterSearchInput from "../../components/common/FilterSearchInput";
 import XModal from "../../components/common/XModal";
@@ -66,6 +68,8 @@ export default function PlayersPage() {
   const [teams, setTeams] = useState<ApiTeam[]>([]);
   const [myTeams, setMyTeams] = useState<ApiTeam[]>([]);
   const [form, setForm] = useState<PlayerForm>(emptyPlayerForm);
+  const [photoMode, setPhotoMode] = useState<ImageSourceMode>("url");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [detailsPlayer, setDetailsPlayer] = useState<ApiPlayer | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -162,13 +166,15 @@ export default function PlayersPage() {
       birth_date: form.birth_date || undefined,
       position: form.position.trim() || undefined,
       number: form.number ? Number(form.number) : undefined,
-      photo_path: form.photo_path.trim() || undefined,
+      photo: photoFile,
+      photo_url: form.photo_path.trim() || undefined,
     };
 
     try {
       await createPlayer(payload);
       setSuccess("Player created.");
       setForm({ ...emptyPlayerForm, team_id: form.team_id });
+      setPhotoFile(null);
       await loadPlayers();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -284,15 +290,17 @@ export default function PlayersPage() {
                   />
                 </div>
                 <div className="md:col-span-3">
-                  <label htmlFor="player-photo-path" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Photo</label>
-                  <input
-                    id="player-photo-path"
-                    name="photo_path"
-                    value={form.photo_path}
-                    onChange={(e) => updateForm("photo_path", e.target.value)}
-                    placeholder="https://..."
+                  <ImageSourceInput
+                    label="Photo"
+                    name="photo"
+                    mode={photoMode}
+                    onModeChange={setPhotoMode}
+                    file={photoFile}
+                    onFileChange={setPhotoFile}
+                    url={form.photo_path}
+                    onUrlChange={(value) => updateForm("photo_path", value)}
+                    previewName={`${form.first_name} ${form.last_name}`.trim() || "Joueur"}
                     disabled={submitting}
-                    className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                   />
                 </div>
                 <div className="md:col-span-3">
@@ -330,7 +338,7 @@ export default function PlayersPage() {
           )}
 
           {!loading && !error && players.length === 0 && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucun joueur disponible.</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune donnée disponible.</p>
           )}
 
           {!loading && players.length > 0 && (
