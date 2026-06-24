@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 import { Link } from "react-router";
 import { clsx } from "clsx";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
@@ -14,8 +15,11 @@ import {
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
+import EntityImage from "../../components/common/EntityImage";
+import ImageSourceInput, { type ImageSourceMode } from "../../components/common/ImageSourceInput";
 import Button from "../../components/common/Button";
 import FilterSearchInput from "../../components/common/FilterSearchInput";
+import XModal from "../../components/common/XModal";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
 import { PlusIcon } from "../../icons";
@@ -27,6 +31,7 @@ type PlayerForm = {
   birth_date: string;
   position: string;
   number: string;
+  photo_path: string;
 };
 
 const emptyPlayerForm: PlayerForm = {
@@ -36,6 +41,7 @@ const emptyPlayerForm: PlayerForm = {
   birth_date: "",
   position: "",
   number: "",
+  photo_path: "",
 };
 
 function formatDate(date?: string | null) {
@@ -52,7 +58,7 @@ function playerName(player: ApiPlayer) {
 }
 
 function teamName(player: ApiPlayer, teams: ApiTeam[]) {
-  return player.team?.name ?? teams.find((team) => team.id === player.team_id)?.name ?? `Team #${player.team_id}`;
+  return player.team?.name ?? teams.find((team) => team.id === player.team_id)?.name ?? `Équipe #${player.team_id}`;
 }
 
 export default function PlayersPage() {
@@ -62,6 +68,9 @@ export default function PlayersPage() {
   const [teams, setTeams] = useState<ApiTeam[]>([]);
   const [myTeams, setMyTeams] = useState<ApiTeam[]>([]);
   const [form, setForm] = useState<PlayerForm>(emptyPlayerForm);
+  const [photoMode, setPhotoMode] = useState<ImageSourceMode>("url");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [detailsPlayer, setDetailsPlayer] = useState<ApiPlayer | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [myTeamsLoading, setMyTeamsLoading] = useState(false);
@@ -78,7 +87,7 @@ export default function PlayersPage() {
       setPlayers(playersData);
       setTeams(teamsData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load players.");
+      setError(err instanceof Error ? err.message : "Impossible de charger les joueurs.");
     } finally {
       setLoading(false);
     }
@@ -101,9 +110,9 @@ export default function PlayersPage() {
       }));
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        setError("Your session has expired. Please log in again.");
+        setError("Votre session a expiré. Veuillez vous reconnecter.");
       } else {
-        setError(err instanceof Error ? err.message : "Unable to load your teams.");
+        setError(err instanceof Error ? err.message : "Impossible de charger vos équipes.");
       }
     } finally {
       setMyTeamsLoading(false);
@@ -157,18 +166,21 @@ export default function PlayersPage() {
       birth_date: form.birth_date || undefined,
       position: form.position.trim() || undefined,
       number: form.number ? Number(form.number) : undefined,
+      photo: photoFile,
+      photo_url: form.photo_path.trim() || undefined,
     };
 
     try {
       await createPlayer(payload);
       setSuccess("Player created.");
       setForm({ ...emptyPlayerForm, team_id: form.team_id });
+      setPhotoFile(null);
       await loadPlayers();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        setError("Your session has expired. Please log in again.");
+        setError("Votre session a expiré. Veuillez vous reconnecter.");
       } else {
-        setError(err instanceof Error ? err.message : "Unable to create player.");
+        setError(err instanceof Error ? err.message : "Impossible de créer le joueur.");
       }
     } finally {
       setSubmitting(false);
@@ -180,42 +192,47 @@ export default function PlayersPage() {
       <XPageMeta title="Joueurs" description="Liste des joueurs" />
       <PageStack>
         <div className={clsx("grid grid-cols-1 xl:grid-cols-3", GRID_GAP)}>
-          <ComponentCard title="Joueurs" desc="Donnees backend">
+          <ComponentCard title="Joueurs" desc="Données enregistrées">
             <div className={clsx("rounded-md border p-4", t.card)}>
               <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Total joueurs</p>
               <p className={clsx("mt-1 text-3xl font-bold", t.textPrimary)}>{players.length}</p>
             </div>
           </ComponentCard>
 
-          <ComponentCard title="Creer un joueur" desc="Associe a une de vos equipes" className="xl:col-span-2">
+          <ComponentCard title="Créer un joueur" desc="Associé à une de vos équipes" className="xl:col-span-2">
             {!isAuthenticated && !authLoading ? (
               <div>
-                <p className={clsx("text-sm", t.textSecondary)}>Connectez-vous pour creer des joueurs.</p>
+                <p className={clsx("text-sm", t.textSecondary)}>Connectez-vous pour créer des joueurs.</p>
                 <Link to="/login" className="mt-4 inline-flex text-sm font-medium text-brand-500 hover:text-brand-400">
                   Aller a la connexion
                 </Link>
               </div>
             ) : myTeams.length === 0 && !myTeamsLoading ? (
-              <p className={clsx("text-sm", t.textSecondary)}>Create a team first.</p>
+              <p className={clsx("text-sm", t.textSecondary)}>Créez d'abord une équipe.</p>
             ) : (
               <form onSubmit={handleCreatePlayer} className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
-                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Equipe *</label>
+                  <label htmlFor="player-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe *</label>
                   <select
+                    id="player-team"
+                    name="team_id"
                     value={form.team_id}
                     onChange={(e) => updateForm("team_id", e.target.value)}
                     required
                     disabled={submitting || myTeamsLoading}
                     className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                   >
+                    <option value="">Sélectionner une équipe</option>
                     {myTeams.map((team) => (
                       <option key={team.id} value={team.id}>{team.name}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Prenom *</label>
+                  <label htmlFor="player-first-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Prenom *</label>
                   <input
+                    id="player-first-name"
+                    name="first_name"
                     value={form.first_name}
                     onChange={(e) => updateForm("first_name", e.target.value)}
                     required
@@ -224,8 +241,10 @@ export default function PlayersPage() {
                   />
                 </div>
                 <div>
-                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
+                  <label htmlFor="player-last-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
                   <input
+                    id="player-last-name"
+                    name="last_name"
                     value={form.last_name}
                     onChange={(e) => updateForm("last_name", e.target.value)}
                     required
@@ -234,8 +253,10 @@ export default function PlayersPage() {
                   />
                 </div>
                 <div>
-                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Naissance</label>
+                  <label htmlFor="player-birth-date" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Naissance</label>
                   <input
+                    id="player-birth-date"
+                    name="birth_date"
                     type="date"
                     value={form.birth_date}
                     onChange={(e) => updateForm("birth_date", e.target.value)}
@@ -244,8 +265,10 @@ export default function PlayersPage() {
                   />
                 </div>
                 <div>
-                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Poste</label>
+                  <label htmlFor="player-position" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Poste</label>
                   <input
+                    id="player-position"
+                    name="position"
                     value={form.position}
                     onChange={(e) => updateForm("position", e.target.value)}
                     placeholder="ST"
@@ -254,14 +277,30 @@ export default function PlayersPage() {
                   />
                 </div>
                 <div>
-                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Numero</label>
+                  <label htmlFor="player-number" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Numéro</label>
                   <input
+                    id="player-number"
+                    name="number"
                     type="number"
                     min={0}
                     value={form.number}
                     onChange={(e) => updateForm("number", e.target.value)}
                     disabled={submitting}
                     className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+                  />
+                </div>
+                <div className="md:col-span-3">
+                  <ImageSourceInput
+                    label="Photo"
+                    name="photo"
+                    mode={photoMode}
+                    onModeChange={setPhotoMode}
+                    file={photoFile}
+                    onFileChange={setPhotoFile}
+                    url={form.photo_path}
+                    onUrlChange={(value) => updateForm("photo_path", value)}
+                    previewName={`${form.first_name} ${form.last_name}`.trim() || "Joueur"}
+                    disabled={submitting}
                   />
                 </div>
                 <div className="md:col-span-3">
@@ -277,7 +316,7 @@ export default function PlayersPage() {
                   )}
                   <Button type="submit" disabled={submitting || myTeams.length === 0} className="gap-2">
                     <PlusIcon className="size-4 shrink-0" />
-                    {submitting ? "Creation..." : "Creer le joueur"}
+                    {submitting ? "Création..." : "Créer le joueur"}
                   </Button>
                 </div>
               </form>
@@ -285,7 +324,7 @@ export default function PlayersPage() {
           </ComponentCard>
         </div>
 
-        <ComponentCard title="Liste des joueurs" desc="Joueurs enregistres">
+        <ComponentCard title="Liste des joueurs" desc="Joueurs enregistrés">
           <div className="mb-4">
             <FilterSearchInput
               value={searchQuery}
@@ -299,7 +338,7 @@ export default function PlayersPage() {
           )}
 
           {!loading && !error && players.length === 0 && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucun joueur.</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune donnée disponible.</p>
           )}
 
           {!loading && players.length > 0 && (
@@ -313,23 +352,30 @@ export default function PlayersPage() {
                   <col className="w-[13%]" />
                   <col className="w-[10%]" />
                   <col className="w-[19%]" />
+                  <col className="w-[14%]" />
                 </colgroup>
                 <thead>
                   <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
                     <th className="px-4 py-3">ID</th>
-                    <th className="px-4 py-3">Prenom</th>
+                    <th className="px-4 py-3">Prénom</th>
                     <th className="px-4 py-3">Nom</th>
-                    <th className="px-4 py-3">Equipe</th>
+                    <th className="px-4 py-3">Équipe</th>
                     <th className="px-4 py-3">Poste</th>
-                    <th className="px-4 py-3">Numero</th>
+                    <th className="px-4 py-3">Numéro</th>
                     <th className="px-4 py-3">Naissance</th>
+                    <th className="px-4 py-3">Détails</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredPlayers.map((player) => (
                     <tr key={player.id} className={clsx("transition-colors", t.tableRow, t.navHover)}>
                       <td className={clsx("px-4 py-3 font-mono", t.textMuted)}>{player.id}</td>
-                      <td className={clsx("px-4 py-3 font-medium", t.textPrimary)}>{player.first_name}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <EntityImage src={player.photo_path} name={playerName(player)} className="h-9 w-9 shrink-0 rounded-sm" />
+                          <span className={clsx("truncate font-medium", t.textPrimary)}>{player.first_name}</span>
+                        </div>
+                      </td>
                       <td className={clsx("px-4 py-3 font-medium", t.textPrimary)}>{player.last_name}</td>
                       <td className={clsx("px-4 py-3", t.textSecondary)}>
                         <span className="block truncate" title={teamName(player, teams)}>{teamName(player, teams)}</span>
@@ -337,6 +383,11 @@ export default function PlayersPage() {
                       <td className={clsx("px-4 py-3", t.textSecondary)}>{player.position || "-"}</td>
                       <td className={clsx("px-4 py-3 font-mono tabular-nums", t.textSecondary)}>{player.number ?? "-"}</td>
                       <td className={clsx("px-4 py-3 whitespace-nowrap tabular-nums", t.textSecondary)}>{formatDate(player.birth_date)}</td>
+                      <td className="px-4 py-3">
+                        <Button type="button" size="sm" variant="secondary" onClick={() => setDetailsPlayer(player)}>
+                          Détails
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -344,6 +395,38 @@ export default function PlayersPage() {
             </div>
           )}
         </ComponentCard>
+
+        <XModal
+          open={Boolean(detailsPlayer)}
+          onClose={() => setDetailsPlayer(null)}
+          title={detailsPlayer ? playerName(detailsPlayer) : "Détails du joueur"}
+        >
+          {detailsPlayer && (
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center gap-4">
+                <EntityImage src={detailsPlayer.photo_path} name={playerName(detailsPlayer)} className="h-16 w-16 shrink-0 rounded-md" />
+                <div>
+                  <p className={clsx("text-base font-semibold", t.textPrimary)}>{playerName(detailsPlayer)}</p>
+                  <p className={clsx("text-sm", t.textSecondary)}>
+                    {teamName(detailsPlayer, teams)}{detailsPlayer.number != null ? ` - #${detailsPlayer.number}` : ""}
+                  </p>
+                </div>
+              </div>
+              {[
+                ["Nom", playerName(detailsPlayer)],
+                ["Poste", detailsPlayer.position || "-"],
+                ["Numéro", detailsPlayer.number != null ? String(detailsPlayer.number) : "-"],
+                ["Équipe", teamName(detailsPlayer, teams)],
+                ["Création", formatDate(detailsPlayer.created_at)],
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-4">
+                  <span className={t.textMuted}>{label}</span>
+                  <span className={clsx("text-right", t.textPrimary)}>{value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </XModal>
       </PageStack>
     </>
   );

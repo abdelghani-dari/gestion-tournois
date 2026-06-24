@@ -4,7 +4,7 @@ import { clsx } from "clsx";
 import { useXSidebar } from "../context/SidebarContext";
 import { useXTheme } from "../context/XThemeContext";
 import { useThemeTokens } from "../theme/useThemeTokens";
-import { APP_NAME } from "../data/seasonData";
+import { APP_NAME } from "../../config/app";
 import { useAuth } from "../../context/AuthContext";
 import {
   GridIcon,
@@ -37,7 +37,8 @@ const navItems: NavItem[] = [
   { name: "Matchs", path: "/matches", icon: <TableIcon className="size-5" />, color: "text-rose-400", borderColor: "border-rose-400" },
   { name: "Classements", path: "/rankings", icon: <TaskIcon className="size-5" />, color: "text-lime-400", borderColor: "border-lime-400" },
   { name: "Statistiques", path: "/statistics", icon: <PieChartIcon className="size-5" />, color: "text-orange-400", borderColor: "border-orange-400" },
-  { name: "Admin tournois", path: "/admin/tournaments", icon: <UserCircleIcon className="size-5" />, color: "text-purple-400", borderColor: "border-purple-400", adminOnly: true },
+  { name: "Admin", path: "/admin", icon: <UserCircleIcon className="size-5" />, color: "text-purple-400", borderColor: "border-purple-400", adminOnly: true },
+  { name: "Comptes en attente", path: "/admin/users/pending", icon: <UserIcon className="size-5" />, color: "text-violet-400", borderColor: "border-violet-400", adminOnly: true },
   { name: "Profil", path: "/profile", icon: <UserCircleIcon className="size-5" />, color: "text-fuchsia-400", borderColor: "border-fuchsia-400" },
 ];
 
@@ -65,10 +66,19 @@ export default function Sidebar() {
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
   const { isAdmin } = useAuth();
 
-  const visibleNavItems = navItems.filter((item) => !item.adminOnly || isAdmin);
+  const visibleNavItems = navItems
+    .filter((item) => (!item.adminOnly || isAdmin) && !(isAdmin && item.name === "Admin"))
+    .map((item) => {
+      if (!isAdmin) return item;
+      if (item.path === "/dashboard") return { ...item, path: "/admin" };
+      if (item.path === "/tournaments") return { ...item, path: "/admin/tournaments" };
+      if (item.path === "/teams") return { ...item, path: "/admin/teams" };
+      if (item.path === "/players") return { ...item, path: "/admin/players" };
+      return item;
+    });
 
   const isActive = (path: string) =>
-    location.pathname === path || location.pathname.startsWith(path + "/");
+    location.pathname === path || (path !== "/admin" && location.pathname.startsWith(path + "/"));
 
   return (
     <>
@@ -89,7 +99,7 @@ export default function Sidebar() {
         )}
       >
         <div className={clsx("flex h-16 shrink-0 items-center border-b px-4", t.border)}>
-          <Link to="/dashboard" className="flex items-center gap-3 overflow-hidden">
+          <Link to={isAdmin ? "/admin" : "/dashboard"} className="flex items-center gap-3 overflow-hidden">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-500/15 text-brand-400 ring-1 ring-brand-500/30">
               <ShootingStarIcon className="size-5" />
             </span>

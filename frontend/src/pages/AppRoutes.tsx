@@ -1,4 +1,5 @@
-import { Navigate, Route, useLocation, useParams } from "react-router";
+/* eslint-disable react-refresh/only-export-components */
+import { Navigate, Route, useLocation } from "react-router";
 import XAppLayout from "../components/layout/AppLayout";
 import LandingPage from "./landing/LandingPage";
 import LoginPage from "./auth/LoginPage";
@@ -7,21 +8,22 @@ import TournamentsPage from "./tournaments/TournamentsPage";
 import TeamsPage from "./teams/TeamsPage";
 import PlayersPage from "./players/PlayersPage";
 import MatchesPage from "./matches/MatchesPage";
-import MatchResultPage from "./matches/MatchResultPage";
 import MatchCompositionPage from "./matches/MatchCompositionPage";
 import RankingsPage from "./rankings/RankingsPage";
 import StatisticsPage from "./statistics/StatisticsPage";
-import UsersPage from "./users/UsersPage";
 import ProfilePage from "./profile/ProfilePage";
+import AdminDashboardPage from "./admin/AdminDashboardPage";
 import AdminTournamentsPage from "./admin/AdminTournamentsPage";
+import AdminPendingUsersPage from "./admin/AdminPendingUsersPage";
+import AdminUsersPage from "./admin/AdminUsersPage";
+import AdminReadOnlyPage from "./admin/AdminReadOnlyPage";
+import AdminTeamsPage from "./admin/AdminTeamsPage";
+import AdminTeamDetailsPage from "./admin/AdminTeamDetailsPage";
+import AdminPlayersPage from "./admin/AdminPlayersPage";
 import JoinRequestsPage from "./join-requests/JoinRequestsPage";
 import NotFoundPage from "./errors/NotFoundPage";
-import DetailStub from "./shared/DetailStub";
 import { XPageMeta } from "../components/common/PageMeta";
-import GlassCard from "../components/common/GlassCard";
-import StatusBadge from "../components/common/StatusBadge";
-import NationalityFlag from "../components/ui/NationalityFlag";
-import { useSeasonData } from "../components/context/SeasonContext";
+import DetailStub from "./shared/DetailStub";
 import { useAuth } from "../context/AuthContext";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -43,122 +45,15 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   return children;
 }
 
-function TournamentDetail() {
-  const { id } = useParams();
-  const { getTournamentById } = useSeasonData();
-  const t = getTournamentById(Number(id));
-  if (!t) return <NotFoundPage />;
-  return (
-    <>
-      <XPageMeta title={t.name} description={t.description} />
-      <DetailStub backTo="/tournaments">
-        <GlassCard>
-          <StatusBadge status={t.status} />
-          <p className="mt-4 text-sm text-slate-300">{t.description}</p>
-        </GlassCard>
-      </DetailStub>
-    </>
-  );
-}
-
-function TeamDetail() {
-  const { id } = useParams();
-  const { getTeamById } = useSeasonData();
-  const t = getTeamById(Number(id));
-  if (!t) return <NotFoundPage />;
-  return (
-    <>
-      <XPageMeta title={t.name} description={`${t.player_count} joueurs`} />
-      <DetailStub backTo="/teams">
-        <GlassCard className="flex items-center gap-4">
-          <img src={t.logo_url} alt="" className="h-16 w-16 rounded-sm object-contain" />
-          <div>
-            <p className="font-medium text-white">{t.name}</p>
-            <p className="text-sm text-zinc-400">{t.player_count} joueurs inscrits</p>
-          </div>
-        </GlassCard>
-      </DetailStub>
-    </>
-  );
-}
-
-function PlayerDetail() {
-  const { id } = useParams();
-  const { getPlayerById, getTeamById, formatPlayerName } = useSeasonData();
-  const p = getPlayerById(Number(id));
-  if (!p) return <NotFoundPage />;
-  const team = getTeamById(p.team_id);
-  return (
-    <>
-      <XPageMeta title={formatPlayerName(p)} description={`${p.position} — ${team?.name}`} />
-      <DetailStub backTo="/players">
-        <GlassCard>
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-            <img src={p.photo_url} alt="" className="h-24 w-24 rounded-md object-cover ring-1 ring-white/10" />
-            <div className="flex-1 space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-lg font-semibold text-white">#{p.shirt_number} {p.name}</h2>
-                <NationalityFlag flagUrl={p.flag_url} country={p.cname} size="md" />
-                <span className="text-sm text-zinc-400">{p.cname}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <img src={team?.logo_url} alt="" className="h-6 w-6 object-contain" />
-                <span className="text-sm text-zinc-300">{team?.name}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {[
-                  { label: "Buts", value: p.goals },
-                  { label: "Passes D.", value: p.assists },
-                  { label: "CJ", value: p.ycards },
-                  { label: "CR", value: p.rcards },
-                ].map((s) => (
-                  <div key={s.label} className="rounded-sm bg-white/[0.04] px-3 py-2 text-center">
-                    <p className="text-lg font-bold text-white">{s.value}</p>
-                    <p className="text-xs text-zinc-500">{s.label}</p>
-                  </div>
-                ))}
-              </div>
-              {p.age && <p className="text-xs text-zinc-500">Âge : {p.age} ans · {p.position}</p>}
-            </div>
-          </div>
-        </GlassCard>
-      </DetailStub>
-    </>
-  );
-}
-
-function MatchDetail() {
-  const { id } = useParams();
-  const { getMatchById, getTeamById } = useSeasonData();
-  const m = getMatchById(Number(id));
-  if (!m) return <NotFoundPage />;
-  const home = getTeamById(m.home_team_id);
-  const away = getTeamById(m.away_team_id);
-  return (
-    <>
-      <XPageMeta title="Détail du match" description={`${home?.name} vs ${away?.name}`} />
-      <DetailStub backTo="/matches">
-        <GlassCard>
-          <div className="flex items-center justify-center gap-6">
-            <span className="font-medium text-white">{home?.name}</span>
-            <span className="text-2xl font-bold text-white">
-              {m.home_score !== null ? `${m.home_score} - ${m.away_score}` : "vs"}
-            </span>
-            <span className="font-medium text-white">{away?.name}</span>
-          </div>
-          <div className="mt-4 flex justify-center">
-            <StatusBadge status={m.status} />
-          </div>
-        </GlassCard>
-      </DetailStub>
-    </>
-  );
+function DashboardRoute() {
+  const { isAdmin } = useAuth();
+  return isAdmin ? <Navigate to="/admin" replace /> : <DashboardPage />;
 }
 
 function MatchCreatePage() {
   return (
     <>
-      <XPageMeta title="Planifier un match" description="Création d'un match" />
+      <XPageMeta title="Planifier un match" description="Creation d'un match" />
       <DetailStub backTo="/matches" />
     </>
   );
@@ -169,34 +64,44 @@ export const appRoutes = (
   <>
     <Route index element={<LandingPage />} />
     <Route path="login" element={<LoginPage />} />
+    <Route path="signin" element={<LoginPage />} />
+    <Route path="signup" element={<LoginPage />} />
 
-    <Route element={<XAppLayout />}>
-      <Route path="dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
+    <Route element={<RequireAuth><XAppLayout /></RequireAuth>}>
+      <Route path="dashboard" element={<DashboardRoute />} />
       <Route path="seasons" element={<Navigate to="/tournaments" replace />} />
       <Route path="championships" element={<Navigate to="/tournaments" replace />} />
       <Route path="championships/:id" element={<Navigate to="/tournaments" replace />} />
       <Route path="championships/:id/ranking" element={<Navigate to="/rankings" replace />} />
       <Route path="tournaments" element={<TournamentsPage />} />
-      <Route path="tournaments/:id" element={<TournamentDetail />} />
+      <Route path="tournaments/:id" element={<Navigate to="/tournaments" replace />} />
       <Route path="tournaments/:id/ranking" element={<RankingsPage />} />
       <Route path="teams" element={<TeamsPage />} />
-      <Route path="teams/:id" element={<TeamDetail />} />
+      <Route path="teams/:id" element={<Navigate to="/teams" replace />} />
       <Route path="teams/:id/statistics" element={<StatisticsPage />} />
       <Route path="players" element={<PlayersPage />} />
-      <Route path="players/:id" element={<PlayerDetail />} />
+      <Route path="players/:id" element={<Navigate to="/players" replace />} />
       <Route path="players/:id/statistics" element={<StatisticsPage />} />
       <Route path="join-requests" element={<JoinRequestsPage />} />
       <Route path="matches" element={<MatchesPage />} />
       <Route path="matches/create" element={<MatchCreatePage />} />
-      <Route path="matches/:id/result" element={<MatchResultPage />} />
+      <Route path="matches/:id/result" element={<Navigate to="/matches" replace />} />
       <Route path="matches/:id/composition" element={<MatchCompositionPage />} />
       <Route path="matches/:id/statistics" element={<StatisticsPage />} />
-      <Route path="matches/:id" element={<MatchDetail />} />
+      <Route path="matches/:id" element={<Navigate to="/matches" replace />} />
       <Route path="rankings" element={<RankingsPage />} />
       <Route path="statistics" element={<StatisticsPage />} />
+      <Route path="admin" element={<AdminDashboardPage />} />
       <Route path="admin/tournaments" element={<AdminTournamentsPage />} />
       <Route path="admin/tournaments/pending" element={<AdminTournamentsPage />} />
-      <Route path="users" element={<UsersPage />} />
+      <Route path="admin/users" element={<AdminUsersPage />} />
+      <Route path="admin/users/pending" element={<AdminPendingUsersPage />} />
+      <Route path="admin/teams" element={<AdminTeamsPage />} />
+      <Route path="admin/teams/:id" element={<AdminTeamDetailsPage />} />
+      <Route path="admin/players" element={<AdminPlayersPage />} />
+      <Route path="admin/join-requests" element={<AdminReadOnlyPage kind="join-requests" />} />
+      <Route path="admin/matches" element={<AdminReadOnlyPage kind="matches" />} />
+      <Route path="users" element={<Navigate to="/profile" replace />} />
       <Route path="profile" element={<ProfilePage />} />
     </Route>
 

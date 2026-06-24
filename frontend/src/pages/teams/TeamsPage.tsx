@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 import { Link } from "react-router";
 import { clsx } from "clsx";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
@@ -5,14 +6,19 @@ import { ApiError, createTeam, getMyTeams, type ApiTeam, type TeamPayload } from
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
+import EntityImage from "../../components/common/EntityImage";
+import ImageSourceInput, { type ImageSourceMode } from "../../components/common/ImageSourceInput";
 import Button from "../../components/common/Button";
 import FilterSearchInput from "../../components/common/FilterSearchInput";
+import XModal from "../../components/common/XModal";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
 import { PlusIcon } from "../../icons";
 
 const emptyTeamForm: TeamPayload = {
   name: "",
+  short_name: "",
+  logo_path: "",
   city: "",
 };
 
@@ -37,6 +43,9 @@ export default function TeamsPage() {
   const { isAuthenticated, loading: authLoading, user } = useAuth();
   const [teams, setTeams] = useState<ApiTeam[]>([]);
   const [form, setForm] = useState<TeamPayload>(emptyTeamForm);
+  const [logoMode, setLogoMode] = useState<ImageSourceMode>("url");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [detailsTeam, setDetailsTeam] = useState<ApiTeam | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -54,9 +63,9 @@ export default function TeamsPage() {
       setTeams(data);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        setError("Your session has expired. Please log in again.");
+        setError("Votre session a expiré. Veuillez vous reconnecter.");
       } else {
-        setError(err instanceof Error ? err.message : "Unable to load your teams.");
+        setError(err instanceof Error ? err.message : "Impossible de charger vos équipes.");
       }
     } finally {
       setLoading(false);
@@ -76,7 +85,7 @@ export default function TeamsPage() {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return teams;
     return teams.filter((team) =>
-      [team.name, team.city ?? "", managerLabel(team)]
+      [team.name, team.short_name ?? "", team.city ?? "", managerLabel(team)]
         .join(" ")
         .toLowerCase()
         .includes(q),
@@ -94,16 +103,20 @@ export default function TeamsPage() {
     try {
       await createTeam({
         name: form.name,
+        short_name: form.short_name?.trim() || undefined,
+        logo: logoFile,
+        logo_url: form.logo_path?.trim() || undefined,
         city: form.city?.trim() || undefined,
       });
-      setSuccess("Team created.");
+      setSuccess("Équipe créée.");
       setForm(emptyTeamForm);
+      setLogoFile(null);
       await loadTeams();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        setError("Your session has expired. Please log in again.");
+        setError("Votre session a expiré. Veuillez vous reconnecter.");
       } else {
-        setError(err instanceof Error ? err.message : "Unable to create team.");
+        setError(err instanceof Error ? err.message : "Impossible de créer l'équipe.");
       }
     } finally {
       setSubmitting(false);
@@ -112,12 +125,12 @@ export default function TeamsPage() {
 
   return (
     <>
-      <XPageMeta title="Equipes" description="Mes equipes" />
+      <XPageMeta title="Équipes" description="Mes équipes" />
       <PageStack>
         {!authLoading && !isAuthenticated ? (
-          <ComponentCard title="Equipes" desc="Connexion requise">
+          <ComponentCard title="Équipes" desc="Connexion requise">
             <p className={clsx("text-sm", t.textSecondary)}>
-              Connectez-vous pour creer et gerer vos equipes.
+              Connectez-vous pour créer et gérer vos équipes.
             </p>
             <Link to="/login" className="mt-4 inline-flex text-sm font-medium text-brand-500 hover:text-brand-400">
               Aller a la connexion
@@ -126,18 +139,20 @@ export default function TeamsPage() {
         ) : (
           <>
             <div className={clsx("grid grid-cols-1 xl:grid-cols-3", GRID_GAP)}>
-              <ComponentCard title="Mon compte" desc={user ? `${user.email} - ${user.role}` : "Session"}>
+              <ComponentCard title="Mon compte" desc={user ? `${user.email} - ${user.role}` : "Compte connecté"}>
                 <div className={clsx("rounded-md border p-4", t.card)}>
-                  <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Equipes creees</p>
+                  <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Équipes créées</p>
                   <p className={clsx("mt-1 text-3xl font-bold", t.textPrimary)}>{teams.length}</p>
                 </div>
               </ComponentCard>
 
-              <ComponentCard title="Creer une equipe" desc="Le manager est deduit du JWT" className="xl:col-span-2">
+              <ComponentCard title="Créer une équipe" desc="Votre compte sera associé automatiquement" className="xl:col-span-2">
                 <form onSubmit={handleCreateTeam} className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
+                    <label htmlFor="team-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
                     <input
+                      id="team-name"
+                      name="name"
                       value={form.name}
                       onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))}
                       required
@@ -146,12 +161,41 @@ export default function TeamsPage() {
                     />
                   </div>
                   <div>
-                    <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Ville</label>
+                    <label htmlFor="team-short-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom court</label>
                     <input
+                      id="team-short-name"
+                      name="short_name"
+                      value={form.short_name}
+                      onChange={(e) => setForm((current) => ({ ...current, short_name: e.target.value.toUpperCase().slice(0, 3) }))}
+                      maxLength={3}
+                      placeholder="ATF"
+                      disabled={submitting}
+                      className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm uppercase focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="team-city" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Ville</label>
+                    <input
+                      id="team-city"
+                      name="city"
                       value={form.city}
                       onChange={(e) => setForm((current) => ({ ...current, city: e.target.value }))}
                       disabled={submitting}
                       className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <ImageSourceInput
+                      label="Logo"
+                      name="logo"
+                      mode={logoMode}
+                      onModeChange={setLogoMode}
+                      file={logoFile}
+                      onFileChange={setLogoFile}
+                      url={form.logo_path ?? ""}
+                      onUrlChange={(value) => setForm((current) => ({ ...current, logo_path: value }))}
+                      previewName={form.name || "Équipe"}
+                      disabled={submitting}
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -167,14 +211,14 @@ export default function TeamsPage() {
                     )}
                     <Button type="submit" disabled={submitting} className="gap-2">
                       <PlusIcon className="size-4 shrink-0" />
-                      {submitting ? "Creation..." : "Creer l'equipe"}
+                      {submitting ? "Création..." : "Créer l'équipe"}
                     </Button>
                   </div>
                 </form>
               </ComponentCard>
             </div>
 
-            <ComponentCard title="Mes equipes" desc="Equipes creees avec votre compte">
+            <ComponentCard title="Mes équipes" desc="Équipes créées avec votre compte">
               <div className="mb-4">
                 <FilterSearchInput
                   value={searchQuery}
@@ -184,12 +228,12 @@ export default function TeamsPage() {
               </div>
 
               {loading && (
-                <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement de vos equipes...</p>
+                <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement de vos équipes...</p>
               )}
 
               {!loading && !error && teams.length === 0 && (
                 <p className={clsx("py-10 text-center text-sm", t.textMuted)}>
-                  You have not created any teams yet.
+                  Aucune donnée disponible.
                 </p>
               )}
 
@@ -202,6 +246,7 @@ export default function TeamsPage() {
                       <col className="w-[20%]" />
                       <col className="w-[32%]" />
                       <col className="w-[20%]" />
+                      <col className="w-[14%]" />
                     </colgroup>
                     <thead>
                       <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
@@ -209,19 +254,37 @@ export default function TeamsPage() {
                         <th className="px-4 py-3">Nom</th>
                         <th className="px-4 py-3">Ville</th>
                         <th className="px-4 py-3">Manager</th>
-                        <th className="px-4 py-3">Creation</th>
+                        <th className="px-4 py-3">Création</th>
+                        <th className="px-4 py-3">Détails</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredTeams.map((team) => (
                         <tr key={team.id} className={clsx("transition-colors", t.tableRow, t.navHover)}>
                           <td className={clsx("px-4 py-3 font-mono", t.textMuted)}>{team.id}</td>
-                          <td className={clsx("px-4 py-3 font-medium", t.textPrimary)}>{team.name}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <EntityImage src={team.logo_path} name={team.name} className="h-9 w-9 shrink-0 rounded-sm" />
+                              <div className="min-w-0">
+                                <div className={clsx("truncate font-medium", t.textPrimary)}>{team.name}</div>
+                                {team.short_name && (
+                                  <span className="mt-1 inline-flex rounded-sm bg-brand-500/15 px-2 py-0.5 text-xs font-semibold text-brand-300">
+                                    {team.short_name}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
                           <td className={clsx("px-4 py-3", t.textSecondary)}>{team.city || "-"}</td>
                           <td className={clsx("px-4 py-3", t.textSecondary)}>
                             <span className="block truncate" title={managerLabel(team)}>{managerLabel(team)}</span>
                           </td>
                           <td className={clsx("px-4 py-3 whitespace-nowrap tabular-nums", t.textSecondary)}>{formatDate(team.created_at)}</td>
+                          <td className="px-4 py-3">
+                            <Button type="button" size="sm" variant="secondary" onClick={() => setDetailsTeam(team)}>
+                              Détails
+                            </Button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -229,6 +292,41 @@ export default function TeamsPage() {
                 </div>
               )}
             </ComponentCard>
+
+            <XModal
+              open={Boolean(detailsTeam)}
+              onClose={() => setDetailsTeam(null)}
+              title={detailsTeam?.name ?? "Détails de l'équipe"}
+            >
+              {detailsTeam && (
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center gap-4">
+                    <EntityImage src={detailsTeam.logo_path} name={detailsTeam.name} className="h-16 w-16 shrink-0 rounded-md" />
+                    <div>
+                      <p className={clsx("text-base font-semibold", t.textPrimary)}>{detailsTeam.name}</p>
+                      {detailsTeam.short_name && (
+                        <span className="mt-1 inline-flex rounded-sm bg-brand-500/15 px-2 py-0.5 text-xs font-semibold text-brand-300">
+                          {detailsTeam.short_name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {[
+                    ["Nom", detailsTeam.name],
+                    ["Nom court", detailsTeam.short_name || "-"],
+                    ["Ville", detailsTeam.city || "-"],
+                    ["Manager", managerLabel(detailsTeam)],
+                    ["Création", formatDate(detailsTeam.created_at)],
+                    ["Joueurs", "Non disponible"],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex justify-between gap-4">
+                      <span className={t.textMuted}>{label}</span>
+                      <span className={clsx("text-right", t.textPrimary)}>{value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </XModal>
           </>
         )}
       </PageStack>

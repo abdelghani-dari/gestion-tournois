@@ -7,6 +7,7 @@ use App\Models\MatchGame;
 use App\Models\Tournament;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class MatchGameController extends Controller
 {
@@ -132,6 +133,8 @@ class MatchGameController extends Controller
             'result_status' => 'pending',
         ]);
 
+        $this->forgetCompetitionCache($matchGame->tournament_id);
+
         return response()->json($matchGame->load(['tournament', 'homeTeam', 'awayTeam', 'creator']));
     }
 
@@ -148,6 +151,7 @@ class MatchGameController extends Controller
         }
 
         $matchGame->update(['result_status' => 'confirmed']);
+        $this->forgetCompetitionCache($matchGame->tournament_id);
 
         return response()->json($matchGame->load(['tournament', 'homeTeam', 'awayTeam', 'creator']));
     }
@@ -165,6 +169,7 @@ class MatchGameController extends Controller
         }
 
         $matchGame->update(['result_status' => 'disputed']);
+        $this->forgetCompetitionCache($matchGame->tournament_id);
 
         return response()->json($matchGame->load(['tournament', 'homeTeam', 'awayTeam', 'creator']));
     }
@@ -211,5 +216,11 @@ class MatchGameController extends Controller
         }
 
         return null;
+    }
+
+    private function forgetCompetitionCache(int $tournamentId): void
+    {
+        Cache::forget("tournament:{$tournamentId}:rankings");
+        Cache::forget("tournament:{$tournamentId}:statistics");
     }
 }

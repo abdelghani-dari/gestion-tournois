@@ -8,6 +8,7 @@ use App\Models\Team;
 use App\Models\Tournament;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class JoinRequestController extends Controller
 {
@@ -97,6 +98,8 @@ class JoinRequestController extends Controller
 
         $joinRequest->update(['status' => 'accepted']);
         $joinRequest->tournament->teams()->syncWithoutDetaching([$joinRequest->team_id]);
+        Cache::forget('public:tournaments');
+        Cache::forget("tournament:{$joinRequest->tournament_id}:details");
 
         return response()->json($joinRequest->load(['tournament', 'team', 'manager']));
     }
@@ -112,6 +115,7 @@ class JoinRequestController extends Controller
         }
 
         $joinRequest->update(['status' => 'refused']);
+        Cache::forget("tournament:{$joinRequest->tournament_id}:details");
 
         return response()->json($joinRequest->load(['tournament', 'team', 'manager']));
     }

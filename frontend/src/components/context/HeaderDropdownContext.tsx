@@ -1,6 +1,7 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useCallback } from "react";
 
-export type HeaderDropdownId = "season" | "theme" | "profile";
+export type HeaderDropdownId = "season" | "theme" | "profile" | "admin-notifications";
 
 interface HeaderDropdownContextValue {
   openId: HeaderDropdownId | null;

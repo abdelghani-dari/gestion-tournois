@@ -164,8 +164,10 @@ export default function RankingsPage() {
           <ComponentCard title="Tournoi" desc="Classement public par tournoi" className="lg:col-span-2">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto_auto] md:items-end">
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Tournoi</label>
+                <label htmlFor="rankings-tournament" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Tournoi</label>
                 <select
+                  id="rankings-tournament"
+                  name="tournament_id"
                   value={selectedTournamentId}
                   onChange={(event) => {
                     setSelectedTournamentId(event.target.value);
@@ -227,9 +229,9 @@ export default function RankingsPage() {
             )}
           </ComponentCard>
 
-          <ComponentCard title="Session" desc={user ? `${user.email} - ${user.role}` : "Accès public"}>
+          <ComponentCard title="Compte connecté" desc={user ? `${user.email} - ${user.role}` : "Accès public"}>
             <div className={clsx("rounded-md border p-4", t.card)}>
-              <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Tournoi selectionne</p>
+              <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Tournoi sélectionné</p>
               <p className={clsx("mt-1 truncate text-lg font-semibold", t.textPrimary)}>
                 {tournamentName(selectedTournamentId, tournamentOptions)}
               </p>
@@ -250,7 +252,7 @@ export default function RankingsPage() {
           )}
 
           {!loadingTournaments && !loadingRankings && rankings.length === 0 && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucun classement disponible.</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune donnée disponible.</p>
           )}
 
           {!loadingRankings && rankings.length > 0 && (

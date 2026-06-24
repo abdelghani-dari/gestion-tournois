@@ -90,8 +90,8 @@ function matchName(matchId: number, matches: ApiMatch[], embedded?: ApiMatch | n
   const match = embedded ?? matches.find((item) => item.id === matchId);
   if (!match) return `Match #${matchId}`;
 
-  const home = match.home_team?.name ?? `Équipe #${match.home_team_id}`;
-  const away = match.away_team?.name ?? `Équipe #${match.away_team_id}`;
+  const home = match.homeTeam?.name ?? match.home_team?.name ?? `Équipe #${match.home_team_id}`;
+  const away = match.awayTeam?.name ?? match.away_team?.name ?? `Équipe #${match.away_team_id}`;
   return `#${match.id} - ${home} vs ${away}`;
 }
 
@@ -267,8 +267,10 @@ export default function StatisticsPage() {
           ) : (
             <form onSubmit={handleCreate} className="grid grid-cols-1 gap-4 md:grid-cols-5">
               <div className="md:col-span-2">
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match *</label>
+                <label htmlFor="statistic-match" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match *</label>
                 <select
+                  id="statistic-match"
+                  name="match_game_id"
                   value={form.match_game_id}
                   onChange={(event) => updateForm("match_game_id", event.target.value)}
                   required
@@ -285,8 +287,10 @@ export default function StatisticsPage() {
               </div>
 
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe *</label>
+                <label htmlFor="statistic-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe *</label>
                 <select
+                  id="statistic-team"
+                  name="team_id"
                   value={form.team_id}
                   onChange={(event) => updateForm("team_id", event.target.value)}
                   required
@@ -301,8 +305,10 @@ export default function StatisticsPage() {
               </div>
 
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Joueur *</label>
+                <label htmlFor="statistic-player" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Joueur *</label>
                 <select
+                  id="statistic-player"
+                  name="player_id"
                   value={form.player_id}
                   onChange={(event) => updateForm("player_id", event.target.value)}
                   required
@@ -317,8 +323,10 @@ export default function StatisticsPage() {
               </div>
 
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Type *</label>
+                <label htmlFor="statistic-type" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Type *</label>
                 <select
+                  id="statistic-type"
+                  name="stat_type"
                   value={form.stat_type}
                   onChange={(event) => updateForm("stat_type", event.target.value)}
                   required
@@ -332,8 +340,10 @@ export default function StatisticsPage() {
               </div>
 
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Valeur *</label>
+                <label htmlFor="statistic-value" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Valeur *</label>
                 <input
+                  id="statistic-value"
+                  name="value"
                   type="number"
                   min={0}
                   value={form.value}
@@ -364,11 +374,13 @@ export default function StatisticsPage() {
           )}
         </ComponentCard>
 
-        <ComponentCard title="Filtres" desc="Recherche simple par match, equipe, joueur ou type">
+        <ComponentCard title="Filtres" desc="Recherche simple par match, équipe, joueur ou type">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
             <div>
-              <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match</label>
+              <label htmlFor="statistics-filter-match" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match</label>
               <select
+                id="statistics-filter-match"
+                name="match_game_id"
                 value={filters.match_game_id}
                 onChange={(event) => updateFilter("match_game_id", event.target.value)}
                 disabled={loading}
@@ -382,8 +394,10 @@ export default function StatisticsPage() {
             </div>
 
             <div>
-              <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe</label>
+              <label htmlFor="statistics-filter-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe</label>
               <select
+                id="statistics-filter-team"
+                name="team_id"
                 value={filters.team_id}
                 onChange={(event) => updateFilter("team_id", event.target.value)}
                 disabled={loading}
@@ -397,8 +411,10 @@ export default function StatisticsPage() {
             </div>
 
             <div>
-              <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Joueur</label>
+              <label htmlFor="statistics-filter-player" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Joueur</label>
               <select
+                id="statistics-filter-player"
+                name="player_id"
                 value={filters.player_id}
                 onChange={(event) => updateFilter("player_id", event.target.value)}
                 disabled={loading}
@@ -412,8 +428,10 @@ export default function StatisticsPage() {
             </div>
 
             <div>
-              <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Type</label>
+              <label htmlFor="statistics-filter-type" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Type</label>
               <select
+                id="statistics-filter-type"
+                name="stat_type"
                 value={filters.stat_type}
                 onChange={(event) => updateFilter("stat_type", event.target.value)}
                 disabled={loading}
@@ -443,7 +461,7 @@ export default function StatisticsPage() {
           )}
 
           {!loading && !error && statistics.length === 0 && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune statistique disponible.</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune donnée disponible.</p>
           )}
 
           {!loading && statistics.length > 0 && (

@@ -22,7 +22,7 @@ class StatisticController extends Controller
             'stat_type' => ['sometimes', 'in:'.self::STAT_TYPES],
         ]);
 
-        $query = Statistic::with(['matchGame', 'team', 'player'])->latest();
+        $query = Statistic::with(['matchGame.homeTeam', 'matchGame.awayTeam', 'team', 'player'])->latest();
 
         foreach (['match_game_id', 'team_id', 'player_id', 'stat_type'] as $field) {
             if (isset($validated[$field])) {
@@ -51,12 +51,12 @@ class StatisticController extends Controller
 
         $statistic = Statistic::create($validated);
 
-        return response()->json($statistic->load(['matchGame', 'team', 'player']), 201);
+        return response()->json($statistic->load(['matchGame.homeTeam', 'matchGame.awayTeam', 'team', 'player']), 201);
     }
 
     public function show(Statistic $statistic): JsonResponse
     {
-        return response()->json($statistic->load(['matchGame', 'team', 'player']));
+        return response()->json($statistic->load(['matchGame.homeTeam', 'matchGame.awayTeam', 'team', 'player']));
     }
 
     public function update(Request $request, Statistic $statistic): JsonResponse
@@ -68,7 +68,7 @@ class StatisticController extends Controller
 
         $statistic->update($validated);
 
-        return response()->json($statistic->load(['matchGame', 'team', 'player']));
+        return response()->json($statistic->load(['matchGame.homeTeam', 'matchGame.awayTeam', 'team', 'player']));
     }
 
     public function destroy(Statistic $statistic): JsonResponse

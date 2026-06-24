@@ -6,11 +6,14 @@ export type AuthUser = {
   name: string;
   email: string;
   role: "admin" | "user" | string;
+  account_status?: "pending" | "active" | "refused" | string;
+  avatar_url?: string | null;
 };
 
 type AuthResponse = {
   token?: string;
   user?: AuthUser;
+  message?: string;
 };
 
 type MeResponse = AuthUser | { user?: AuthUser };
@@ -27,12 +30,22 @@ type AuthContextValue = {
     email: string,
     password: string,
     password_confirmation: string,
-  ) => Promise<void>;
+  ) => Promise<string>;
   logout: () => Promise<void>;
   refreshMe: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+let currentUserRequest: Promise<MeResponse> | null = null;
+
+function fetchCurrentUser() {
+  if (!currentUserRequest) {
+    currentUserRequest = apiRequest<MeResponse>("/me").finally(() => {
+      currentUserRequest = null;
+    });
+  }
+  return currentUserRequest;
+}
 
 function extractUser(data: MeResponse): AuthUser | null {
   if (data && typeof data === "object" && "user" in data) {
@@ -54,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const data = await apiRequest<MeResponse>("/me");
+    const data = await fetchCurrentUser();
     setTokenState(currentToken);
     setUser(extractUser(data));
   }, []);
@@ -119,19 +132,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ name, email, password, password_confirmation }),
       });
 
-      if (!data.token) {
-        throw new Error("Register response did not include a token.");
-      }
-
-      setToken(data.token);
-      setTokenState(data.token);
-      setUser(data.user ?? null);
-
-      if (!data.user) {
-        await refreshMe();
-      }
+      return data.message ?? "Votre compte a été créé. Veuillez attendre la validation de l'administrateur.";
     },
-    [refreshMe],
+    [],
   );
 
   const logout = useCallback(async () => {

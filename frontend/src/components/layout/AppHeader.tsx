@@ -4,9 +4,10 @@ import { clsx } from "clsx";
 import { useXSidebar } from "../context/SidebarContext";
 import { useThemeTokens } from "../theme/useThemeTokens";
 import { resolvePageMeta } from "../theme/pageMeta";
-import { APP_NAME } from "../data/seasonData";
+import { APP_NAME } from "../../config/app";
 import XThemeSwitcher from "./XThemeSwitcher";
 import UserDropdown from "../header/UserDropdown";
+import AdminNotificationDropdown from "../header/AdminNotificationDropdown";
 import { ShootingStarIcon } from "../../icons";
 
 export default function AppHeader() {
@@ -91,6 +92,7 @@ export default function AppHeader() {
           )}
         >
           <XThemeSwitcher />
+          <AdminNotificationDropdown />
           <UserDropdown />
         </div>
       </div>

@@ -16,6 +16,7 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
+            'avatar_url' => ['nullable', 'string', 'max:255'],
         ]);
 
         $user = User::create([
@@ -23,11 +24,14 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => 'user',
+            'account_status' => 'pending',
+            'avatar_url' => $validated['avatar_url'] ?? null,
         ]);
 
-        $token = auth('api')->login($user);
-
-        return $this->respondWithToken($token);
+        return response()->json([
+            'message' => "Votre compte a été créé. Veuillez attendre la validation de l'administrateur.",
+            'user' => $user,
+        ], 201);
     }
 
     public function login(Request $request): JsonResponse
@@ -37,11 +41,19 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        $token = auth('api')->attempt($credentials);
+        $user = User::where('email', $credentials['email'])->first();
 
-        if (! $token) {
+        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             return response()->json(['message' => 'Invalid credentials.'], 401);
         }
+
+        if ($user->account_status !== 'active') {
+            return response()->json([
+                'message' => 'Votre compte est en attente de validation par l’administrateur.',
+            ], 403);
+        }
+
+        $token = auth('api')->login($user);
 
         return $this->respondWithToken($token);
     }
