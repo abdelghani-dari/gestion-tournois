@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Tournament;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class AdminTournamentController extends Controller
 {
@@ -48,6 +49,8 @@ class AdminTournamentController extends Controller
             'admin_note' => null,
         ]);
 
+        $this->forgetTournamentCache($tournament->id);
+
         return response()->json($tournament->load(['creator', 'approvedBy']));
     }
 
@@ -69,11 +72,19 @@ class AdminTournamentController extends Controller
             'admin_note' => $validated['admin_note'] ?? null,
         ]);
 
+        $this->forgetTournamentCache($tournament->id);
+
         return response()->json($tournament->load(['creator', 'approvedBy']));
     }
 
     private function isAdmin(): bool
     {
         return auth('api')->user()?->role === 'admin';
+    }
+
+    private function forgetTournamentCache(int $tournamentId): void
+    {
+        Cache::forget('public:tournaments');
+        Cache::forget("tournament:{$tournamentId}:details");
     }
 }
