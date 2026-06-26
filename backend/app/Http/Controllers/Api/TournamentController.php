@@ -102,7 +102,7 @@ class TournamentController extends Controller
 
     public function destroy(Tournament $tournament): JsonResponse
     {
-        if ((int) $tournament->created_by !== (int) auth('api')->id()) {
+        if (! $this->isAdmin() && (int) $tournament->created_by !== (int) auth('api')->id()) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -124,6 +124,11 @@ class TournamentController extends Controller
     {
         Cache::forget('public:tournaments');
         Cache::forget("tournament:{$tournamentId}:details");
+    }
+
+    private function isAdmin(): bool
+    {
+        return auth('api')->user()?->role === 'admin';
     }
 
     private function imagePath(Request $request, string $field, string $directory, string $prefix): ?string

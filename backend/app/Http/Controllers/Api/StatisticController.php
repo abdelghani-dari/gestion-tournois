@@ -73,6 +73,12 @@ class StatisticController extends Controller
 
     public function destroy(Statistic $statistic): JsonResponse
     {
+        $statistic->load('matchGame.tournament');
+
+        if (! $this->canDeleteStatistic($statistic)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $statistic->delete();
 
         return response()->json(['message' => 'Statistic deleted.']);
@@ -102,5 +108,17 @@ class StatisticController extends Controller
         }
 
         return null;
+    }
+
+    private function canDeleteStatistic(Statistic $statistic): bool
+    {
+        if (auth('api')->user()?->role === 'admin') {
+            return true;
+        }
+
+        $tournament = $statistic->matchGame?->tournament;
+
+        return $tournament !== null
+            && (int) $tournament->created_by === (int) auth('api')->id();
     }
 }

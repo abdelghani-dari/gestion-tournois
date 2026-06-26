@@ -107,7 +107,7 @@ class MatchGameController extends Controller
 
     public function destroy(MatchGame $matchGame): JsonResponse
     {
-        if (! $this->canManageTournament($matchGame->tournament)) {
+        if (! $this->canDeleteTournament($matchGame->tournament)) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -203,6 +203,12 @@ class MatchGameController extends Controller
     private function canManageTournament(Tournament $tournament): bool
     {
         return (int) $tournament->created_by === (int) auth('api')->id();
+    }
+
+    private function canDeleteTournament(Tournament $tournament): bool
+    {
+        return auth('api')->user()?->role === 'admin'
+            || $this->canManageTournament($tournament);
     }
 
     private function validateResultReady(MatchGame $matchGame): ?string

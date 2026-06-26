@@ -77,7 +77,7 @@ class PlayerController extends Controller
 
     public function destroy(Player $player): JsonResponse
     {
-        if ((int) $player->team->manager_id !== (int) auth('api')->id()) {
+        if (! $this->isAdmin() && (int) $player->team->manager_id !== (int) auth('api')->id()) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -96,5 +96,10 @@ class PlayerController extends Controller
         $file = $request->file($field);
 
         return $file->storeAs($directory, uniqid($prefix.'-', true).'.'.$file->extension(), 'public');
+    }
+
+    private function isAdmin(): bool
+    {
+        return auth('api')->user()?->role === 'admin';
     }
 }

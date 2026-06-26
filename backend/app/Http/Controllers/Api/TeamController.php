@@ -70,7 +70,7 @@ class TeamController extends Controller
 
     public function destroy(Team $team): JsonResponse
     {
-        if ((int) $team->manager_id !== (int) auth('api')->id()) {
+        if (! $this->isAdmin() && (int) $team->manager_id !== (int) auth('api')->id()) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -98,6 +98,11 @@ class TeamController extends Controller
         $value = strtoupper(substr($value, 0, 3));
 
         return $value !== '' ? $value : null;
+    }
+
+    private function isAdmin(): bool
+    {
+        return auth('api')->user()?->role === 'admin';
     }
 
     private function imagePath(Request $request, string $field, string $directory, string $prefix): ?string
