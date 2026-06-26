@@ -1,0 +1,335 @@
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
+import { Link } from "react-router";
+import { clsx } from "clsx";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { ApiError, createTeam, getMyTeams, type ApiTeam, type TeamPayload } from "../../api";
+import { XPageMeta } from "../../components/common/PageMeta";
+import PageStack, { GRID_GAP } from "../../components/common/PageStack";
+import ComponentCard from "../../components/common/ComponentCard";
+import EntityImage from "../../components/common/EntityImage";
+import ImageSourceInput, { type ImageSourceMode } from "../../components/common/ImageSourceInput";
+import Button from "../../components/common/Button";
+import FilterSearchInput from "../../components/common/FilterSearchInput";
+import XModal from "../../components/common/XModal";
+import { useThemeTokens } from "../../components/theme/useThemeTokens";
+import { useAuth } from "../../context/AuthContext";
+import { PlusIcon } from "../../icons";
+
+const emptyTeamForm: TeamPayload = {
+  name: "",
+  short_name: "",
+  logo_path: "",
+  city: "",
+};
+
+function formatDate(date?: string | null) {
+  if (!date) return "-";
+  return new Date(date).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function managerLabel(team: ApiTeam) {
+  const manager = team.manager ?? team.user;
+  if (!manager) return "-";
+  if (manager.name && manager.email) return `${manager.name} (${manager.email})`;
+  return manager.name ?? manager.email ?? "-";
+}
+
+export default function TeamsPage() {
+  const t = useThemeTokens();
+  const { isAuthenticated, loading: authLoading, user } = useAuth();
+  const [teams, setTeams] = useState<ApiTeam[]>([]);
+  const [form, setForm] = useState<TeamPayload>(emptyTeamForm);
+  const [logoMode, setLogoMode] = useState<ImageSourceMode>("url");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [detailsTeam, setDetailsTeam] = useState<ApiTeam | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const loadTeams = async () => {
+    if (!isAuthenticated) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const data = await getMyTeams();
+      setTeams(data);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setError("Votre session a expiré. Veuillez vous reconnecter.");
+      } else {
+        setError(err instanceof Error ? err.message : "Impossible de charger vos équipes.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      void loadTeams();
+    }
+    if (!authLoading && !isAuthenticated) {
+      setTeams([]);
+    }
+  }, [authLoading, isAuthenticated]);
+
+  const filteredTeams = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return teams;
+    return teams.filter((team) =>
+      [team.name, team.short_name ?? "", team.city ?? "", managerLabel(team)]
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [teams, searchQuery]);
+
+  const handleCreateTeam = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!isAuthenticated) return;
+
+    setSubmitting(true);
+    setSuccess("");
+    setError("");
+
+    try {
+      await createTeam({
+        name: form.name,
+        short_name: form.short_name?.trim() || undefined,
+        logo: logoFile,
+        logo_url: form.logo_path?.trim() || undefined,
+        city: form.city?.trim() || undefined,
+      });
+      setSuccess("Équipe créée.");
+      setForm(emptyTeamForm);
+      setLogoFile(null);
+      await loadTeams();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setError("Votre session a expiré. Veuillez vous reconnecter.");
+      } else {
+        setError(err instanceof Error ? err.message : "Impossible de créer l'équipe.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <>
+      <XPageMeta title="Équipes" description="Mes équipes" />
+      <PageStack>
+        {!authLoading && !isAuthenticated ? (
+          <ComponentCard title="Équipes" desc="Connexion requise">
+            <p className={clsx("text-sm", t.textSecondary)}>
+              Connectez-vous pour créer et gérer vos équipes.
+            </p>
+            <Link to="/login" className="mt-4 inline-flex text-sm font-medium text-brand-500 hover:text-brand-400">
+              Aller a la connexion
+            </Link>
+          </ComponentCard>
+        ) : (
+          <>
+            <div className={clsx("grid grid-cols-1 xl:grid-cols-3", GRID_GAP)}>
+              <ComponentCard title="Mon compte" desc={user ? `${user.email} - ${user.role}` : "Compte connecté"}>
+                <div className={clsx("rounded-md border p-4", t.card)}>
+                  <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Équipes créées</p>
+                  <p className={clsx("mt-1 text-3xl font-bold", t.textPrimary)}>{teams.length}</p>
+                </div>
+              </ComponentCard>
+
+              <ComponentCard title="Créer une équipe" desc="Votre compte sera associé automatiquement" className="xl:col-span-2">
+                <form onSubmit={handleCreateTeam} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label htmlFor="team-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
+                    <input
+                      id="team-name"
+                      name="name"
+                      value={form.name}
+                      onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))}
+                      required
+                      disabled={submitting}
+                      className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="team-short-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom court</label>
+                    <input
+                      id="team-short-name"
+                      name="short_name"
+                      value={form.short_name}
+                      onChange={(e) => setForm((current) => ({ ...current, short_name: e.target.value.toUpperCase().slice(0, 3) }))}
+                      maxLength={3}
+                      placeholder="ATF"
+                      disabled={submitting}
+                      className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm uppercase focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="team-city" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Ville</label>
+                    <input
+                      id="team-city"
+                      name="city"
+                      value={form.city}
+                      onChange={(e) => setForm((current) => ({ ...current, city: e.target.value }))}
+                      disabled={submitting}
+                      className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <ImageSourceInput
+                      label="Logo"
+                      name="logo"
+                      mode={logoMode}
+                      onModeChange={setLogoMode}
+                      file={logoFile}
+                      onFileChange={setLogoFile}
+                      url={form.logo_path ?? ""}
+                      onUrlChange={(value) => setForm((current) => ({ ...current, logo_path: value }))}
+                      previewName={form.name || "Équipe"}
+                      disabled={submitting}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    {success && (
+                      <div className="mb-3 rounded-sm border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+                        {success}
+                      </div>
+                    )}
+                    {error && (
+                      <div className="mb-3 rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                        {error}
+                      </div>
+                    )}
+                    <Button type="submit" disabled={submitting} className="gap-2">
+                      <PlusIcon className="size-4 shrink-0" />
+                      {submitting ? "Création..." : "Créer l'équipe"}
+                    </Button>
+                  </div>
+                </form>
+              </ComponentCard>
+            </div>
+
+            <ComponentCard title="Mes équipes" desc="Équipes créées avec votre compte">
+              <div className="mb-4">
+                <FilterSearchInput
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  placeholder="Rechercher une equipe..."
+                />
+              </div>
+
+              {loading && (
+                <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement de vos équipes...</p>
+              )}
+
+              {!loading && !error && teams.length === 0 && (
+                <p className={clsx("py-10 text-center text-sm", t.textMuted)}>
+                  Aucune donnée disponible.
+                </p>
+              )}
+
+              {!loading && teams.length > 0 && (
+                <div className="x-scroll overflow-x-auto">
+                  <table className="w-full min-w-[760px] table-fixed text-sm">
+                    <colgroup>
+                      <col className="w-[70px]" />
+                      <col className="w-[28%]" />
+                      <col className="w-[20%]" />
+                      <col className="w-[32%]" />
+                      <col className="w-[20%]" />
+                      <col className="w-[14%]" />
+                    </colgroup>
+                    <thead>
+                      <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
+                        <th className="px-4 py-3">ID</th>
+                        <th className="px-4 py-3">Nom</th>
+                        <th className="px-4 py-3">Ville</th>
+                        <th className="px-4 py-3">Manager</th>
+                        <th className="px-4 py-3">Création</th>
+                        <th className="px-4 py-3">Détails</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTeams.map((team) => (
+                        <tr key={team.id} className={clsx("transition-colors", t.tableRow, t.navHover)}>
+                          <td className={clsx("px-4 py-3 font-mono", t.textMuted)}>{team.id}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <EntityImage src={team.logo_path} name={team.name} className="h-9 w-9 shrink-0 rounded-sm" />
+                              <div className="min-w-0">
+                                <div className={clsx("truncate font-medium", t.textPrimary)}>{team.name}</div>
+                                {team.short_name && (
+                                  <span className="mt-1 inline-flex rounded-sm bg-brand-500/15 px-2 py-0.5 text-xs font-semibold text-brand-300">
+                                    {team.short_name}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className={clsx("px-4 py-3", t.textSecondary)}>{team.city || "-"}</td>
+                          <td className={clsx("px-4 py-3", t.textSecondary)}>
+                            <span className="block truncate" title={managerLabel(team)}>{managerLabel(team)}</span>
+                          </td>
+                          <td className={clsx("px-4 py-3 whitespace-nowrap tabular-nums", t.textSecondary)}>{formatDate(team.created_at)}</td>
+                          <td className="px-4 py-3">
+                            <Button type="button" size="sm" variant="secondary" onClick={() => setDetailsTeam(team)}>
+                              Détails
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </ComponentCard>
+
+            <XModal
+              open={Boolean(detailsTeam)}
+              onClose={() => setDetailsTeam(null)}
+              title={detailsTeam?.name ?? "Détails de l'équipe"}
+            >
+              {detailsTeam && (
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center gap-4">
+                    <EntityImage src={detailsTeam.logo_path} name={detailsTeam.name} className="h-16 w-16 shrink-0 rounded-md" />
+                    <div>
+                      <p className={clsx("text-base font-semibold", t.textPrimary)}>{detailsTeam.name}</p>
+                      {detailsTeam.short_name && (
+                        <span className="mt-1 inline-flex rounded-sm bg-brand-500/15 px-2 py-0.5 text-xs font-semibold text-brand-300">
+                          {detailsTeam.short_name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {[
+                    ["Nom", detailsTeam.name],
+                    ["Nom court", detailsTeam.short_name || "-"],
+                    ["Ville", detailsTeam.city || "-"],
+                    ["Manager", managerLabel(detailsTeam)],
+                    ["Création", formatDate(detailsTeam.created_at)],
+                    ["Joueurs", "Non disponible"],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex justify-between gap-4">
+                      <span className={t.textMuted}>{label}</span>
+                      <span className={clsx("text-right", t.textPrimary)}>{value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </XModal>
+          </>
+        )}
+      </PageStack>
+    </>
+  );
+}
