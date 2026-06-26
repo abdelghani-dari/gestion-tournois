@@ -198,6 +198,12 @@ export async function createTournament(payload: CreateTournamentPayload) {
   });
 }
 
+export async function deleteTournament(id: number) {
+  return apiRequest<unknown>(`/tournaments/${id}`, {
+    method: "DELETE",
+  });
+}
+
 export type AdminTournament = PublicTournament;
 
 type AdminTournamentsResponse = AdminTournament[] | { data?: AdminTournament[] };

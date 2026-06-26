@@ -4,6 +4,7 @@ import {
   ApiError,
   confirmMatchResult,
   createMatch,
+  deleteMatch,
   disputeMatchResult,
   enterMatchResult,
   getMatches,
@@ -108,6 +109,7 @@ export default function MatchesPage() {
   const [submittingMatch, setSubmittingMatch] = useState(false);
   const [submittingResult, setSubmittingResult] = useState(false);
   const [workingId, setWorkingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -258,6 +260,31 @@ export default function MatchesPage() {
       setError(readableActionError(err, "Impossible de contester le résultat."));
     } finally {
       setWorkingId(null);
+    }
+  };
+
+  const handleDelete = async (match: ApiMatch) => {
+    const label = `${teamName(match.home_team_id, teams, match.home_team)} vs ${teamName(match.away_team_id, teams, match.away_team)}`;
+    if (!window.confirm(`Supprimer le match "${label}" ?`)) return;
+
+    setDeletingId(match.id);
+    setSuccess("");
+    setError("");
+
+    try {
+      await deleteMatch(match.id);
+      setSuccess("Match supprime.");
+      await loadData();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        setError("Vous pouvez seulement supprimer les matchs de vos tournois.");
+      } else if (err instanceof ApiError && err.status === 401) {
+        setError("Votre session a expire. Veuillez vous reconnecter.");
+      } else {
+        setError(err instanceof Error ? err.message : "Impossible de supprimer le match.");
+      }
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -520,9 +547,9 @@ export default function MatchesPage() {
                               Confirmer
                             </Button>
                           )}
-                          {(match.status !== "played" || match.home_score == null || match.away_score == null || match.result_status === "confirmed") && (
-                            <span className={t.textMuted}>-</span>
-                          )}
+                          <Button size="sm" variant="danger" disabled={deletingId === match.id} onClick={() => handleDelete(match)}>
+                            {deletingId === match.id ? "Suppression..." : "Supprimer"}
+                          </Button>
                         </div>
                       </td>
                     </tr>

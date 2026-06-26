@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router";
 import {
   ApiError,
   createComposition,
+  deleteComposition,
   getCompositions,
   getMatches,
   getPlayers,
@@ -118,6 +119,7 @@ export default function MatchCompositionPage() {
   }));
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -211,6 +213,24 @@ export default function MatchCompositionPage() {
       setError(readableCompositionError(err, "Impossible de créer la composition."));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (composition: ApiComposition) => {
+    if (!window.confirm(`Supprimer la composition #${composition.id} ?`)) return;
+
+    setDeletingId(composition.id);
+    setError("");
+    setSuccess("");
+
+    try {
+      await deleteComposition(composition.id);
+      setSuccess("Composition supprimee.");
+      await loadData(matchFilter);
+    } catch (err) {
+      setError(readableCompositionError(err, "Impossible de supprimer la composition."));
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -415,7 +435,7 @@ export default function MatchCompositionPage() {
 
           {!loading && compositions.length > 0 && (
             <div className="x-scroll overflow-x-auto">
-              <table className="w-full min-w-[1080px] table-fixed text-sm">
+              <table className="w-full min-w-[1160px] table-fixed text-sm">
                 <colgroup>
                   <col className="w-[70px]" />
                   <col className="w-[20%]" />
@@ -424,7 +444,8 @@ export default function MatchCompositionPage() {
                   <col className="w-[11%]" />
                   <col className="w-[11%]" />
                   <col className="w-[11%]" />
-                  <col className="w-[16%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[12%]" />
                 </colgroup>
                 <thead>
                   <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
@@ -436,6 +457,7 @@ export default function MatchCompositionPage() {
                     <th className="px-4 py-3">Poste</th>
                     <th className="px-4 py-3">Maillot</th>
                     <th className="px-4 py-3">Création</th>
+                    <th className="px-4 py-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -470,6 +492,11 @@ export default function MatchCompositionPage() {
                         </td>
                         <td className={clsx("px-4 py-3 whitespace-nowrap tabular-nums", t.textSecondary)}>
                           {formatDate(composition.created_at)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Button type="button" size="sm" variant="danger" disabled={deletingId === composition.id} onClick={() => handleDelete(composition)}>
+                            {deletingId === composition.id ? "Suppression..." : "Supprimer"}
+                          </Button>
                         </td>
                       </tr>
                     );

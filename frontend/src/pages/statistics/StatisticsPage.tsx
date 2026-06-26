@@ -4,6 +4,7 @@ import { useLocation, useParams } from "react-router";
 import {
   ApiError,
   createStatistic,
+  deleteStatistic,
   getMatches,
   getPlayers,
   getStatistics,
@@ -134,6 +135,7 @@ export default function StatisticsPage() {
   const [form, setForm] = useState<StatisticForm>(emptyForm);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -225,6 +227,24 @@ export default function StatisticsPage() {
       setError(readableStatisticError(err, "Impossible de créer la statistique."));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (statistic: ApiStatistic) => {
+    if (!window.confirm(`Supprimer la statistique #${statistic.id} ?`)) return;
+
+    setDeletingId(statistic.id);
+    setError("");
+    setSuccess("");
+
+    try {
+      await deleteStatistic(statistic.id);
+      setSuccess("Statistique supprimee.");
+      await loadData();
+    } catch (err) {
+      setError(readableStatisticError(err, "Impossible de supprimer la statistique."));
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -466,7 +486,7 @@ export default function StatisticsPage() {
 
           {!loading && statistics.length > 0 && (
             <div className="x-scroll overflow-x-auto">
-              <table className="w-full min-w-[1040px] table-fixed text-sm">
+              <table className="w-full min-w-[1120px] table-fixed text-sm">
                 <colgroup>
                   <col className="w-[70px]" />
                   <col className="w-[20%]" />
@@ -474,7 +494,8 @@ export default function StatisticsPage() {
                   <col className="w-[18%]" />
                   <col className="w-[13%]" />
                   <col className="w-[9%]" />
-                  <col className="w-[16%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[12%]" />
                 </colgroup>
                 <thead>
                   <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
@@ -485,6 +506,7 @@ export default function StatisticsPage() {
                     <th className="px-4 py-3">Type</th>
                     <th className="px-4 py-3">Valeur</th>
                     <th className="px-4 py-3">Création</th>
+                    <th className="px-4 py-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -514,6 +536,11 @@ export default function StatisticsPage() {
                         <td className={clsx("px-4 py-3 font-semibold tabular-nums", t.textPrimary)}>{statistic.value}</td>
                         <td className={clsx("px-4 py-3 whitespace-nowrap tabular-nums", t.textSecondary)}>
                           {formatDate(statistic.created_at)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Button type="button" size="sm" variant="danger" disabled={deletingId === statistic.id} onClick={() => handleDelete(statistic)}>
+                            {deletingId === statistic.id ? "Suppression..." : "Supprimer"}
+                          </Button>
                         </td>
                       </tr>
                     );

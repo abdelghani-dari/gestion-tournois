@@ -3,6 +3,7 @@ import { clsx } from "clsx";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createAdminTeam,
+  deleteTeam,
   getAdminTeams,
   getAdminUsers,
   type AdminUser,
@@ -48,7 +49,9 @@ export default function AdminTeamsPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -94,6 +97,7 @@ export default function AdminTeamsPage() {
     event.preventDefault();
     setSaving(true);
     setError("");
+    setSuccess("");
     try {
       await createAdminTeam(form);
       closeCreate();
@@ -102,6 +106,24 @@ export default function AdminTeamsPage() {
       setError(err instanceof Error ? err.message : "Création impossible.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async (team: ApiTeam) => {
+    if (!window.confirm(`Supprimer l'equipe "${team.name}" ?`)) return;
+
+    setDeletingId(team.id);
+    setError("");
+    setSuccess("");
+
+    try {
+      await deleteTeam(team.id);
+      setSuccess("Equipe supprimee.");
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Suppression impossible.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -125,7 +147,16 @@ export default function AdminTeamsPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
 
-              {error && <div className="rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
+              {(error || success) && (
+                <div
+                  className={clsx(
+                    "rounded-sm border px-4 py-3 text-sm",
+                    error ? "border-red-500/20 bg-red-500/10 text-red-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+                  )}
+                >
+                  {error || success}
+                </div>
+              )}
 
               {loading ? (
                 <p className={clsx("py-8 text-center text-sm", t.textMuted)}>Chargement...</p>
@@ -158,7 +189,14 @@ export default function AdminTeamsPage() {
                           <td className={clsx("px-4 py-3", t.textSecondary)}>{managerText(team)}</td>
                           <td className={clsx("px-4 py-3", t.textSecondary)}>{team.players_count ?? team.players?.length ?? 0}</td>
                           <td className={clsx("px-4 py-3", t.textSecondary)}>{formatDate(team.created_at)}</td>
-                          <td className="px-4 py-3"><Link to={`/admin/teams/${team.id}`} className="text-sm font-medium text-brand-500 hover:text-brand-400">Voir détails</Link></td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap gap-2">
+                              <Link to={`/admin/teams/${team.id}`} className="text-sm font-medium text-brand-500 hover:text-brand-400">Voir détails</Link>
+                              <Button type="button" size="sm" variant="danger" disabled={deletingId === team.id} onClick={() => handleDelete(team)}>
+                                {deletingId === team.id ? "Suppression..." : "Supprimer"}
+                              </Button>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>

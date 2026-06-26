@@ -1,7 +1,7 @@
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { clsx } from "clsx";
 import { useCallback, useEffect, useState } from "react";
-import { createAdminPlayer, getAdminTeam, type ApiTeam, type PlayerPayload } from "../../api";
+import { ApiError, createAdminPlayer, deletePlayer, deleteTeam, getAdminTeam, type ApiPlayer, type ApiTeam, type PlayerPayload } from "../../api";
 import Button from "../../components/common/Button";
 import ComponentCard from "../../components/common/ComponentCard";
 import EntityImage from "../../components/common/EntityImage";
@@ -23,6 +23,7 @@ const emptyPlayerForm: Omit<PlayerPayload, "team_id"> = {
 
 export default function AdminTeamDetailsPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const t = useThemeTokens();
   const { isAdmin, loading: authLoading } = useAuth();
   const [team, setTeam] = useState<ApiTeam | null>(null);
@@ -31,7 +32,10 @@ export default function AdminTeamDetailsPage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deletingPlayerId, setDeletingPlayerId] = useState<number | null>(null);
+  const [deletingTeam, setDeletingTeam] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
 
   const loadTeam = useCallback(async () => {
@@ -67,6 +71,7 @@ export default function AdminTeamDetailsPage() {
     if (!team) return;
     setSaving(true);
     setError("");
+    setSuccess("");
     try {
       await createAdminPlayer({
         team_id: team.id,
@@ -84,6 +89,51 @@ export default function AdminTeamDetailsPage() {
     }
   };
 
+  const playerName = (player: ApiPlayer) => `${player.first_name} ${player.last_name}`.trim();
+
+  const handleDeletePlayer = async (player: ApiPlayer) => {
+    if (!window.confirm(`Supprimer le joueur "${playerName(player)}" ?`)) return;
+
+    setDeletingPlayerId(player.id);
+    setError("");
+    setSuccess("");
+
+    try {
+      await deletePlayer(player.id);
+      setSuccess("Joueur supprime.");
+      await loadTeam();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        setError("Suppression refusee par l'API pour ce joueur.");
+      } else {
+        setError(err instanceof Error ? err.message : "Suppression impossible.");
+      }
+    } finally {
+      setDeletingPlayerId(null);
+    }
+  };
+
+  const handleDeleteTeam = async () => {
+    if (!team || !window.confirm(`Supprimer l'equipe "${team.name}" ?`)) return;
+
+    setDeletingTeam(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      await deleteTeam(team.id);
+      navigate("/admin/teams");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        setError("Suppression refusee par l'API pour cette equipe.");
+      } else {
+        setError(err instanceof Error ? err.message : "Suppression impossible.");
+      }
+    } finally {
+      setDeletingTeam(false);
+    }
+  };
+
   return (
     <>
       <XPageMeta title="Détails équipe" description="Administration" />
@@ -92,16 +142,33 @@ export default function AdminTeamDetailsPage() {
         <ComponentCard
           title={team?.name ?? "Equipe"}
           desc="Informations équipe et joueurs"
-          action={team ? <Button type="button" onClick={() => setCreateOpen(true)}>Ajouter un joueur</Button> : undefined}
+          action={team ? (
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" onClick={() => setCreateOpen(true)}>Ajouter un joueur</Button>
+              <Button type="button" variant="danger" disabled={deletingTeam} onClick={handleDeleteTeam}>
+                {deletingTeam ? "Suppression..." : "Supprimer l'equipe"}
+              </Button>
+            </div>
+          ) : undefined}
         >
           {!isAdmin ? (
             <div className="rounded-sm border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">Accès administrateur requis.</div>
           ) : loading ? (
             <p className={clsx("py-8 text-center text-sm", t.textMuted)}>Chargement...</p>
-          ) : error ? (
+          ) : error && !team ? (
             <div className="rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
           ) : team ? (
             <div className="space-y-6">
+              {(error || success) && (
+                <div
+                  className={clsx(
+                    "rounded-sm border px-4 py-3 text-sm",
+                    error ? "border-red-500/20 bg-red-500/10 text-red-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+                  )}
+                >
+                  {error || success}
+                </div>
+              )}
               <div className={clsx("rounded-md border p-4", t.card)}>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                   <EntityImage src={team.logo_path} name={team.name} className="h-14 w-14 shrink-0 rounded-md" />
@@ -119,7 +186,7 @@ export default function AdminTeamDetailsPage() {
               </div>
 
               <div className="x-scroll overflow-x-auto">
-                <table className="w-full min-w-[720px] table-fixed text-sm">
+                <table className="w-full min-w-[820px] table-fixed text-sm">
                   <thead>
                     <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
                       <th className="px-4 py-3">ID</th>
@@ -128,6 +195,7 @@ export default function AdminTeamDetailsPage() {
                       <th className="px-4 py-3">Nom</th>
                       <th className="px-4 py-3">Poste</th>
                       <th className="px-4 py-3">Numéro</th>
+                      <th className="px-4 py-3">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -145,6 +213,11 @@ export default function AdminTeamDetailsPage() {
                         <td className={clsx("px-4 py-3", t.textPrimary)}>{player.last_name}</td>
                         <td className={clsx("px-4 py-3", t.textSecondary)}>{player.position || "-"}</td>
                         <td className={clsx("px-4 py-3", t.textSecondary)}>{player.number ?? "-"}</td>
+                        <td className="px-4 py-3">
+                          <Button type="button" size="sm" variant="danger" disabled={deletingPlayerId === player.id} onClick={() => handleDeletePlayer(player)}>
+                            {deletingPlayerId === player.id ? "Suppression..." : "Supprimer"}
+                          </Button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

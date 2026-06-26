@@ -5,6 +5,7 @@ import {
   acceptTournament,
   ApiError,
   createTournament,
+  deleteTournament,
   getAdminTournaments,
   getPendingTournaments,
   refuseTournament,
@@ -61,18 +62,22 @@ function AdminTournamentTable({
   tournaments,
   notes,
   workingId,
+  deletingId,
   showActions,
   onNoteChange,
   onAccept,
   onRefuse,
+  onDelete,
 }: {
   tournaments: AdminTournament[];
   notes: Record<number, string>;
   workingId: number | null;
+  deletingId: number | null;
   showActions: boolean;
   onNoteChange: (id: number, value: string) => void;
   onAccept: (id: number) => void;
   onRefuse: (id: number) => void;
+  onDelete: (id: number) => void;
 }) {
   const t = useThemeTokens();
 
@@ -93,7 +98,7 @@ function AdminTournamentTable({
           <col className="w-[10%]" />
           <col className="w-[10%]" />
           <col className="w-[11%]" />
-          <col className="w-[17%]" />
+          <col className="w-[19%]" />
         </colgroup>
         <thead>
           <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
@@ -146,10 +151,18 @@ function AdminTournamentTable({
                       <Button size="sm" variant="danger" disabled={workingId === tr.id} onClick={() => onRefuse(tr.id)}>
                         Refuser
                       </Button>
+                      <Button size="sm" variant="danger" disabled={workingId === tr.id || deletingId === tr.id} onClick={() => onDelete(tr.id)}>
+                        {deletingId === tr.id ? "Suppression..." : "Supprimer"}
+                      </Button>
                     </div>
                   </div>
                 ) : (
-                  <span className={clsx("block truncate", t.textSecondary)} title={tr.admin_note ?? ""}>{tr.admin_note || "-"}</span>
+                  <div className="space-y-2">
+                    <span className={clsx("block truncate", t.textSecondary)} title={tr.admin_note ?? ""}>{tr.admin_note || "-"}</span>
+                    <Button size="sm" variant="danger" disabled={deletingId === tr.id} onClick={() => onDelete(tr.id)}>
+                      {deletingId === tr.id ? "Suppression..." : "Supprimer"}
+                    </Button>
+                  </div>
                 )}
               </td>
             </tr>
@@ -168,6 +181,7 @@ export default function AdminTournamentsPage() {
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(false);
   const [workingId, setWorkingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<CreateTournamentPayload>(emptyForm);
@@ -252,6 +266,30 @@ export default function AdminTournamentsPage() {
       }
     } finally {
       setWorkingId(null);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Supprimer ce tournoi ?")) return;
+
+    setDeletingId(id);
+    setError("");
+    setSuccess("");
+
+    try {
+      await deleteTournament(id);
+      setSuccess("Tournoi supprime.");
+      await loadAdminTournaments();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        setError("Vous pouvez seulement supprimer les tournois que vous avez crees.");
+      } else if (err instanceof ApiError && err.status === 401) {
+        setError("Votre session a expire. Veuillez vous reconnecter.");
+      } else {
+        setError(err instanceof Error ? err.message : "Impossible de supprimer le tournoi.");
+      }
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -371,10 +409,12 @@ export default function AdminTournamentsPage() {
               tournaments={pending}
               notes={notes}
               workingId={workingId}
+              deletingId={deletingId}
               showActions
               onNoteChange={(id, value) => setNotes((current) => ({ ...current, [id]: value }))}
               onAccept={handleAccept}
               onRefuse={handleRefuse}
+              onDelete={handleDelete}
             />
           )}
         </ComponentCard>
@@ -387,10 +427,12 @@ export default function AdminTournamentsPage() {
               tournaments={allTournaments}
               notes={notes}
               workingId={workingId}
+              deletingId={deletingId}
               showActions={false}
               onNoteChange={(id, value) => setNotes((current) => ({ ...current, [id]: value }))}
               onAccept={handleAccept}
               onRefuse={handleRefuse}
+              onDelete={handleDelete}
             />
           )}
         </ComponentCard>

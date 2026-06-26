@@ -2,7 +2,7 @@
 import { Link } from "react-router";
 import { clsx } from "clsx";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { ApiError, createTeam, getMyTeams, type ApiTeam, type TeamPayload } from "../../api";
+import { ApiError, createTeam, deleteTeam, getMyTeams, type ApiTeam, type TeamPayload } from "../../api";
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
@@ -49,6 +49,7 @@ export default function TeamsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -120,6 +121,31 @@ export default function TeamsPage() {
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteTeam = async (team: ApiTeam) => {
+    if (!window.confirm(`Supprimer l'equipe "${team.name}" ?`)) return;
+
+    setDeletingId(team.id);
+    setSuccess("");
+    setError("");
+
+    try {
+      await deleteTeam(team.id);
+      setSuccess("Equipe supprimee.");
+      if (detailsTeam?.id === team.id) setDetailsTeam(null);
+      await loadTeams();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setError("Votre session a expire. Veuillez vous reconnecter.");
+      } else if (err instanceof ApiError && err.status === 403) {
+        setError("Vous pouvez seulement supprimer vos propres equipes.");
+      } else {
+        setError(err instanceof Error ? err.message : "Impossible de supprimer l'equipe.");
+      }
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -227,6 +253,17 @@ export default function TeamsPage() {
                 />
               </div>
 
+              {(success || error) && (
+                <div
+                  className={clsx(
+                    "mb-4 rounded-sm border px-4 py-3 text-sm",
+                    error ? "border-red-500/20 bg-red-500/10 text-red-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+                  )}
+                >
+                  {error || success}
+                </div>
+              )}
+
               {loading && (
                 <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement de vos équipes...</p>
               )}
@@ -239,14 +276,14 @@ export default function TeamsPage() {
 
               {!loading && teams.length > 0 && (
                 <div className="x-scroll overflow-x-auto">
-                  <table className="w-full min-w-[760px] table-fixed text-sm">
+                  <table className="w-full min-w-[860px] table-fixed text-sm">
                     <colgroup>
                       <col className="w-[70px]" />
                       <col className="w-[28%]" />
                       <col className="w-[20%]" />
-                      <col className="w-[32%]" />
+                      <col className="w-[26%]" />
+                      <col className="w-[16%]" />
                       <col className="w-[20%]" />
-                      <col className="w-[14%]" />
                     </colgroup>
                     <thead>
                       <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
@@ -255,7 +292,7 @@ export default function TeamsPage() {
                         <th className="px-4 py-3">Ville</th>
                         <th className="px-4 py-3">Manager</th>
                         <th className="px-4 py-3">Création</th>
-                        <th className="px-4 py-3">Détails</th>
+                        <th className="px-4 py-3">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -281,9 +318,14 @@ export default function TeamsPage() {
                           </td>
                           <td className={clsx("px-4 py-3 whitespace-nowrap tabular-nums", t.textSecondary)}>{formatDate(team.created_at)}</td>
                           <td className="px-4 py-3">
-                            <Button type="button" size="sm" variant="secondary" onClick={() => setDetailsTeam(team)}>
-                              Détails
-                            </Button>
+                            <div className="flex flex-wrap gap-2">
+                              <Button type="button" size="sm" variant="secondary" onClick={() => setDetailsTeam(team)}>
+                                Détails
+                              </Button>
+                              <Button type="button" size="sm" variant="danger" disabled={deletingId === team.id} onClick={() => handleDeleteTeam(team)}>
+                                {deletingId === team.id ? "Suppression..." : "Supprimer"}
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}

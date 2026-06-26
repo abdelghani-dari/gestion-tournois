@@ -1,6 +1,6 @@
 import { clsx } from "clsx";
 import { useCallback, useEffect, useState } from "react";
-import { createAdminPlayer, getAdminPlayers, getAdminTeams, type ApiPlayer, type ApiTeam, type PlayerPayload } from "../../api";
+import { ApiError, createAdminPlayer, deletePlayer, getAdminPlayers, getAdminTeams, type ApiPlayer, type ApiTeam, type PlayerPayload } from "../../api";
 import Button from "../../components/common/Button";
 import ComponentCard from "../../components/common/ComponentCard";
 import EntityImage from "../../components/common/EntityImage";
@@ -35,7 +35,9 @@ export default function AdminPlayersPage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -73,6 +75,7 @@ export default function AdminPlayersPage() {
     event.preventDefault();
     setSaving(true);
     setError("");
+    setSuccess("");
     try {
       await createAdminPlayer({
         ...form,
@@ -90,6 +93,30 @@ export default function AdminPlayersPage() {
     }
   };
 
+  const playerName = (player: ApiPlayer) => `${player.first_name} ${player.last_name}`.trim();
+
+  const handleDelete = async (player: ApiPlayer) => {
+    if (!window.confirm(`Supprimer le joueur "${playerName(player)}" ?`)) return;
+
+    setDeletingId(player.id);
+    setError("");
+    setSuccess("");
+
+    try {
+      await deletePlayer(player.id);
+      setSuccess("Joueur supprime.");
+      await loadData();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        setError("Suppression refusee par l'API pour ce joueur.");
+      } else {
+        setError(err instanceof Error ? err.message : "Suppression impossible.");
+      }
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <>
       <XPageMeta title="Admin Joueurs" description="Tous les joueurs" />
@@ -103,14 +130,23 @@ export default function AdminPlayersPage() {
             <div className="rounded-sm border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">Accès administrateur requis.</div>
           ) : (
             <div className="space-y-5">
-              {error && <div className="rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
+              {(error || success) && (
+                <div
+                  className={clsx(
+                    "rounded-sm border px-4 py-3 text-sm",
+                    error ? "border-red-500/20 bg-red-500/10 text-red-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+                  )}
+                >
+                  {error || success}
+                </div>
+              )}
               {loading ? (
                 <p className={clsx("py-8 text-center text-sm", t.textMuted)}>Chargement...</p>
               ) : players.length === 0 ? (
                 <p className={clsx("py-8 text-center text-sm", t.textMuted)}>Aucun joueur disponible.</p>
               ) : (
                 <div className="x-scroll overflow-x-auto">
-                  <table className="w-full min-w-[900px] table-fixed text-sm">
+                  <table className="w-full min-w-[980px] table-fixed text-sm">
                     <thead>
                       <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
                         <th className="px-4 py-3">ID</th>
@@ -121,6 +157,7 @@ export default function AdminPlayersPage() {
                         <th className="px-4 py-3">Poste</th>
                         <th className="px-4 py-3">Numéro</th>
                         <th className="px-4 py-3">Créé le</th>
+                        <th className="px-4 py-3">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -140,6 +177,11 @@ export default function AdminPlayersPage() {
                           <td className={clsx("px-4 py-3", t.textSecondary)}>{player.position || "-"}</td>
                           <td className={clsx("px-4 py-3", t.textSecondary)}>{player.number ?? "-"}</td>
                           <td className={clsx("px-4 py-3", t.textSecondary)}>{formatDate(player.created_at)}</td>
+                          <td className="px-4 py-3">
+                            <Button type="button" size="sm" variant="danger" disabled={deletingId === player.id} onClick={() => handleDelete(player)}>
+                              {deletingId === player.id ? "Suppression..." : "Supprimer"}
+                            </Button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>

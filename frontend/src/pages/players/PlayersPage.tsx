@@ -5,6 +5,7 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 import {
   ApiError,
   createPlayer,
+  deletePlayer,
   getMyTeams,
   getPlayers,
   getTeams,
@@ -75,6 +76,7 @@ export default function PlayersPage() {
   const [loading, setLoading] = useState(true);
   const [myTeamsLoading, setMyTeamsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -147,6 +149,11 @@ export default function PlayersPage() {
     );
   }, [players, teams, searchQuery]);
 
+  const deletableTeamIds = useMemo(
+    () => new Set(myTeams.map((team) => team.id)),
+    [myTeams],
+  );
+
   const updateForm = (key: keyof PlayerForm, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
   };
@@ -184,6 +191,31 @@ export default function PlayersPage() {
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeletePlayer = async (player: ApiPlayer) => {
+    if (!window.confirm(`Supprimer le joueur "${playerName(player)}" ?`)) return;
+
+    setDeletingId(player.id);
+    setSuccess("");
+    setError("");
+
+    try {
+      await deletePlayer(player.id);
+      setSuccess("Joueur supprime.");
+      if (detailsPlayer?.id === player.id) setDetailsPlayer(null);
+      await loadPlayers();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setError("Votre session a expire. Veuillez vous reconnecter.");
+      } else if (err instanceof ApiError && err.status === 403) {
+        setError("Vous pouvez seulement supprimer les joueurs de vos equipes.");
+      } else {
+        setError(err instanceof Error ? err.message : "Impossible de supprimer le joueur.");
+      }
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -333,6 +365,17 @@ export default function PlayersPage() {
             />
           </div>
 
+          {(success || error) && (
+            <div
+              className={clsx(
+                "mb-4 rounded-sm border px-4 py-3 text-sm",
+                error ? "border-red-500/20 bg-red-500/10 text-red-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+              )}
+            >
+              {error || success}
+            </div>
+          )}
+
           {loading && (
             <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement des joueurs...</p>
           )}
@@ -343,7 +386,7 @@ export default function PlayersPage() {
 
           {!loading && players.length > 0 && (
             <div className="x-scroll overflow-x-auto">
-              <table className="w-full min-w-[900px] table-fixed text-sm">
+              <table className="w-full min-w-[980px] table-fixed text-sm">
                 <colgroup>
                   <col className="w-[70px]" />
                   <col className="w-[17%]" />
@@ -351,8 +394,8 @@ export default function PlayersPage() {
                   <col className="w-[24%]" />
                   <col className="w-[13%]" />
                   <col className="w-[10%]" />
-                  <col className="w-[19%]" />
-                  <col className="w-[14%]" />
+                  <col className="w-[17%]" />
+                  <col className="w-[18%]" />
                 </colgroup>
                 <thead>
                   <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
@@ -363,7 +406,7 @@ export default function PlayersPage() {
                     <th className="px-4 py-3">Poste</th>
                     <th className="px-4 py-3">Numéro</th>
                     <th className="px-4 py-3">Naissance</th>
-                    <th className="px-4 py-3">Détails</th>
+                    <th className="px-4 py-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -384,9 +427,16 @@ export default function PlayersPage() {
                       <td className={clsx("px-4 py-3 font-mono tabular-nums", t.textSecondary)}>{player.number ?? "-"}</td>
                       <td className={clsx("px-4 py-3 whitespace-nowrap tabular-nums", t.textSecondary)}>{formatDate(player.birth_date)}</td>
                       <td className="px-4 py-3">
-                        <Button type="button" size="sm" variant="secondary" onClick={() => setDetailsPlayer(player)}>
-                          Détails
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                          <Button type="button" size="sm" variant="secondary" onClick={() => setDetailsPlayer(player)}>
+                            Détails
+                          </Button>
+                          {deletableTeamIds.has(player.team_id) && (
+                            <Button type="button" size="sm" variant="danger" disabled={deletingId === player.id} onClick={() => handleDeletePlayer(player)}>
+                              {deletingId === player.id ? "Suppression..." : "Supprimer"}
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
