@@ -5,6 +5,7 @@ import LandingPage from "./landing/LandingPage";
 import LoginPage from "./auth/LoginPage";
 import DashboardPage from "./dashboard/DashboardPage";
 import TournamentsPage from "./tournaments/TournamentsPage";
+import TournamentDetailsPage from "./tournaments/TournamentDetailsPage";
 import TeamsPage from "./teams/TeamsPage";
 import PlayersPage from "./players/PlayersPage";
 import MatchesPage from "./matches/MatchesPage";
@@ -66,6 +67,7 @@ export const appRoutes = (
     <Route path="login" element={<LoginPage />} />
     <Route path="signin" element={<LoginPage />} />
     <Route path="signup" element={<LoginPage />} />
+    <Route path="tournaments/:id" element={<TournamentDetailsPage />} />
 
     <Route element={<RequireAuth><XAppLayout /></RequireAuth>}>
       <Route path="dashboard" element={<DashboardRoute />} />
@@ -74,7 +76,6 @@ export const appRoutes = (
       <Route path="championships/:id" element={<Navigate to="/tournaments" replace />} />
       <Route path="championships/:id/ranking" element={<Navigate to="/rankings" replace />} />
       <Route path="tournaments" element={<TournamentsPage />} />
-      <Route path="tournaments/:id" element={<Navigate to="/tournaments" replace />} />
       <Route path="tournaments/:id/ranking" element={<RankingsPage />} />
       <Route path="teams" element={<TeamsPage />} />
       <Route path="teams/:id" element={<Navigate to="/teams" replace />} />

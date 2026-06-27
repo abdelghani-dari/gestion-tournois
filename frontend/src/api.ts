@@ -68,20 +68,25 @@ function toFormData(payload: Record<string, unknown>) {
   return formData;
 }
 
+type ApiRequestOptions = RequestInit & {
+  auth?: boolean;
+};
+
 export async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
-  const headers = new Headers(options.headers);
+  const { auth = true, ...fetchOptions } = options;
+  const headers = new Headers(fetchOptions.headers);
   const token = getToken();
 
   headers.set("Accept", "application/json");
 
-  if (options.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) {
+  if (fetchOptions.body && !(fetchOptions.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
-  if (token) {
+  if (auth && token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
@@ -89,9 +94,9 @@ export async function apiRequest<T>(
 
   try {
     response = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
+      ...fetchOptions,
       headers,
-      signal: options.signal ?? AbortSignal.timeout(10_000),
+      signal: fetchOptions.signal ?? AbortSignal.timeout(10_000),
     });
   } catch (error) {
     console.error(`API request failed: ${endpoint}`, error);
@@ -133,8 +138,20 @@ function extractArray<T>(response: unknown): T[] {
   return [];
 }
 
+function extractObject<T>(response: unknown): T {
+  if (response && typeof response === "object") {
+    const data = (response as { data?: unknown }).data;
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      return data as T;
+    }
+  }
+
+  return response as T;
+}
+
 export type PublicTournament = {
   id: number;
+  created_by?: number | null;
   name: string;
   description?: string | null;
   city?: string | null;
@@ -145,7 +162,10 @@ export type PublicTournament = {
   status?: string | null;
   approval_status?: string | null;
   teams?: ApiTeam[];
+  matches?: ApiMatch[];
+  rankings?: ApiRanking[];
   admin_note?: string | null;
+  approved_at?: string | null;
   creator?: {
     id?: number;
     name?: string | null;
@@ -161,13 +181,34 @@ export type PublicTournament = {
     name?: string | null;
     email?: string | null;
   } | null;
+  approvedBy?: {
+    id?: number;
+    name?: string | null;
+    email?: string | null;
+  } | null;
 };
 
 type PublicTournamentsResponse = PublicTournament[] | { data?: PublicTournament[] };
 
-export async function getPublicTournaments() {
-  const response = await apiRequest<PublicTournamentsResponse>("/tournaments");
+function assertValidId(id: number | string, message: string) {
+  if (id == null || id === "" || !Number.isFinite(Number(id))) {
+    throw new ApiError(message, 0, null);
+  }
+}
+
+export async function getTournaments() {
+  const response = await apiRequest<PublicTournamentsResponse>("/tournaments", { auth: false });
   return extractArray<PublicTournament>(response);
+}
+
+export async function getPublicTournaments() {
+  return getTournaments();
+}
+
+export async function getTournament(id: number | string) {
+  assertValidId(id, "Un tournoi valide est requis.");
+  const response = await apiRequest<PublicTournament | { data?: PublicTournament }>(`/tournaments/${id}`, { auth: false });
+  return extractObject<PublicTournament>(response);
 }
 
 export type MyTournament = PublicTournament;
@@ -527,6 +568,13 @@ export async function getMatches(params?: Record<string, string | number | null 
   return extractArray<ApiMatch>(response);
 }
 
+export async function getTournamentMatches(tournament_id: number | string) {
+  assertValidId(tournament_id, "Un tournoi valide est requis pour charger les matchs.");
+  const query = new URLSearchParams({ tournament_id: String(tournament_id) });
+  const response = await apiRequest<MatchesResponse>(`/matches?${query.toString()}`, { auth: false });
+  return extractArray<ApiMatch>(response);
+}
+
 export async function getAdminMatches() {
   const response = await apiRequest<MatchesResponse>("/admin/matches");
   return extractArray<ApiMatch>(response);
@@ -624,11 +672,9 @@ export async function getDashboardSummary() {
 type RankingsResponse = ApiRanking[] | { data?: ApiRanking[] };
 
 export async function getRankings(tournament_id: number | string) {
-  if (tournament_id == null || tournament_id === "" || !Number.isFinite(Number(tournament_id))) {
-    throw new ApiError("Un tournoi valide est requis pour charger le classement.", 0, null);
-  }
+  assertValidId(tournament_id, "Un tournoi valide est requis pour charger le classement.");
   const query = new URLSearchParams({ tournament_id: String(tournament_id) });
-  const response = await apiRequest<RankingsResponse>(`/rankings?${query.toString()}`);
+  const response = await apiRequest<RankingsResponse>(`/rankings?${query.toString()}`, { auth: false });
   return extractArray<ApiRanking>(response);
 }
 

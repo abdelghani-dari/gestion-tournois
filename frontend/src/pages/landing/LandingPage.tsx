@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import { getTournaments, type PublicTournament } from "../../api";
+import EntityImage from "../../components/common/EntityImage";
 import { XPageMeta } from "../../components/common/PageMeta";
+import { statusLabel, statusTone } from "../../components/common/statusLabels";
 import { APP_NAME } from "../../config/app";
 import { ArrowRightIcon, ShootingStarIcon } from "../../icons";
 
@@ -37,7 +40,141 @@ const FAQS = [
   },
 ];
 
-function LandingNav() {
+function formatDate(date?: string | null) {
+  if (!date) return "-";
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return "-";
+
+  return parsed.toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function PublicStatusBadge({ value }: { value?: string | null }) {
+  const tone = statusTone(value) || "bg-zinc-800 text-zinc-300";
+
+  return (
+    <span className={`inline-flex rounded-sm px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${tone}`}>
+      {statusLabel(value)}
+    </span>
+  );
+}
+
+function TournamentMeta({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div>
+      <p className="text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-zinc-600">
+        {label}
+      </p>
+      <p className="mt-1 truncate text-sm font-medium text-zinc-200" title={value || "-"}>
+        {value || "-"}
+      </p>
+    </div>
+  );
+}
+
+function PublicTournamentsSection({
+  tournaments,
+  loading,
+  error,
+}: {
+  tournaments: PublicTournament[];
+  loading: boolean;
+  error: string;
+}) {
+  return (
+    <section id="public-tournaments" className="border-y border-zinc-900 bg-zinc-950/40 py-24">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="mb-12 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-brand-400">
+              Acces public
+            </p>
+            <h2 className="mt-3 text-2xl font-bold uppercase tracking-tight text-zinc-50 md:text-3xl">
+              Tournois disponibles
+            </h2>
+          </div>
+          <p className="max-w-2xl text-sm leading-relaxed text-zinc-500">
+            Consultez les tournois acceptes par l'administration, leurs lieux, leurs dates et leurs informations publiques.
+          </p>
+        </div>
+
+        {loading && (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {[1, 2, 3].map((item) => (
+              <div key={item} className="h-80 animate-pulse rounded-md border border-zinc-900 bg-zinc-950/70" />
+            ))}
+          </div>
+        )}
+
+        {!loading && error && (
+          <div className="rounded-md border border-red-500/20 bg-red-500/10 px-5 py-4 text-sm text-red-300">
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && tournaments.length === 0 && (
+          <div className="rounded-md border border-zinc-900 bg-zinc-950/60 px-5 py-12 text-center">
+            <p className="text-sm font-medium text-zinc-300">Aucun tournoi disponible pour le moment.</p>
+            <p className="mt-2 text-xs text-zinc-600">
+              Les tournois apparaitront ici apres validation par un administrateur.
+            </p>
+          </div>
+        )}
+
+        {!loading && !error && tournaments.length > 0 && (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {tournaments.map((tournament) => (
+              <article
+                key={tournament.id}
+                className="group overflow-hidden rounded-md border border-zinc-900 bg-zinc-950/70 text-left transition-colors hover:border-brand-500/30"
+              >
+                <EntityImage
+                  src={tournament.banner_path}
+                  name={tournament.name}
+                  className="h-44 w-full border-0 bg-brand-500/10"
+                />
+
+                <div className="space-y-5 p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <h3 className="truncate text-lg font-bold text-zinc-50" title={tournament.name}>
+                        {tournament.name}
+                      </h3>
+                      <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-relaxed text-zinc-500">
+                        {tournament.description || "Informations publiques du tournoi."}
+                      </p>
+                    </div>
+                    <PublicStatusBadge value={tournament.status ?? tournament.approval_status} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <TournamentMeta label="Ville" value={tournament.city} />
+                    <TournamentMeta label="Lieu" value={tournament.location} />
+                    <TournamentMeta label="Debut" value={formatDate(tournament.start_date)} />
+                    <TournamentMeta label="Fin" value={formatDate(tournament.end_date)} />
+                  </div>
+
+                  <Link
+                    to={`/tournaments/${tournament.id}`}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-sm border border-brand-500/50 bg-brand-500 px-4 py-2.5 text-[11px] font-mono font-bold uppercase tracking-widest text-white transition-colors hover:bg-brand-600"
+                  >
+                    Voir d&eacute;tails
+                    <ArrowRightIcon className="size-4" />
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+export function LandingNav() {
   return (
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-zinc-900/80 bg-black/70 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
@@ -51,12 +188,15 @@ function LandingNav() {
         </Link>
 
         <nav className="hidden items-center gap-8 text-xs font-semibold uppercase tracking-wider text-zinc-400 md:flex">
-          <a href="#features" className="border-b-2 border-transparent py-1.5 transition-colors hover:border-brand-500 hover:text-zinc-100">
+          <Link to="/#public-tournaments" className="border-b-2 border-transparent py-1.5 transition-colors hover:border-brand-500 hover:text-zinc-100">
+            Tournois
+          </Link>
+          <Link to="/#features" className="border-b-2 border-transparent py-1.5 transition-colors hover:border-brand-500 hover:text-zinc-100">
             Fonctionnalites
-          </a>
-          <a href="#faq" className="border-b-2 border-transparent py-1.5 transition-colors hover:border-brand-500 hover:text-zinc-100">
+          </Link>
+          <Link to="/#faq" className="border-b-2 border-transparent py-1.5 transition-colors hover:border-brand-500 hover:text-zinc-100">
             FAQ
-          </a>
+          </Link>
         </nav>
 
         <div className="flex items-center gap-3">
@@ -80,6 +220,40 @@ function LandingNav() {
 
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [tournaments, setTournaments] = useState<PublicTournament[]>([]);
+  const [loadingTournaments, setLoadingTournaments] = useState(true);
+  const [tournamentsError, setTournamentsError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadTournaments() {
+      setLoadingTournaments(true);
+      setTournamentsError("");
+
+      try {
+        const data = await getTournaments();
+        if (!active) return;
+        setTournaments(
+          data.filter((tournament) => (
+            !tournament.approval_status
+            || ["accepted", "approved"].includes(tournament.approval_status)
+          )),
+        );
+      } catch (err) {
+        if (!active) return;
+        setTournamentsError(err instanceof Error ? err.message : "Impossible de charger les tournois publics.");
+      } finally {
+        if (active) setLoadingTournaments(false);
+      }
+    }
+
+    void loadTournaments();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <>
@@ -124,12 +298,12 @@ export default function LandingPage() {
                 Se connecter
                 <ArrowRightIcon className="size-4" />
               </Link>
-              <Link
-                to="/tournaments"
+              <a
+                href="#public-tournaments"
                 className="rounded-sm border border-zinc-800 bg-transparent px-8 py-3 text-[11px] font-mono font-bold uppercase tracking-widest text-zinc-400 transition-all duration-200 hover:bg-zinc-900/50 hover:text-zinc-200"
               >
                 Voir les tournois
-              </Link>
+              </a>
             </div>
 
             <div className="mx-auto mt-16 grid max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3">
@@ -149,6 +323,12 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        <PublicTournamentsSection
+          tournaments={tournaments}
+          loading={loadingTournaments}
+          error={tournamentsError}
+        />
 
         <section id="features" className="border-y border-zinc-900 bg-zinc-950/30 py-24">
           <div className="mx-auto max-w-5xl px-6">
@@ -248,12 +428,12 @@ export default function LandingPage() {
                 Acceder au dashboard
                 <ArrowRightIcon className="size-4" />
               </Link>
-              <Link
-                to="/tournaments"
+              <a
+                href="#public-tournaments"
                 className="rounded-sm border border-zinc-700 px-8 py-3 text-sm font-semibold text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
               >
                 Voir les tournois
-              </Link>
+              </a>
             </div>
             <p className="mt-10 text-[10px] font-mono uppercase tracking-widest text-zinc-600">
               (c) {new Date().getFullYear()} {APP_NAME}
