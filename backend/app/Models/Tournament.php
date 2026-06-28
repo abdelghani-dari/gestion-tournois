@@ -21,6 +21,7 @@ class Tournament extends Model
         'city',
         'location',
         'banner_path',
+        'format',
         'start_date',
         'end_date',
         'status',
@@ -62,6 +63,11 @@ class Tournament extends Model
     public function matches(): HasMany
     {
         return $this->hasMany(MatchGame::class);
+    }
+
+    public function bracketMatches(): HasMany
+    {
+        return $this->hasMany(MatchGame::class)->whereNotNull('round_number');
     }
 
     public function rankings(): HasMany

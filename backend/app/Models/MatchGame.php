@@ -23,12 +23,20 @@ class MatchGame extends Model
         'away_score',
         'status',
         'result_status',
+        'round_number',
+        'bracket_position',
+        'next_match_id',
+        'next_slot',
+        'winner_team_id',
+        'bracket_status',
     ];
 
     protected function casts(): array
     {
         return [
             'match_date' => 'datetime',
+            'round_number' => 'integer',
+            'bracket_position' => 'integer',
         ];
     }
 
@@ -50,6 +58,21 @@ class MatchGame extends Model
     public function awayTeam(): BelongsTo
     {
         return $this->belongsTo(Team::class, 'away_team_id');
+    }
+
+    public function nextMatch(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'next_match_id');
+    }
+
+    public function sourceMatches(): HasMany
+    {
+        return $this->hasMany(self::class, 'next_match_id');
+    }
+
+    public function winnerTeam(): BelongsTo
+    {
+        return $this->belongsTo(Team::class, 'winner_team_id');
     }
 
     public function statistics(): HasMany

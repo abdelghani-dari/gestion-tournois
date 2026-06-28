@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\PlayerController;
 use App\Http\Controllers\Api\RankingController;
 use App\Http\Controllers\Api\StatisticController;
 use App\Http\Controllers\Api\TeamController;
+use App\Http\Controllers\Api\TournamentBracketController;
 use App\Http\Controllers\Api\TournamentController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,6 +23,7 @@ Route::post('register', [AuthController::class, 'register']);
 Route::post('login', [AuthController::class, 'login']);
 
 Route::get('tournaments', [TournamentController::class, 'index']);
+Route::get('tournaments/{tournament}/bracket', [TournamentBracketController::class, 'show']);
 Route::get('tournaments/{tournament}', [TournamentController::class, 'show']);
 Route::get('rankings', [RankingController::class, 'index']);
 Route::get('statistics', [StatisticController::class, 'index']);
@@ -45,6 +47,7 @@ Route::middleware('auth:api')->group(function () {
     Route::post('tournaments', [TournamentController::class, 'store']);
     Route::put('tournaments/{tournament}', [TournamentController::class, 'update']);
     Route::delete('tournaments/{tournament}', [TournamentController::class, 'destroy']);
+    Route::post('tournaments/{tournament}/generate-bracket', [TournamentBracketController::class, 'generate']);
     Route::get('my-tournaments', [TournamentController::class, 'myTournaments']);
 
     Route::get('admin/tournaments/pending', [AdminTournamentController::class, 'pending']);

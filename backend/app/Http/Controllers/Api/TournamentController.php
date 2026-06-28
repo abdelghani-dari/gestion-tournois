@@ -36,6 +36,7 @@ class TournamentController extends Controller
             'banner_path' => ['nullable', 'url', 'max:255'],
             'banner_url' => ['nullable', 'url', 'max:255'],
             'banner' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'format' => ['nullable', 'in:league,knockout'],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
         ]);
@@ -47,6 +48,7 @@ class TournamentController extends Controller
 
         $tournament = Tournament::create([
             ...$validated,
+            'format' => $validated['format'] ?? 'league',
             'created_by' => $user?->id,
             'status' => $isAdmin ? 'open' : 'draft',
             'approval_status' => $isAdmin ? 'accepted' : 'pending',
@@ -64,7 +66,7 @@ class TournamentController extends Controller
     {
         return response()->json(
             Cache::remember("tournament:{$tournament->id}:details", 60, fn () => $tournament
-                ->load(['creator', 'approvedBy'])
+                ->load(['creator', 'approvedBy', 'teams'])
                 ->toArray())
         );
     }
@@ -83,6 +85,7 @@ class TournamentController extends Controller
             'banner_path' => ['nullable', 'url', 'max:255'],
             'banner_url' => ['nullable', 'url', 'max:255'],
             'banner' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'format' => ['sometimes', 'required', 'in:league,knockout'],
             'start_date' => ['sometimes', 'required', 'date'],
             'end_date' => ['sometimes', 'required', 'date', 'after_or_equal:start_date'],
             'status' => ['sometimes', 'required', 'string', 'max:255'],
@@ -92,6 +95,14 @@ class TournamentController extends Controller
             $validated['banner_path'] = $imagePath ?? $validated['banner_url'] ?? $validated['banner_path'] ?? null;
         }
         unset($validated['banner'], $validated['banner_url']);
+
+        if (
+            isset($validated['format'])
+            && $validated['format'] !== $tournament->format
+            && $tournament->bracketMatches()->exists()
+        ) {
+            return response()->json(['message' => 'Cannot change tournament format while a bracket exists.'], 422);
+        }
 
         $tournament->update($validated);
 
@@ -124,6 +135,8 @@ class TournamentController extends Controller
     {
         Cache::forget('public:tournaments');
         Cache::forget("tournament:{$tournamentId}:details");
+        Cache::forget("tournament:{$tournamentId}:rankings");
+        Cache::forget("tournament:{$tournamentId}:statistics");
     }
 
     private function isAdmin(): bool

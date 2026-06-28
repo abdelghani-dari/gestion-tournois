@@ -38,6 +38,10 @@ class RankingController extends Controller
 
         $tournament = Tournament::with('teams')->findOrFail($validated['tournament_id']);
 
+        if ($tournament->format === 'knockout') {
+            return response()->json(['message' => 'Knockout tournaments use brackets instead of rankings.'], 422);
+        }
+
         if ((int) $tournament->created_by !== (int) auth('api')->id()
             && auth('api')->user()?->role !== 'admin') {
             return response()->json(['message' => 'Forbidden.'], 403);
