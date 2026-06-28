@@ -21,6 +21,8 @@ import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
 import Button from "../../components/common/Button";
 import FilterSearchInput from "../../components/common/FilterSearchInput";
+import FormDrawer from "../../components/common/FormDrawer";
+import PaginationControls, { usePagination } from "../../components/common/PaginationControls";
 import { statusLabel, statusTone } from "../../components/common/statusLabels";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
@@ -81,7 +83,9 @@ function tournamentName(match: ApiMatch, tournaments: MyTournament[]) {
   return match.tournament?.name ?? tournaments.find((t) => t.id === match.tournament_id)?.name ?? `Tournoi #${match.tournament_id}`;
 }
 
-function teamName(teamId: number, teams: ApiTeam[], embedded?: ApiTeam | null) {
+function teamName(teamId: number | null | undefined, teams: ApiTeam[], embedded?: ApiTeam | null) {
+  if (embedded?.name) return embedded.name;
+  if (teamId == null) return "En attente";
   return embedded?.name ?? teams.find((team) => team.id === teamId)?.name ?? `Équipe #${teamId}`;
 }
 
@@ -103,6 +107,8 @@ export default function MatchesPage() {
   const [myTournaments, setMyTournaments] = useState<MyTournament[]>([]);
   const [matchForm, setMatchForm] = useState<MatchForm>(emptyMatchForm);
   const [resultForm, setResultForm] = useState<ResultForm>(emptyResultForm);
+  const [createMatchOpen, setCreateMatchOpen] = useState(false);
+  const [resultOpen, setResultOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [tournamentFilter, setTournamentFilter] = useState("");
   const [loading, setLoading] = useState(true);
@@ -170,6 +176,7 @@ export default function MatchesPage() {
         .includes(q),
     );
   }, [matches, teams, myTournaments, searchQuery]);
+  const matchesPagination = usePagination(filteredMatches, `${searchQuery}:${tournamentFilter}`);
 
   const updateMatchForm = (key: keyof MatchForm, value: string) => {
     setMatchForm((current) => ({ ...current, [key]: value }));
@@ -199,6 +206,7 @@ export default function MatchesPage() {
       setSuccess("Match created.");
       setMatchForm((current) => ({ ...emptyMatchForm, tournament_id: current.tournament_id }));
       await loadData();
+      setCreateMatchOpen(false);
     } catch (err) {
       setError(readableActionError(err, "Impossible de créer le match."));
     } finally {
@@ -224,6 +232,7 @@ export default function MatchesPage() {
       setSuccess("Résultat enregistré.");
       setResultForm(emptyResultForm);
       await loadData();
+      setResultOpen(false);
     } catch (err) {
       setError(readableActionError(err, "Impossible d'enregistrer le résultat."));
     } finally {
@@ -301,90 +310,257 @@ export default function MatchesPage() {
           </ComponentCard>
 
           <ComponentCard title="Planifier un match" desc="Tournois que vous avez créés" className="xl:col-span-2">
-            {!isAuthenticated && !authLoading ? (
-              <p className={clsx("text-sm", t.textSecondary)}>Connectez-vous pour créer et gérer des matchs.</p>
-            ) : myTournaments.length === 0 && !loading ? (
-              <p className={clsx("text-sm", t.textSecondary)}>Créez d'abord un tournoi accepté.</p>
-            ) : teams.length < 2 && !loading ? (
-              <p className={clsx("text-sm", t.textSecondary)}>Sélectionnez au moins deux équipes.</p>
-            ) : (
-              <form onSubmit={handleCreateMatch} className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label htmlFor="match-tournament" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Tournoi *</label>
-                  <select
-                    id="match-tournament"
-                    name="tournament_id"
-                    value={matchForm.tournament_id}
-                    onChange={(e) => updateMatchForm("tournament_id", e.target.value)}
-                    required
-                    disabled={submittingMatch || loading}
-                    className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                  >
-                    <option value="">Sélectionner un tournoi</option>
-                    {myTournaments.map((tournament) => (
-                      <option key={tournament.id} value={tournament.id}>{tournament.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="match-date" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Date *</label>
-                  <input
-                    id="match-date"
-                    name="match_date"
-                    type="datetime-local"
-                    value={matchForm.match_date}
-                    onChange={(e) => updateMatchForm("match_date", e.target.value)}
-                    required
-                    disabled={submittingMatch || loading}
-                    className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="match-home-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe domicile *</label>
-                  <select
-                    id="match-home-team"
-                    name="home_team_id"
-                    value={matchForm.home_team_id}
-                    onChange={(e) => updateMatchForm("home_team_id", e.target.value)}
-                    required
-                    disabled={submittingMatch || loading}
-                    className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                  >
-                    <option value="">Sélectionner une équipe</option>
-                    {teams.map((team) => (
-                      <option key={team.id} value={team.id}>{team.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="match-away-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe extérieure *</label>
-                  <select
-                    id="match-away-team"
-                    name="away_team_id"
-                    value={matchForm.away_team_id}
-                    onChange={(e) => updateMatchForm("away_team_id", e.target.value)}
-                    required
-                    disabled={submittingMatch || loading}
-                    className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                  >
-                    <option value="">Sélectionner une équipe</option>
-                    {teams.map((team) => (
-                      <option key={team.id} value={team.id}>{team.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="md:col-span-2">
-                  <Button type="submit" disabled={submittingMatch || loading || teams.length < 2} className="gap-2">
-                    <PlusIcon className="size-4 shrink-0" />
-                    {submittingMatch ? "Création..." : "Créer le match"}
-                  </Button>
-                </div>
-              </form>
-            )}
+            <div className={clsx("flex flex-col gap-4 rounded-md border p-5 sm:flex-row sm:items-center sm:justify-between", t.card)}>
+              <div>
+                <p className={clsx("font-semibold", t.textPrimary)}>Créer un match</p>
+                <p className={clsx("mt-1 text-sm", t.textSecondary)}>Planifiez une rencontre sans allonger la page.</p>
+              </div>
+              <Button
+                type="button"
+                disabled={!isAuthenticated || loading || myTournaments.length === 0 || teams.length < 2}
+                onClick={() => setCreateMatchOpen(true)}
+                className="gap-2"
+              >
+                <PlusIcon className="size-4 shrink-0" />
+                Créer un match
+              </Button>
+            </div>
+            {!isAuthenticated && !authLoading && <p className={clsx("mt-4 text-sm", t.textSecondary)}>Connectez-vous pour créer et gérer des matchs.</p>}
+            {isAuthenticated && myTournaments.length === 0 && !loading && <p className={clsx("mt-4 text-sm", t.textSecondary)}>Créez d'abord un tournoi accepté.</p>}
+            {isAuthenticated && teams.length < 2 && !loading && <p className={clsx("mt-4 text-sm", t.textSecondary)}>Sélectionnez au moins deux équipes.</p>}
           </ComponentCard>
         </div>
 
         <ComponentCard title="Résultat" desc="Saisie et validation">
+          <div className={clsx("flex flex-col gap-4 rounded-md border p-5 sm:flex-row sm:items-center sm:justify-between", t.card)}>
+            <div>
+              <p className={clsx("font-semibold", t.textPrimary)}>Saisir un résultat</p>
+              <p className={clsx("mt-1 text-sm", t.textSecondary)}>Ouvrez le formulaire uniquement pour modifier un score.</p>
+            </div>
+            <Button type="button" disabled={!isAuthenticated || loading || matches.length === 0} onClick={() => setResultOpen(true)}>
+              Enregistrer le résultat
+            </Button>
+          </div>
+        </ComponentCard>
+
+        <ComponentCard title="Liste des matchs" desc="Matchs enregistrés">
+          <div className="mb-4 flex flex-wrap gap-3">
+            <FilterSearchInput
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Rechercher un match..."
+            />
+            <select
+              id="matches-tournament-filter"
+              name="tournament_filter"
+              value={tournamentFilter}
+              onChange={(e) => setTournamentFilter(e.target.value)}
+              className={clsx("rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+            >
+              <option value="">Tous les tournois</option>
+              {myTournaments.map((tournament) => (
+                <option key={tournament.id} value={tournament.id}>{tournament.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {(success || error) && (
+            <div
+              className={clsx(
+                "mb-4 rounded-sm border px-4 py-3 text-sm",
+                error ? "border-red-500/20 bg-red-500/10 text-red-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+              )}
+            >
+              {error || success}
+            </div>
+          )}
+
+          {loading && (
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement des matchs...</p>
+          )}
+
+          {!loading && !error && matches.length === 0 && (
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune donnée disponible.</p>
+          )}
+
+          {!loading && matches.length > 0 && (
+            <div className="x-scroll overflow-x-auto">
+              <table className="w-full min-w-[1120px] table-fixed text-sm">
+                <colgroup>
+                  <col className="w-[64px]" />
+                  <col className="w-[17%]" />
+                  <col className="w-[16%]" />
+                  <col className="w-[16%]" />
+                  <col className="w-[15%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[16%]" />
+                </colgroup>
+                <thead>
+                  <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
+                    <th className="px-4 py-3">ID</th>
+                    <th className="px-4 py-3">Tournoi</th>
+                    <th className="px-4 py-3">Domicile</th>
+                    <th className="px-4 py-3">Extérieur</th>
+                    <th className="px-4 py-3">Date</th>
+                    <th className="px-4 py-3">Score</th>
+                    <th className="px-4 py-3">Statut</th>
+                    <th className="px-4 py-3">Résultat</th>
+                    <th className="px-4 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {matchesPagination.paginatedItems.map((match) => (
+                    <tr key={match.id} className={clsx("transition-colors", t.tableRow, t.navHover)}>
+                      <td className={clsx("px-4 py-3 font-mono", t.textMuted)}>{match.id}</td>
+                      <td className={clsx("px-4 py-3", t.textSecondary)}>
+                        <span className="block truncate" title={tournamentName(match, myTournaments)}>{tournamentName(match, myTournaments)}</span>
+                      </td>
+                      <td className={clsx("px-4 py-3 font-medium", t.textPrimary)}>
+                        <span className="block truncate" title={teamName(match.home_team_id, teams, match.home_team)}>
+                          {teamName(match.home_team_id, teams, match.home_team)}
+                        </span>
+                      </td>
+                      <td className={clsx("px-4 py-3 font-medium", t.textPrimary)}>
+                        <span className="block truncate" title={teamName(match.away_team_id, teams, match.away_team)}>
+                          {teamName(match.away_team_id, teams, match.away_team)}
+                        </span>
+                      </td>
+                      <td className={clsx("px-4 py-3 whitespace-nowrap tabular-nums", t.textSecondary)}>{formatDateTime(match.match_date)}</td>
+                      <td className={clsx("px-4 py-3 font-mono tabular-nums", t.textSecondary)}>
+                        {match.home_score ?? "-"} - {match.away_score ?? "-"}
+                      </td>
+                      <td className="px-4 py-3"><StatusPill value={match.status} /></td>
+                      <td className="px-4 py-3"><StatusPill value={match.result_status} /></td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-2">
+                          {match.status === "played" && match.home_score != null && match.away_score != null && match.result_status === "pending" && (
+                            <>
+                              <Button size="sm" variant="secondary" disabled={workingId === match.id} onClick={() => handleConfirm(match.id)}>
+                                Confirmer
+                              </Button>
+                              <Button size="sm" variant="danger" disabled={workingId === match.id} onClick={() => handleDispute(match.id)}>
+                                Contester
+                              </Button>
+                            </>
+                          )}
+                          {match.status === "played" && match.home_score != null && match.away_score != null && match.result_status === "disputed" && (
+                            <Button size="sm" variant="secondary" disabled={workingId === match.id} onClick={() => handleConfirm(match.id)}>
+                              Confirmer
+                            </Button>
+                          )}
+                          <Button size="sm" variant="danger" disabled={deletingId === match.id} onClick={() => handleDelete(match)}>
+                            {deletingId === match.id ? "Suppression..." : "Supprimer"}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <PaginationControls
+                page={matchesPagination.page}
+                pageSize={matchesPagination.pageSize}
+                totalItems={filteredMatches.length}
+                onPageChange={matchesPagination.setPage}
+                onPageSizeChange={matchesPagination.setPageSize}
+              />
+            </div>
+          )}
+        </ComponentCard>
+
+        <FormDrawer
+          open={createMatchOpen}
+          onClose={() => setCreateMatchOpen(false)}
+          title="Créer un match"
+          description="Planifiez une rencontre pour l'un de vos tournois."
+        >
+          <form onSubmit={handleCreateMatch} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label htmlFor="match-tournament" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Tournoi *</label>
+              <select
+                id="match-tournament"
+                name="tournament_id"
+                value={matchForm.tournament_id}
+                onChange={(e) => updateMatchForm("tournament_id", e.target.value)}
+                required
+                disabled={submittingMatch || loading}
+                className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+              >
+                <option value="">Sélectionner un tournoi</option>
+                {myTournaments.map((tournament) => (
+                  <option key={tournament.id} value={tournament.id}>{tournament.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="match-date" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Date *</label>
+              <input
+                id="match-date"
+                name="match_date"
+                type="datetime-local"
+                value={matchForm.match_date}
+                onChange={(e) => updateMatchForm("match_date", e.target.value)}
+                required
+                disabled={submittingMatch || loading}
+                className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+              />
+            </div>
+            <div>
+              <label htmlFor="match-home-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe domicile *</label>
+              <select
+                id="match-home-team"
+                name="home_team_id"
+                value={matchForm.home_team_id}
+                onChange={(e) => updateMatchForm("home_team_id", e.target.value)}
+                required
+                disabled={submittingMatch || loading}
+                className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+              >
+                <option value="">Sélectionner une équipe</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>{team.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="match-away-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe extérieure *</label>
+              <select
+                id="match-away-team"
+                name="away_team_id"
+                value={matchForm.away_team_id}
+                onChange={(e) => updateMatchForm("away_team_id", e.target.value)}
+                required
+                disabled={submittingMatch || loading}
+                className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+              >
+                <option value="">Sélectionner une équipe</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>{team.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              {error && (
+                <div className="mb-3 rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                  {error}
+                </div>
+              )}
+              <Button type="submit" disabled={submittingMatch || loading || teams.length < 2} className="gap-2">
+                <PlusIcon className="size-4 shrink-0" />
+                {submittingMatch ? "Création..." : "Créer le match"}
+              </Button>
+            </div>
+          </form>
+        </FormDrawer>
+
+        <FormDrawer
+          open={resultOpen}
+          onClose={() => setResultOpen(false)}
+          title="Saisir un résultat"
+          description="Enregistrez le score d'un match."
+        >
           <form onSubmit={handleEnterResult} className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div className="md:col-span-2">
               <label htmlFor="result-match" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match *</label>
@@ -434,14 +610,9 @@ export default function MatchesPage() {
               />
             </div>
             <div className="md:col-span-4">
-              {(success || error) && (
-                <div
-                  className={clsx(
-                    "mb-3 rounded-sm border px-4 py-3 text-sm",
-                    error ? "border-red-500/20 bg-red-500/10 text-red-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
-                  )}
-                >
-                  {error || success}
+              {error && (
+                <div className="mb-3 rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                  {error}
                 </div>
               )}
               <Button type="submit" disabled={!isAuthenticated || submittingResult || loading}>
@@ -449,116 +620,7 @@ export default function MatchesPage() {
               </Button>
             </div>
           </form>
-        </ComponentCard>
-
-        <ComponentCard title="Liste des matchs" desc="Matchs enregistrés">
-          <div className="mb-4 flex flex-wrap gap-3">
-            <FilterSearchInput
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Rechercher un match..."
-            />
-            <select
-              id="matches-tournament-filter"
-              name="tournament_filter"
-              value={tournamentFilter}
-              onChange={(e) => setTournamentFilter(e.target.value)}
-              className={clsx("rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-            >
-              <option value="">Tous les tournois</option>
-              {myTournaments.map((tournament) => (
-                <option key={tournament.id} value={tournament.id}>{tournament.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {loading && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement des matchs...</p>
-          )}
-
-          {!loading && !error && matches.length === 0 && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune donnée disponible.</p>
-          )}
-
-          {!loading && matches.length > 0 && (
-            <div className="x-scroll overflow-x-auto">
-              <table className="w-full min-w-[1120px] table-fixed text-sm">
-                <colgroup>
-                  <col className="w-[64px]" />
-                  <col className="w-[17%]" />
-                  <col className="w-[16%]" />
-                  <col className="w-[16%]" />
-                  <col className="w-[15%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[16%]" />
-                </colgroup>
-                <thead>
-                  <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
-                    <th className="px-4 py-3">ID</th>
-                    <th className="px-4 py-3">Tournoi</th>
-                    <th className="px-4 py-3">Domicile</th>
-                    <th className="px-4 py-3">Extérieur</th>
-                    <th className="px-4 py-3">Date</th>
-                    <th className="px-4 py-3">Score</th>
-                    <th className="px-4 py-3">Statut</th>
-                    <th className="px-4 py-3">Résultat</th>
-                    <th className="px-4 py-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredMatches.map((match) => (
-                    <tr key={match.id} className={clsx("transition-colors", t.tableRow, t.navHover)}>
-                      <td className={clsx("px-4 py-3 font-mono", t.textMuted)}>{match.id}</td>
-                      <td className={clsx("px-4 py-3", t.textSecondary)}>
-                        <span className="block truncate" title={tournamentName(match, myTournaments)}>{tournamentName(match, myTournaments)}</span>
-                      </td>
-                      <td className={clsx("px-4 py-3 font-medium", t.textPrimary)}>
-                        <span className="block truncate" title={teamName(match.home_team_id, teams, match.home_team)}>
-                          {teamName(match.home_team_id, teams, match.home_team)}
-                        </span>
-                      </td>
-                      <td className={clsx("px-4 py-3 font-medium", t.textPrimary)}>
-                        <span className="block truncate" title={teamName(match.away_team_id, teams, match.away_team)}>
-                          {teamName(match.away_team_id, teams, match.away_team)}
-                        </span>
-                      </td>
-                      <td className={clsx("px-4 py-3 whitespace-nowrap tabular-nums", t.textSecondary)}>{formatDateTime(match.match_date)}</td>
-                      <td className={clsx("px-4 py-3 font-mono tabular-nums", t.textSecondary)}>
-                        {match.home_score ?? "-"} - {match.away_score ?? "-"}
-                      </td>
-                      <td className="px-4 py-3"><StatusPill value={match.status} /></td>
-                      <td className="px-4 py-3"><StatusPill value={match.result_status} /></td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-2">
-                          {match.status === "played" && match.home_score != null && match.away_score != null && match.result_status === "pending" && (
-                            <>
-                              <Button size="sm" variant="secondary" disabled={workingId === match.id} onClick={() => handleConfirm(match.id)}>
-                                Confirmer
-                              </Button>
-                              <Button size="sm" variant="danger" disabled={workingId === match.id} onClick={() => handleDispute(match.id)}>
-                                Contester
-                              </Button>
-                            </>
-                          )}
-                          {match.status === "played" && match.home_score != null && match.away_score != null && match.result_status === "disputed" && (
-                            <Button size="sm" variant="secondary" disabled={workingId === match.id} onClick={() => handleConfirm(match.id)}>
-                              Confirmer
-                            </Button>
-                          )}
-                          <Button size="sm" variant="danger" disabled={deletingId === match.id} onClick={() => handleDelete(match)}>
-                            {deletingId === match.id ? "Suppression..." : "Supprimer"}
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </ComponentCard>
+        </FormDrawer>
       </PageStack>
     </>
   );

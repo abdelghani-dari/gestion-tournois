@@ -5,11 +5,14 @@ import LandingPage from "./landing/LandingPage";
 import LoginPage from "./auth/LoginPage";
 import DashboardPage from "./dashboard/DashboardPage";
 import TournamentsPage from "./tournaments/TournamentsPage";
+import TournamentBracketPage from "./tournaments/TournamentBracketPage";
+import TournamentCreatePage from "./tournaments/TournamentCreatePage";
 import TournamentDetailsPage from "./tournaments/TournamentDetailsPage";
 import TeamsPage from "./teams/TeamsPage";
 import PlayersPage from "./players/PlayersPage";
 import MatchesPage from "./matches/MatchesPage";
 import MatchCompositionPage from "./matches/MatchCompositionPage";
+import MatchDetailsPage from "./matches/MatchDetailsPage";
 import RankingsPage from "./rankings/RankingsPage";
 import StatisticsPage from "./statistics/StatisticsPage";
 import ProfilePage from "./profile/ProfilePage";
@@ -67,6 +70,8 @@ export const appRoutes = (
     <Route path="login" element={<LoginPage />} />
     <Route path="signin" element={<LoginPage />} />
     <Route path="signup" element={<LoginPage />} />
+    <Route path="matches/:id" element={<MatchDetailsPage />} />
+    <Route path="tournaments/:id/bracket" element={<TournamentBracketPage />} />
     <Route path="tournaments/:id" element={<TournamentDetailsPage />} />
 
     <Route element={<RequireAuth><XAppLayout /></RequireAuth>}>
@@ -76,6 +81,7 @@ export const appRoutes = (
       <Route path="championships/:id" element={<Navigate to="/tournaments" replace />} />
       <Route path="championships/:id/ranking" element={<Navigate to="/rankings" replace />} />
       <Route path="tournaments" element={<TournamentsPage />} />
+      <Route path="tournaments/create" element={<TournamentCreatePage />} />
       <Route path="tournaments/:id/ranking" element={<RankingsPage />} />
       <Route path="teams" element={<TeamsPage />} />
       <Route path="teams/:id" element={<Navigate to="/teams" replace />} />
@@ -89,7 +95,6 @@ export const appRoutes = (
       <Route path="matches/:id/result" element={<Navigate to="/matches" replace />} />
       <Route path="matches/:id/composition" element={<MatchCompositionPage />} />
       <Route path="matches/:id/statistics" element={<StatisticsPage />} />
-      <Route path="matches/:id" element={<Navigate to="/matches" replace />} />
       <Route path="rankings" element={<RankingsPage />} />
       <Route path="statistics" element={<StatisticsPage />} />
       <Route path="admin" element={<AdminDashboardPage />} />

@@ -10,6 +10,8 @@ import EntityImage from "../../components/common/EntityImage";
 import ImageSourceInput, { type ImageSourceMode } from "../../components/common/ImageSourceInput";
 import Button from "../../components/common/Button";
 import FilterSearchInput from "../../components/common/FilterSearchInput";
+import FormDrawer from "../../components/common/FormDrawer";
+import PaginationControls, { usePagination } from "../../components/common/PaginationControls";
 import XModal from "../../components/common/XModal";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
@@ -45,6 +47,7 @@ export default function TeamsPage() {
   const [form, setForm] = useState<TeamPayload>(emptyTeamForm);
   const [logoMode, setLogoMode] = useState<ImageSourceMode>("url");
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const [detailsTeam, setDetailsTeam] = useState<ApiTeam | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -92,6 +95,7 @@ export default function TeamsPage() {
         .includes(q),
     );
   }, [teams, searchQuery]);
+  const teamsPagination = usePagination(filteredTeams, searchQuery);
 
   const handleCreateTeam = async (e: FormEvent) => {
     e.preventDefault();
@@ -113,6 +117,7 @@ export default function TeamsPage() {
       setForm(emptyTeamForm);
       setLogoFile(null);
       await loadTeams();
+      setCreateOpen(false);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setError("Votre session a expiré. Veuillez vous reconnecter.");
@@ -173,74 +178,16 @@ export default function TeamsPage() {
               </ComponentCard>
 
               <ComponentCard title="Créer une équipe" desc="Votre compte sera associé automatiquement" className="xl:col-span-2">
-                <form onSubmit={handleCreateTeam} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className={clsx("flex flex-col gap-4 rounded-md border p-5 sm:flex-row sm:items-center sm:justify-between", t.card)}>
                   <div>
-                    <label htmlFor="team-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
-                    <input
-                      id="team-name"
-                      name="name"
-                      value={form.name}
-                      onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))}
-                      required
-                      disabled={submitting}
-                      className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                    />
+                    <p className={clsx("font-semibold", t.textPrimary)}>Ajouter une équipe</p>
+                    <p className={clsx("mt-1 text-sm", t.textSecondary)}>Gardez la liste lisible et ouvrez le formulaire seulement quand nécessaire.</p>
                   </div>
-                  <div>
-                    <label htmlFor="team-short-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom court</label>
-                    <input
-                      id="team-short-name"
-                      name="short_name"
-                      value={form.short_name}
-                      onChange={(e) => setForm((current) => ({ ...current, short_name: e.target.value.toUpperCase().slice(0, 3) }))}
-                      maxLength={3}
-                      placeholder="ATF"
-                      disabled={submitting}
-                      className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm uppercase focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="team-city" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Ville</label>
-                    <input
-                      id="team-city"
-                      name="city"
-                      value={form.city}
-                      onChange={(e) => setForm((current) => ({ ...current, city: e.target.value }))}
-                      disabled={submitting}
-                      className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <ImageSourceInput
-                      label="Logo"
-                      name="logo"
-                      mode={logoMode}
-                      onModeChange={setLogoMode}
-                      file={logoFile}
-                      onFileChange={setLogoFile}
-                      url={form.logo_path ?? ""}
-                      onUrlChange={(value) => setForm((current) => ({ ...current, logo_path: value }))}
-                      previewName={form.name || "Équipe"}
-                      disabled={submitting}
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    {success && (
-                      <div className="mb-3 rounded-sm border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
-                        {success}
-                      </div>
-                    )}
-                    {error && (
-                      <div className="mb-3 rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                        {error}
-                      </div>
-                    )}
-                    <Button type="submit" disabled={submitting} className="gap-2">
-                      <PlusIcon className="size-4 shrink-0" />
-                      {submitting ? "Création..." : "Créer l'équipe"}
-                    </Button>
-                  </div>
-                </form>
+                  <Button type="button" onClick={() => setCreateOpen(true)} className="gap-2">
+                    <PlusIcon className="size-4 shrink-0" />
+                    Créer une équipe
+                  </Button>
+                </div>
               </ComponentCard>
             </div>
 
@@ -296,7 +243,7 @@ export default function TeamsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredTeams.map((team) => (
+                      {teamsPagination.paginatedItems.map((team) => (
                         <tr key={team.id} className={clsx("transition-colors", t.tableRow, t.navHover)}>
                           <td className={clsx("px-4 py-3 font-mono", t.textMuted)}>{team.id}</td>
                           <td className="px-4 py-3">
@@ -331,9 +278,87 @@ export default function TeamsPage() {
                       ))}
                     </tbody>
                   </table>
+                  <PaginationControls
+                    page={teamsPagination.page}
+                    pageSize={teamsPagination.pageSize}
+                    totalItems={filteredTeams.length}
+                    onPageChange={teamsPagination.setPage}
+                    onPageSizeChange={teamsPagination.setPageSize}
+                  />
                 </div>
               )}
             </ComponentCard>
+
+            <FormDrawer
+              open={createOpen}
+              onClose={() => setCreateOpen(false)}
+              title="Créer une équipe"
+              description="Ajoutez une équipe à votre compte."
+            >
+              <form onSubmit={handleCreateTeam} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label htmlFor="team-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
+                  <input
+                    id="team-name"
+                    name="name"
+                    value={form.name}
+                    onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))}
+                    required
+                    disabled={submitting}
+                    className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="team-short-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom court</label>
+                  <input
+                    id="team-short-name"
+                    name="short_name"
+                    value={form.short_name}
+                    onChange={(e) => setForm((current) => ({ ...current, short_name: e.target.value.toUpperCase().slice(0, 3) }))}
+                    maxLength={3}
+                    placeholder="ATF"
+                    disabled={submitting}
+                    className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm uppercase focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="team-city" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Ville</label>
+                  <input
+                    id="team-city"
+                    name="city"
+                    value={form.city}
+                    onChange={(e) => setForm((current) => ({ ...current, city: e.target.value }))}
+                    disabled={submitting}
+                    className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <ImageSourceInput
+                    label="Logo"
+                    name="logo"
+                    mode={logoMode}
+                    onModeChange={setLogoMode}
+                    file={logoFile}
+                    onFileChange={setLogoFile}
+                    url={form.logo_path ?? ""}
+                    onUrlChange={(value) => setForm((current) => ({ ...current, logo_path: value }))}
+                    previewName={form.name || "Équipe"}
+                    disabled={submitting}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  {error && (
+                    <div className="mb-3 rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                      {error}
+                    </div>
+                  )}
+                  <Button type="submit" disabled={submitting} className="gap-2">
+                    <PlusIcon className="size-4 shrink-0" />
+                    {submitting ? "Création..." : "Créer l'équipe"}
+                  </Button>
+                </div>
+              </form>
+            </FormDrawer>
 
             <XModal
               open={Boolean(detailsTeam)}

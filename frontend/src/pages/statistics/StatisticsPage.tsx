@@ -18,6 +18,8 @@ import {
 } from "../../api";
 import Button from "../../components/common/Button";
 import ComponentCard from "../../components/common/ComponentCard";
+import FormDrawer from "../../components/common/FormDrawer";
+import PaginationControls, { usePagination } from "../../components/common/PaginationControls";
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import Badge from "../../components/ui/Badge";
@@ -79,7 +81,9 @@ function playerName(player?: ApiPlayer | null) {
   return `${player.first_name ?? ""} ${player.last_name ?? ""}`.trim() || `Player #${player.id}`;
 }
 
-function teamName(teamId: number, teams: ApiTeam[], embedded?: ApiTeam | null) {
+function teamName(teamId: number | null | undefined, teams: ApiTeam[], embedded?: ApiTeam | null) {
+  if (embedded?.name) return embedded.name;
+  if (teamId == null) return "En attente";
   return embedded?.name ?? teams.find((team) => team.id === teamId)?.name ?? `Équipe #${teamId}`;
 }
 
@@ -90,6 +94,11 @@ function playerLabel(playerId: number, players: ApiPlayer[], embedded?: ApiPlaye
 function matchName(matchId: number, matches: ApiMatch[], embedded?: ApiMatch | null) {
   const match = embedded ?? matches.find((item) => item.id === matchId);
   if (!match) return `Match #${matchId}`;
+  if (match.home_team_id == null || match.away_team_id == null) {
+    const home = match.homeTeam?.name ?? match.home_team?.name ?? "En attente";
+    const away = match.awayTeam?.name ?? match.away_team?.name ?? "En attente";
+    return `#${match.id} - ${home} vs ${away}`;
+  }
 
   const home = match.homeTeam?.name ?? match.home_team?.name ?? `Équipe #${match.home_team_id}`;
   const away = match.awayTeam?.name ?? match.away_team?.name ?? `Équipe #${match.away_team_id}`;
@@ -133,6 +142,7 @@ export default function StatisticsPage() {
   const [players, setPlayers] = useState<ApiPlayer[]>([]);
   const [filters, setFilters] = useState<StatisticFilters>(() => getRouteFilters(location.pathname, id));
   const [form, setForm] = useState<StatisticForm>(emptyForm);
+  const [createOpen, setCreateOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -149,6 +159,7 @@ export default function StatisticsPage() {
       cards: byType("yellow_card") + byType("red_card"),
     };
   }, [statistics]);
+  const statisticsPagination = usePagination(statistics, Object.values(filters).join(":"));
 
   const loadData = async (activeFilters = filters) => {
     setLoading(true);
@@ -223,6 +234,7 @@ export default function StatisticsPage() {
         player_id: current.player_id,
       }));
       await loadData();
+      setCreateOpen(false);
     } catch (err) {
       setError(readableStatisticError(err, "Impossible de créer la statistique."));
     } finally {
@@ -282,115 +294,21 @@ export default function StatisticsPage() {
         </div>
 
         <ComponentCard title="Ajouter une statistique" desc={user ? `${user.email} - ${user.role}` : "Connexion requise"}>
-          {!isAuthenticated && !authLoading ? (
-            <p className={clsx("text-sm", t.textSecondary)}>La connexion est requise pour ajouter une statistique. Les statistiques publiques restent visibles.</p>
-          ) : (
-            <form onSubmit={handleCreate} className="grid grid-cols-1 gap-4 md:grid-cols-5">
-              <div className="md:col-span-2">
-                <label htmlFor="statistic-match" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match *</label>
-                <select
-                  id="statistic-match"
-                  name="match_game_id"
-                  value={form.match_game_id}
-                  onChange={(event) => updateForm("match_game_id", event.target.value)}
-                  required
-                  disabled={submitting || loading}
-                  className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                >
-                  <option value="">Sélectionner un match</option>
-                  {matches.map((match) => (
-                    <option key={match.id} value={match.id}>
-                      {matchName(match.id, matches, match)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="statistic-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe *</label>
-                <select
-                  id="statistic-team"
-                  name="team_id"
-                  value={form.team_id}
-                  onChange={(event) => updateForm("team_id", event.target.value)}
-                  required
-                  disabled={submitting || loading}
-                  className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                >
-                  <option value="">Sélectionner une équipe</option>
-                  {teams.map((team) => (
-                    <option key={team.id} value={team.id}>{team.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="statistic-player" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Joueur *</label>
-                <select
-                  id="statistic-player"
-                  name="player_id"
-                  value={form.player_id}
-                  onChange={(event) => updateForm("player_id", event.target.value)}
-                  required
-                  disabled={submitting || loading}
-                  className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                >
-                  <option value="">Sélectionner un joueur</option>
-                  {players.map((player) => (
-                    <option key={player.id} value={player.id}>{playerLabel(player.id, players, player)}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="statistic-type" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Type *</label>
-                <select
-                  id="statistic-type"
-                  name="stat_type"
-                  value={form.stat_type}
-                  onChange={(event) => updateForm("stat_type", event.target.value)}
-                  required
-                  disabled={submitting || loading}
-                  className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                >
-                  {statTypes.map((type) => (
-                    <option key={type.value} value={type.value}>{type.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="statistic-value" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Valeur *</label>
-                <input
-                  id="statistic-value"
-                  name="value"
-                  type="number"
-                  min={0}
-                  value={form.value}
-                  onChange={(event) => updateForm("value", event.target.value)}
-                  required
-                  disabled={submitting || loading}
-                  className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                />
-              </div>
-
-              <div className="flex items-end md:col-span-4">
-                <Button type="submit" disabled={submitting || loading || matches.length === 0 || teams.length === 0 || players.length === 0}>
-                  {submitting ? "Enregistrement..." : "Ajouter la statistique"}
-                </Button>
-              </div>
-            </form>
-          )}
-
-          {(success || error) && (
-            <div
-              className={clsx(
-                "mt-4 rounded-sm border px-4 py-3 text-sm",
-                error ? "border-red-500/20 bg-red-500/10 text-red-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
-              )}
-            >
-              {error || success}
+          <div className={clsx("flex flex-col gap-4 rounded-md border p-5 sm:flex-row sm:items-center sm:justify-between", t.card)}>
+            <div>
+              <p className={clsx("font-semibold", t.textPrimary)}>Ajouter une statistique</p>
+              <p className={clsx("mt-1 text-sm", t.textSecondary)}>Le formulaire est disponible à la demande pour garder la page compacte.</p>
             </div>
+            <Button
+              type="button"
+              disabled={!isAuthenticated || authLoading || loading || matches.length === 0 || teams.length === 0 || players.length === 0}
+              onClick={() => setCreateOpen(true)}
+            >
+              Ajouter une statistique
+            </Button>
+          </div>
+          {!isAuthenticated && !authLoading && (
+            <p className={clsx("mt-4 text-sm", t.textSecondary)}>La connexion est requise pour ajouter une statistique. Les statistiques publiques restent visibles.</p>
           )}
         </ComponentCard>
 
@@ -476,6 +394,17 @@ export default function StatisticsPage() {
         </ComponentCard>
 
         <ComponentCard title="Liste des statistiques" desc="Données enregistrées">
+          {(success || error) && (
+            <div
+              className={clsx(
+                "mb-4 rounded-sm border px-4 py-3 text-sm",
+                error ? "border-red-500/20 bg-red-500/10 text-red-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+              )}
+            >
+              {error || success}
+            </div>
+          )}
+
           {loading && (
             <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement des statistiques...</p>
           )}
@@ -510,7 +439,7 @@ export default function StatisticsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {statistics.map((statistic) => {
+                  {statisticsPagination.paginatedItems.map((statistic) => {
                     const embeddedMatch = statistic.matchGame ?? statistic.match_game;
                     return (
                       <tr key={statistic.id} className={clsx("transition-colors", t.tableRow, t.navHover)}>
@@ -547,9 +476,124 @@ export default function StatisticsPage() {
                   })}
                 </tbody>
               </table>
+              <PaginationControls
+                page={statisticsPagination.page}
+                pageSize={statisticsPagination.pageSize}
+                totalItems={statistics.length}
+                onPageChange={statisticsPagination.setPage}
+                onPageSizeChange={statisticsPagination.setPageSize}
+              />
             </div>
           )}
         </ComponentCard>
+
+        <FormDrawer
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          title="Ajouter une statistique"
+          description="Associez une statistique à un match, une équipe et un joueur."
+        >
+          <form onSubmit={handleCreate} className="grid grid-cols-1 gap-4 md:grid-cols-5">
+            <div className="md:col-span-2">
+              <label htmlFor="statistic-match" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match *</label>
+              <select
+                id="statistic-match"
+                name="match_game_id"
+                value={form.match_game_id}
+                onChange={(event) => updateForm("match_game_id", event.target.value)}
+                required
+                disabled={submitting || loading}
+                className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+              >
+                <option value="">Sélectionner un match</option>
+                {matches.map((match) => (
+                  <option key={match.id} value={match.id}>
+                    {matchName(match.id, matches, match)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="statistic-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe *</label>
+              <select
+                id="statistic-team"
+                name="team_id"
+                value={form.team_id}
+                onChange={(event) => updateForm("team_id", event.target.value)}
+                required
+                disabled={submitting || loading}
+                className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+              >
+                <option value="">Sélectionner une équipe</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>{team.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="statistic-player" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Joueur *</label>
+              <select
+                id="statistic-player"
+                name="player_id"
+                value={form.player_id}
+                onChange={(event) => updateForm("player_id", event.target.value)}
+                required
+                disabled={submitting || loading}
+                className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+              >
+                <option value="">Sélectionner un joueur</option>
+                {players.map((player) => (
+                  <option key={player.id} value={player.id}>{playerLabel(player.id, players, player)}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="statistic-type" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Type *</label>
+              <select
+                id="statistic-type"
+                name="stat_type"
+                value={form.stat_type}
+                onChange={(event) => updateForm("stat_type", event.target.value)}
+                required
+                disabled={submitting || loading}
+                className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+              >
+                {statTypes.map((type) => (
+                  <option key={type.value} value={type.value}>{type.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="statistic-value" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Valeur *</label>
+              <input
+                id="statistic-value"
+                name="value"
+                type="number"
+                min={0}
+                value={form.value}
+                onChange={(event) => updateForm("value", event.target.value)}
+                required
+                disabled={submitting || loading}
+                className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+              />
+            </div>
+
+            <div className="md:col-span-4">
+              {error && (
+                <div className="mb-3 rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                  {error}
+                </div>
+              )}
+              <Button type="submit" disabled={submitting || loading || matches.length === 0 || teams.length === 0 || players.length === 0}>
+                {submitting ? "Enregistrement..." : "Ajouter la statistique"}
+              </Button>
+            </div>
+          </form>
+        </FormDrawer>
       </PageStack>
     </>
   );

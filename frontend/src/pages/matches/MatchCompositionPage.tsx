@@ -61,7 +61,9 @@ function playerLabel(playerId: number, players: ApiPlayer[], embedded?: ApiPlaye
   return playerName(embedded) || playerName(players.find((player) => player.id === playerId)) || `Joueur #${playerId}`;
 }
 
-function teamName(teamId: number, teams: ApiTeam[], embedded?: ApiTeam | null) {
+function teamName(teamId: number | null | undefined, teams: ApiTeam[], embedded?: ApiTeam | null) {
+  if (embedded?.name) return embedded.name;
+  if (teamId == null) return "En attente";
   return embedded?.name ?? teams.find((team) => team.id === teamId)?.name ?? `Équipe #${teamId}`;
 }
 
@@ -74,7 +76,8 @@ function matchName(matchId: number, matches: ApiMatch[], embedded?: ApiMatch | n
   return `#${match.id} - ${home} vs ${away}`;
 }
 
-function teamsFallback(id: number) {
+function teamsFallback(id?: number | null) {
+  if (id == null) return "En attente";
   return `Équipe #${id}`;
 }
 

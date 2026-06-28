@@ -4,7 +4,7 @@ import { clsx } from "clsx";
 import { useXSidebar } from "../context/SidebarContext";
 import { useXTheme } from "../context/XThemeContext";
 import { useThemeTokens } from "../theme/useThemeTokens";
-import { APP_NAME } from "../../config/app";
+import AppLogo from "../common/AppLogo";
 import { useAuth } from "../../context/AuthContext";
 import {
   GridIcon,
@@ -100,9 +100,7 @@ export default function Sidebar() {
       >
         <div className={clsx("flex h-16 shrink-0 items-center border-b px-4", t.border)}>
           <Link to={isAdmin ? "/admin" : "/dashboard"} className="flex items-center gap-3 overflow-hidden">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-500/15 text-brand-400 ring-1 ring-brand-500/30">
-              <ShootingStarIcon className="size-5" />
-            </span>
+            <AppLogo variant="compact" size="sm" />
             <span
               className={clsx(
                 "overflow-hidden whitespace-nowrap text-sm font-semibold transition-opacity duration-200",
@@ -110,7 +108,7 @@ export default function Sidebar() {
                 isCollapsed ? "w-0 opacity-0" : "opacity-100",
               )}
             >
-              {APP_NAME}
+              Gestion Tournois
             </span>
           </Link>
         </div>

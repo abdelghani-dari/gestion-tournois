@@ -6,6 +6,7 @@ import {
   ApiError,
   createTournament,
   deleteTournament,
+  generateTournamentBracket,
   getAdminTournaments,
   getPendingTournaments,
   refuseTournament,
@@ -29,6 +30,7 @@ const emptyForm: CreateTournamentPayload = {
   city: "",
   location: "",
   banner_path: "",
+  format: "league",
   start_date: "",
   end_date: "",
 };
@@ -63,21 +65,25 @@ function AdminTournamentTable({
   notes,
   workingId,
   deletingId,
+  generatingId,
   showActions,
   onNoteChange,
   onAccept,
   onRefuse,
   onDelete,
+  onGenerateBracket,
 }: {
   tournaments: AdminTournament[];
   notes: Record<number, string>;
   workingId: number | null;
   deletingId: number | null;
+  generatingId: number | null;
   showActions: boolean;
   onNoteChange: (id: number, value: string) => void;
   onAccept: (id: number) => void;
   onRefuse: (id: number) => void;
   onDelete: (id: number) => void;
+  onGenerateBracket: (tournament: AdminTournament) => void;
 }) {
   const t = useThemeTokens();
 
@@ -98,6 +104,7 @@ function AdminTournamentTable({
           <col className="w-[10%]" />
           <col className="w-[10%]" />
           <col className="w-[11%]" />
+          <col className="w-[11%]" />
           <col className="w-[19%]" />
         </colgroup>
         <thead>
@@ -109,6 +116,7 @@ function AdminTournamentTable({
             <th className="px-4 py-3">Lieu</th>
             <th className="px-4 py-3">Début</th>
             <th className="px-4 py-3">Fin</th>
+            <th className="px-4 py-3">Format</th>
             <th className="px-4 py-3">Statut</th>
             <th className="px-4 py-3">Validation</th>
             <th className="px-4 py-3">Action / note</th>
@@ -133,6 +141,7 @@ function AdminTournamentTable({
               </td>
               <td className={clsx("px-4 py-3 whitespace-nowrap tabular-nums", t.textSecondary)}>{formatDate(tr.start_date)}</td>
               <td className={clsx("px-4 py-3 whitespace-nowrap tabular-nums", t.textSecondary)}>{formatDate(tr.end_date)}</td>
+              <td className={clsx("px-4 py-3", t.textSecondary)}>{tr.format === "knockout" ? "Knockout" : "Ligue"}</td>
               <td className="px-4 py-3"><StatusPill value={tr.status} /></td>
               <td className="px-4 py-3"><StatusPill value={tr.approval_status} /></td>
               <td className="px-4 py-3">
@@ -159,6 +168,16 @@ function AdminTournamentTable({
                 ) : (
                   <div className="space-y-2">
                     <span className={clsx("block truncate", t.textSecondary)} title={tr.admin_note ?? ""}>{tr.admin_note || "-"}</span>
+                    {tr.format === "knockout" && tr.approval_status === "accepted" && (
+                      <Button size="sm" variant="secondary" disabled={generatingId === tr.id} onClick={() => onGenerateBracket(tr)}>
+                        {generatingId === tr.id ? "Generation..." : "Generate bracket"}
+                      </Button>
+                    )}
+                    {tr.format === "knockout" && (
+                      <Link to={`/tournaments/${tr.id}/bracket`} className="inline-flex text-xs font-medium text-brand-500 hover:text-brand-400">
+                        Voir bracket
+                      </Link>
+                    )}
                     <Button size="sm" variant="danger" disabled={deletingId === tr.id} onClick={() => onDelete(tr.id)}>
                       {deletingId === tr.id ? "Suppression..." : "Supprimer"}
                     </Button>
@@ -182,6 +201,7 @@ export default function AdminTournamentsPage() {
   const [loading, setLoading] = useState(false);
   const [workingId, setWorkingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [generatingId, setGeneratingId] = useState<number | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<CreateTournamentPayload>(emptyForm);
@@ -293,6 +313,33 @@ export default function AdminTournamentsPage() {
     }
   };
 
+  const handleGenerateBracket = async (tournament: AdminTournament) => {
+    setGeneratingId(tournament.id);
+    setError("");
+    setSuccess("");
+
+    try {
+      await generateTournamentBracket(tournament.id);
+      setSuccess("Bracket genere.");
+      await loadAdminTournaments();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Impossible de generer le bracket.";
+      if (message.includes("already exists") && window.confirm("Un bracket existe deja. Regenerer le bracket non joue ?")) {
+        try {
+          await generateTournamentBracket(tournament.id, true);
+          setSuccess("Bracket regenere.");
+          await loadAdminTournaments();
+        } catch (resetErr) {
+          setError(resetErr instanceof Error ? resetErr.message : "Impossible de regenerer le bracket.");
+        }
+      } else {
+        setError(message);
+      }
+    } finally {
+      setGeneratingId(null);
+    }
+  };
+
   const closeCreate = () => {
     setCreateOpen(false);
     setForm(emptyForm);
@@ -314,6 +361,7 @@ export default function AdminTournamentsPage() {
         location: form.location?.trim() || undefined,
         banner: bannerFile,
         banner_url: form.banner_path?.trim() || undefined,
+        format: form.format,
         start_date: form.start_date,
         end_date: form.end_date,
       });
@@ -410,11 +458,13 @@ export default function AdminTournamentsPage() {
               notes={notes}
               workingId={workingId}
               deletingId={deletingId}
+              generatingId={generatingId}
               showActions
               onNoteChange={(id, value) => setNotes((current) => ({ ...current, [id]: value }))}
               onAccept={handleAccept}
               onRefuse={handleRefuse}
               onDelete={handleDelete}
+              onGenerateBracket={handleGenerateBracket}
             />
           )}
         </ComponentCard>
@@ -428,11 +478,13 @@ export default function AdminTournamentsPage() {
               notes={notes}
               workingId={workingId}
               deletingId={deletingId}
+              generatingId={generatingId}
               showActions={false}
               onNoteChange={(id, value) => setNotes((current) => ({ ...current, [id]: value }))}
               onAccept={handleAccept}
               onRefuse={handleRefuse}
               onDelete={handleDelete}
+              onGenerateBracket={handleGenerateBracket}
             />
           )}
         </ComponentCard>
@@ -450,6 +502,13 @@ export default function AdminTournamentsPage() {
             <div>
               <label htmlFor="admin-tournament-location" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Lieu</label>
               <input id="admin-tournament-location" value={form.location} disabled={creating} onChange={(e) => setForm((current) => ({ ...current, location: e.target.value }))} className={clsx("w-full rounded-sm border px-3 py-2 text-sm", t.border, t.metricBg, t.textPrimary)} />
+            </div>
+            <div>
+              <label htmlFor="admin-tournament-format" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Format *</label>
+              <select id="admin-tournament-format" value={form.format ?? "league"} required disabled={creating} onChange={(e) => setForm((current) => ({ ...current, format: e.target.value as "league" | "knockout" }))} className={clsx("w-full rounded-sm border px-3 py-2 text-sm", t.border, t.metricBg, t.textPrimary)}>
+                <option value="league">Ligue</option>
+                <option value="knockout">Elimination directe</option>
+              </select>
             </div>
             <div>
               <label htmlFor="admin-tournament-description" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Description</label>

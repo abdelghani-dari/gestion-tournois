@@ -1,21 +1,17 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Link } from "react-router";
 import { clsx } from "clsx";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ApiError,
-  createTournament,
   getDashboardSummary,
   type ApiMatch,
   type ApiRanking,
   type ApiTeam,
-  type CreateTournamentPayload,
   type DashboardSummary,
 } from "../../api";
-import Button from "../../components/common/Button";
 import ComponentCard from "../../components/common/ComponentCard";
 import EntityImage from "../../components/common/EntityImage";
-import ImageSourceInput, { type ImageSourceMode } from "../../components/common/ImageSourceInput";
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import { statusLabel, statusTone } from "../../components/common/statusLabels";
@@ -32,16 +28,6 @@ import {
   UserIcon,
 } from "../../icons";
 
-const emptyForm: CreateTournamentPayload = {
-  name: "",
-  description: "",
-  city: "",
-  location: "",
-  banner_path: "",
-  start_date: "",
-  end_date: "",
-};
-
 function formatDate(date?: string | null) {
   if (!date) return "-";
   return new Date(date).toLocaleDateString("fr-FR", {
@@ -51,11 +37,15 @@ function formatDate(date?: string | null) {
   });
 }
 
-function teamName(teamId: number, teams: ApiTeam[], embedded?: ApiTeam | null) {
+function teamName(teamId: number | null | undefined, teams: ApiTeam[], embedded?: ApiTeam | null) {
+  if (embedded?.name) return embedded.name;
+  if (teamId == null) return "En attente";
   return embedded?.name ?? teams.find((team) => team.id === teamId)?.name ?? `Équipe #${teamId}`;
 }
 
-function teamData(teamId: number, teams: ApiTeam[], embedded?: ApiTeam | null) {
+function teamData(teamId: number | null | undefined, teams: ApiTeam[], embedded?: ApiTeam | null) {
+  if (embedded) return embedded;
+  if (teamId == null) return null;
   return embedded ?? teams.find((team) => team.id === teamId) ?? null;
 }
 
@@ -199,12 +189,6 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [dashboardError, setDashboardError] = useState("");
-  const [error, setError] = useState("");
-  const [form, setForm] = useState<CreateTournamentPayload>(emptyForm);
-  const [bannerMode, setBannerMode] = useState<ImageSourceMode>("url");
-  const [bannerFile, setBannerFile] = useState<File | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState("");
   const loadedDashboardFor = useRef("");
 
   const counts = summary?.counts;
@@ -255,46 +239,8 @@ export default function DashboardPage() {
     void loadDashboard();
   }, [isAuthenticated, isAdmin, user?.email, user?.id]);
 
-  const updateForm = (key: keyof CreateTournamentPayload, value: string) => {
-    setForm((current) => ({ ...current, [key]: value }));
-  };
-
-  const handleCreateTournament = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!isAuthenticated) return;
-
-    setSubmitting(true);
-    setSuccess("");
-    setError("");
-
-    try {
-      await createTournament({
-        name: form.name,
-        description: form.description?.trim() || undefined,
-        city: form.city?.trim() || undefined,
-        location: form.location?.trim() || undefined,
-        banner: bannerFile,
-        banner_url: form.banner_path?.trim() || undefined,
-        start_date: form.start_date,
-        end_date: form.end_date,
-      });
-      setSuccess("Tournoi créé et envoyé pour validation.");
-      setForm(emptyForm);
-      setBannerFile(null);
-      await loadDashboard();
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        setError("Votre session a expiré. Veuillez vous reconnecter.");
-      } else {
-        setError(err instanceof Error ? err.message : "Impossible de créer le tournoi.");
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const userQuickLinks = [
-    { label: "Créer un tournoi", desc: "Nouvelle demande", to: "/dashboard", icon: <ShootingStarIcon className="size-5" /> },
+    { label: "Créer un tournoi", desc: "Nouvelle demande", to: "/tournaments/create", icon: <ShootingStarIcon className="size-5" /> },
     { label: "Gérer les équipes", desc: "Vos équipes locales", to: "/teams", icon: <GroupIcon className="size-5" /> },
     { label: "Gérer les joueurs", desc: "Effectifs et postes", to: "/players", icon: <UserIcon className="size-5" /> },
     { label: "Demandes", desc: "Participations", to: "/join-requests", icon: <PaperPlaneIcon className="size-5" /> },
@@ -328,7 +274,7 @@ export default function DashboardPage() {
               </div>
             </div>
             {isAdmin && (
-              <Link to="/dashboard" className="mt-4 inline-flex text-sm font-medium text-brand-500 hover:text-brand-400">
+              <Link to="/tournaments/create" className="mt-4 inline-flex text-sm font-medium text-brand-500 hover:text-brand-400">
                 Créer un tournoi reste possible via votre compte.
               </Link>
             )}
@@ -348,12 +294,6 @@ export default function DashboardPage() {
             </>
           )}
         </div>
-
-        {error && (
-          <div className="rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-            {error}
-          </div>
-        )}
 
         <div className={clsx("grid grid-cols-1 lg:grid-cols-3", GRID_GAP)}>
           <ComponentCard title="Statut des tournois" desc="Répartition actuelle">
@@ -403,51 +343,20 @@ export default function DashboardPage() {
           </ComponentCard>
         ) : (
           <div className={clsx("grid grid-cols-1 xl:grid-cols-3", GRID_GAP)}>
-            <ComponentCard title="Créer un tournoi" desc="Validation admin requise" className="xl:col-span-2">
-              <form onSubmit={handleCreateTournament} className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <div>
-                  <label htmlFor="dashboard-tournament-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
-                  <input id="dashboard-tournament-name" name="name" value={form.name} onChange={(e) => updateForm("name", e.target.value)} required disabled={submitting} className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
+            <ComponentCard title="Créer un tournoi" desc="Proposez un nouveau tournoi local" className="xl:col-span-2">
+              <div className={clsx("flex flex-col gap-4 rounded-md border p-5 sm:flex-row sm:items-center sm:justify-between", t.card)}>
+                <div className="min-w-0">
+                  <p className={clsx("text-lg font-semibold", t.textPrimary)}>Créer un tournoi</p>
+                  <p className={clsx("mt-1 text-sm", t.textSecondary)}>Proposez un nouveau tournoi local et suivez sa validation depuis votre espace.</p>
                 </div>
-                <div>
-                  <label htmlFor="dashboard-tournament-city" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Ville</label>
-                  <input id="dashboard-tournament-city" name="city" value={form.city} onChange={(e) => updateForm("city", e.target.value)} disabled={submitting} className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
-                </div>
-                <div>
-                  <label htmlFor="dashboard-tournament-location" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Lieu</label>
-                  <input id="dashboard-tournament-location" name="location" value={form.location} onChange={(e) => updateForm("location", e.target.value)} disabled={submitting} className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
-                </div>
-                <div>
-                  <label htmlFor="dashboard-tournament-description" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Description</label>
-                  <input id="dashboard-tournament-description" name="description" value={form.description} onChange={(e) => updateForm("description", e.target.value)} disabled={submitting} className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
-                </div>
-                <div className="lg:col-span-2">
-                  <ImageSourceInput
-                    label="Image du tournoi"
-                    name="banner"
-                    mode={bannerMode}
-                    onModeChange={setBannerMode}
-                    file={bannerFile}
-                    onFileChange={setBannerFile}
-                    url={form.banner_path ?? ""}
-                    onUrlChange={(value) => updateForm("banner_path", value)}
-                    previewName={form.name || "Tournoi"}
-                    disabled={submitting}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="dashboard-tournament-start-date" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Date début *</label>
-                  <input id="dashboard-tournament-start-date" name="start_date" type="date" value={form.start_date} onChange={(e) => updateForm("start_date", e.target.value)} required disabled={submitting} className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
-                </div>
-                <div>
-                  <label htmlFor="dashboard-tournament-end-date" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Date fin *</label>
-                  <input id="dashboard-tournament-end-date" name="end_date" type="date" value={form.end_date} onChange={(e) => updateForm("end_date", e.target.value)} required disabled={submitting} className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
-                </div>
-                <div className="lg:col-span-2">
-                  {success && <div className="mb-3 rounded-sm border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">{success}</div>}
-                  <Button type="submit" disabled={submitting}>{submitting ? "Création..." : "Créer le tournoi"}</Button>
-                </div>
-              </form>
+                <Link
+                  to="/tournaments/create"
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-sm border border-brand-500/50 bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600"
+                >
+                  <ShootingStarIcon className="size-4" />
+                  Créer un tournoi
+                </Link>
+              </div>
             </ComponentCard>
 
             <ComponentCard title="Activité" desc="Demandes et matchs">

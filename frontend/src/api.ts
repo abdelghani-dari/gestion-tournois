@@ -157,6 +157,7 @@ export type PublicTournament = {
   city?: string | null;
   location?: string | null;
   banner_path?: string | null;
+  format?: "league" | "knockout" | string | null;
   start_date?: string | null;
   end_date?: string | null;
   status?: string | null;
@@ -221,6 +222,7 @@ export type CreateTournamentPayload = {
   banner_path?: string;
   banner_url?: string;
   banner?: File | null;
+  format?: "league" | "knockout";
   start_date: string;
   end_date: string;
 };
@@ -242,6 +244,13 @@ export async function createTournament(payload: CreateTournamentPayload) {
 export async function deleteTournament(id: number) {
   return apiRequest<unknown>(`/tournaments/${id}`, {
     method: "DELETE",
+  });
+}
+
+export async function updateTournament(id: number, payload: Partial<CreateTournamentPayload>) {
+  return apiRequest<MyTournament>(`/tournaments/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
   });
 }
 
@@ -526,18 +535,26 @@ export async function refuseJoinRequest(id: number) {
 export type ApiMatch = {
   id: number;
   tournament_id: number;
-  home_team_id: number;
-  away_team_id: number;
+  home_team_id?: number | null;
+  away_team_id?: number | null;
   match_date?: string | null;
   home_score?: number | null;
   away_score?: number | null;
   status?: string | null;
   result_status?: string | null;
+  round_number?: number | null;
+  bracket_position?: number | null;
+  next_match_id?: number | null;
+  next_slot?: "home" | "away" | string | null;
+  winner_team_id?: number | null;
+  bracket_status?: "pending" | "ready" | "completed" | string | null;
   tournament?: PublicTournament | null;
   home_team?: ApiTeam | null;
   away_team?: ApiTeam | null;
   homeTeam?: ApiTeam | null;
   awayTeam?: ApiTeam | null;
+  winnerTeam?: ApiTeam | null;
+  winner_team?: ApiTeam | null;
 };
 
 export type MatchPayload = {
@@ -575,13 +592,39 @@ export async function getTournamentMatches(tournament_id: number | string) {
   return extractArray<ApiMatch>(response);
 }
 
+export type TournamentBracketRound = {
+  round_number: number;
+  name: string;
+  matches: ApiMatch[];
+};
+
+export type TournamentBracket = {
+  tournament: PublicTournament;
+  rounds: TournamentBracketRound[];
+};
+
+export async function getTournamentBracket(tournament_id: number | string) {
+  assertValidId(tournament_id, "Un tournoi valide est requis pour charger le tableau.");
+  return apiRequest<TournamentBracket>(`/tournaments/${tournament_id}/bracket`, { auth: false });
+}
+
+export async function generateTournamentBracket(tournament_id: number | string, reset = false) {
+  assertValidId(tournament_id, "Un tournoi valide est requis pour generer le tableau.");
+  return apiRequest<TournamentBracket>(`/tournaments/${tournament_id}/generate-bracket`, {
+    method: "POST",
+    body: JSON.stringify(reset ? { reset: true } : {}),
+  });
+}
+
 export async function getAdminMatches() {
   const response = await apiRequest<MatchesResponse>("/admin/matches");
   return extractArray<ApiMatch>(response);
 }
 
-export async function getMatch(id: number) {
-  return apiRequest<ApiMatch>(`/matches/${id}`);
+export async function getMatch(id: number | string) {
+  assertValidId(id, "Un match valide est requis.");
+  const response = await apiRequest<ApiMatch | { data?: ApiMatch }>(`/matches/${id}`, { auth: false });
+  return extractObject<ApiMatch>(response);
 }
 
 export async function createMatch(payload: MatchPayload) {
@@ -721,7 +764,7 @@ export async function getStatistics(params?: Record<string, string | number | nu
   }
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const response = await apiRequest<StatisticsResponse>(`/statistics${suffix}`);
+  const response = await apiRequest<StatisticsResponse>(`/statistics${suffix}`, { auth: false });
   return extractArray<ApiStatistic>(response);
 }
 
@@ -783,7 +826,7 @@ export async function getCompositions(params?: Record<string, string | number | 
   }
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const response = await apiRequest<CompositionsResponse>(`/compositions${suffix}`);
+  const response = await apiRequest<CompositionsResponse>(`/compositions${suffix}`, { auth: false });
   return extractArray<ApiComposition>(response);
 }
 

@@ -19,6 +19,8 @@ import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
 import Button from "../../components/common/Button";
 import FilterSearchInput from "../../components/common/FilterSearchInput";
+import FormDrawer from "../../components/common/FormDrawer";
+import PaginationControls, { usePagination } from "../../components/common/PaginationControls";
 import { statusLabel, statusTone } from "../../components/common/statusLabels";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
@@ -86,6 +88,7 @@ export default function JoinRequestsPage() {
   const [tournaments, setTournaments] = useState<PublicTournament[]>([]);
   const [myTeams, setMyTeams] = useState<ApiTeam[]>([]);
   const [form, setForm] = useState<JoinRequestForm>(emptyForm);
+  const [createOpen, setCreateOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -153,6 +156,7 @@ export default function JoinRequestsPage() {
         .includes(q),
     );
   }, [requests, tournaments, myTeams, searchQuery]);
+  const requestsPagination = usePagination(filteredRequests, searchQuery);
 
   const availableTeams = useMemo(() => {
     const tournamentId = Number(form.tournament_id);
@@ -202,6 +206,7 @@ export default function JoinRequestsPage() {
       setSuccess("Join request sent.");
       setForm((current) => ({ ...current, message: "" }));
       await loadData();
+      setCreateOpen(false);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setError("Votre session a expiré. Veuillez vous reconnecter.");
@@ -269,80 +274,23 @@ export default function JoinRequestsPage() {
               </ComponentCard>
 
               <ComponentCard title="Envoyer une demande" desc="Équipe vers tournoi accepté" className="xl:col-span-2">
-                {tournaments.length === 0 && !loading ? (
-                  <p className={clsx("text-sm", t.textSecondary)}>Aucun tournoi disponible.</p>
-                ) : myTeams.length === 0 && !loading ? (
-                  <p className={clsx("text-sm", t.textSecondary)}>Créez d'abord une équipe.</p>
-                ) : (
-                  <form onSubmit={handleCreateRequest} className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div>
-                      <label htmlFor="join-request-tournament" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Tournoi *</label>
-                      <select
-                        id="join-request-tournament"
-                        name="tournament_id"
-                        value={form.tournament_id}
-                        onChange={(e) => updateForm("tournament_id", e.target.value)}
-                        required
-                        disabled={submitting || loading}
-                        className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                      >
-                        <option value="">Sélectionner un tournoi</option>
-                        {tournaments.map((tournament) => (
-                          <option key={tournament.id} value={tournament.id}>{tournament.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label htmlFor="join-request-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe *</label>
-                      <select
-                        id="join-request-team"
-                        name="team_id"
-                        value={form.team_id}
-                        onChange={(e) => updateForm("team_id", e.target.value)}
-                        required
-                        disabled={submitting || loading}
-                        className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                      >
-                        <option value="">Sélectionner une équipe</option>
-                        {availableTeams.map((team) => (
-                          <option key={team.id} value={team.id}>{team.name}</option>
-                        ))}
-                      </select>
-                      {form.tournament_id && availableTeams.length === 0 && !loading && (
-                        <p className={clsx("mt-2 text-sm", t.textMuted)}>Aucune équipe disponible pour cette demande.</p>
-                      )}
-                    </div>
-                    <div className="md:col-span-2">
-                      <label htmlFor="join-request-message" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Message</label>
-                      <textarea
-                        id="join-request-message"
-                        name="message"
-                        value={form.message}
-                        onChange={(e) => updateForm("message", e.target.value)}
-                        rows={3}
-                        disabled={submitting || loading}
-                        placeholder="Message pour l'organisateur"
-                        className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      {success && (
-                        <div className="mb-3 rounded-sm border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
-                          {success}
-                        </div>
-                      )}
-                      {error && (
-                        <div className="mb-3 rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                          {error}
-                        </div>
-                      )}
-                      <Button type="submit" disabled={submitting || loading || availableTeams.length === 0 || tournaments.length === 0} className="gap-2">
-                        <PaperPlaneIcon className="size-4 shrink-0" />
-                        {submitting ? "Envoi..." : "Envoyer la demande"}
-                      </Button>
-                    </div>
-                  </form>
-                )}
+                <div className={clsx("flex flex-col gap-4 rounded-md border p-5 sm:flex-row sm:items-center sm:justify-between", t.card)}>
+                  <div>
+                    <p className={clsx("font-semibold", t.textPrimary)}>Envoyer une demande</p>
+                    <p className={clsx("mt-1 text-sm", t.textSecondary)}>Sélectionnez le tournoi et l'équipe dans un formulaire dédié.</p>
+                  </div>
+                  <Button
+                    type="button"
+                    disabled={loading || availableTeams.length === 0 || tournaments.length === 0}
+                    onClick={() => setCreateOpen(true)}
+                    className="gap-2"
+                  >
+                    <PaperPlaneIcon className="size-4 shrink-0" />
+                    Envoyer une demande
+                  </Button>
+                </div>
+                {tournaments.length === 0 && !loading && <p className={clsx("mt-4 text-sm", t.textSecondary)}>Aucun tournoi disponible.</p>}
+                {myTeams.length === 0 && !loading && <p className={clsx("mt-4 text-sm", t.textSecondary)}>Créez d'abord une équipe.</p>}
               </ComponentCard>
             </div>
 
@@ -354,6 +302,17 @@ export default function JoinRequestsPage() {
                   placeholder="Rechercher une demande..."
                 />
               </div>
+
+              {(success || error) && (
+                <div
+                  className={clsx(
+                    "mb-4 rounded-sm border px-4 py-3 text-sm",
+                    error ? "border-red-500/20 bg-red-500/10 text-red-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+                  )}
+                >
+                  {error || success}
+                </div>
+              )}
 
               {loading && (
                 <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement des demandes...</p>
@@ -389,7 +348,7 @@ export default function JoinRequestsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredRequests.map((request) => (
+                      {requestsPagination.paginatedItems.map((request) => (
                         <tr key={request.id} className={clsx("transition-colors", t.tableRow, t.navHover)}>
                           <td className={clsx("px-4 py-3 font-mono", t.textMuted)}>{request.id}</td>
                           <td className={clsx("px-4 py-3 font-medium", t.textPrimary)}>
@@ -428,9 +387,87 @@ export default function JoinRequestsPage() {
                       ))}
                     </tbody>
                   </table>
+                  <PaginationControls
+                    page={requestsPagination.page}
+                    pageSize={requestsPagination.pageSize}
+                    totalItems={filteredRequests.length}
+                    onPageChange={requestsPagination.setPage}
+                    onPageSizeChange={requestsPagination.setPageSize}
+                  />
                 </div>
               )}
             </ComponentCard>
+
+            <FormDrawer
+              open={createOpen}
+              onClose={() => setCreateOpen(false)}
+              title="Envoyer une demande"
+              description="Envoyez une demande de participation à un tournoi."
+            >
+              <form onSubmit={handleCreateRequest} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label htmlFor="join-request-tournament" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Tournoi *</label>
+                  <select
+                    id="join-request-tournament"
+                    name="tournament_id"
+                    value={form.tournament_id}
+                    onChange={(e) => updateForm("tournament_id", e.target.value)}
+                    required
+                    disabled={submitting || loading}
+                    className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+                  >
+                    <option value="">Sélectionner un tournoi</option>
+                    {tournaments.map((tournament) => (
+                      <option key={tournament.id} value={tournament.id}>{tournament.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="join-request-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe *</label>
+                  <select
+                    id="join-request-team"
+                    name="team_id"
+                    value={form.team_id}
+                    onChange={(e) => updateForm("team_id", e.target.value)}
+                    required
+                    disabled={submitting || loading}
+                    className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+                  >
+                    <option value="">Sélectionner une équipe</option>
+                    {availableTeams.map((team) => (
+                      <option key={team.id} value={team.id}>{team.name}</option>
+                    ))}
+                  </select>
+                  {form.tournament_id && availableTeams.length === 0 && !loading && (
+                    <p className={clsx("mt-2 text-sm", t.textMuted)}>Aucune équipe disponible pour cette demande.</p>
+                  )}
+                </div>
+                <div className="md:col-span-2">
+                  <label htmlFor="join-request-message" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Message</label>
+                  <textarea
+                    id="join-request-message"
+                    name="message"
+                    value={form.message}
+                    onChange={(e) => updateForm("message", e.target.value)}
+                    rows={3}
+                    disabled={submitting || loading}
+                    placeholder="Message pour l'organisateur"
+                    className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  {error && (
+                    <div className="mb-3 rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                      {error}
+                    </div>
+                  )}
+                  <Button type="submit" disabled={submitting || loading || availableTeams.length === 0 || tournaments.length === 0} className="gap-2">
+                    <PaperPlaneIcon className="size-4 shrink-0" />
+                    {submitting ? "Envoi..." : "Envoyer la demande"}
+                  </Button>
+                </div>
+              </form>
+            </FormDrawer>
           </>
         )}
       </PageStack>

@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { getTournaments, type PublicTournament } from "../../api";
+import AppLogo from "../../components/common/AppLogo";
 import EntityImage from "../../components/common/EntityImage";
 import { XPageMeta } from "../../components/common/PageMeta";
+import { roleLabel } from "../../components/common/roleLabels";
 import { statusLabel, statusTone } from "../../components/common/statusLabels";
 import { APP_NAME } from "../../config/app";
+import { useAuth } from "../../context/AuthContext";
 import { ArrowRightIcon, ShootingStarIcon } from "../../icons";
 
 const FEATURES = [
@@ -175,43 +178,90 @@ function PublicTournamentsSection({
 }
 
 export function LandingNav() {
+  const navigate = useNavigate();
+  const { user, token, isAuthenticated, isAdmin, loading, logout } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const dashboardPath = isAdmin ? "/admin" : "/dashboard";
+  const hasSession = isAuthenticated && user;
+  const isCheckingSession = loading && Boolean(token);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+
+    try {
+      await logout();
+      navigate("/login", { replace: true });
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 border-b border-zinc-900/80 bg-black/70 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-        <Link to="/" className="group flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded bg-zinc-900 text-brand-400 ring-1 ring-brand-500/30">
-            <ShootingStarIcon className="size-5" />
-          </div>
-          <span className="text-sm font-semibold uppercase tracking-widest text-zinc-50">
-            Gestion<span className="text-brand-400">Tournois</span>
-          </span>
+    <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/[0.08] bg-[#0B1120]/95 shadow-[0_12px_36px_rgba(0,0,0,0.22)] backdrop-blur-md">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
+        <Link to="/" className="group flex items-center gap-2">
+          <AppLogo size="sm" />
         </Link>
 
-        <nav className="hidden items-center gap-8 text-xs font-semibold uppercase tracking-wider text-zinc-400 md:flex">
-          <Link to="/#public-tournaments" className="border-b-2 border-transparent py-1.5 transition-colors hover:border-brand-500 hover:text-zinc-100">
+        <nav className="hidden items-center gap-6 text-[13px] font-medium text-slate-400 lg:flex">
+          <Link to="/#public-tournaments" className="border-b border-transparent py-1.5 transition-colors hover:border-blue-400/70 hover:text-slate-100">
             Tournois
           </Link>
-          <Link to="/#features" className="border-b-2 border-transparent py-1.5 transition-colors hover:border-brand-500 hover:text-zinc-100">
+          <Link to="/#features" className="border-b border-transparent py-1.5 transition-colors hover:border-blue-400/70 hover:text-slate-100">
             Fonctionnalites
           </Link>
-          <Link to="/#faq" className="border-b-2 border-transparent py-1.5 transition-colors hover:border-brand-500 hover:text-zinc-100">
+          <Link to="/#faq" className="border-b border-transparent py-1.5 transition-colors hover:border-blue-400/70 hover:text-slate-100">
             FAQ
           </Link>
         </nav>
 
-        <div className="flex items-center gap-3">
-          <Link
-            to="/dashboard"
-            className="hidden rounded-sm border border-zinc-800 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-300 transition-colors hover:border-zinc-600 hover:text-white sm:inline-block"
-          >
-            Dashboard
-          </Link>
-          <Link
-            to="/login"
-            className="rounded-sm bg-brand-500 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-white shadow-[0_0_20px_rgba(70,95,255,0.2)] transition-colors hover:bg-brand-600"
-          >
-            Connexion
-          </Link>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {isCheckingSession ? (
+            <span className="inline-flex h-8 items-center rounded-md border border-white/[0.08] px-2.5 text-[11px] font-medium text-slate-400 sm:px-3">
+              Chargement...
+            </span>
+          ) : hasSession ? (
+            <>
+              <span className="hidden h-8 max-w-44 items-center gap-1.5 rounded-md border border-white/[0.08] bg-slate-900/80 px-2.5 text-[11px] font-medium text-slate-200 xl:inline-flex">
+                <span className="truncate" title={user.name || user.email}>
+                  {user.name || user.email}
+                </span>
+                <span className="shrink-0 rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-semibold text-slate-300">
+                  {roleLabel(user.role)}
+                </span>
+              </span>
+              <Link
+                to={dashboardPath}
+                className="inline-flex h-8 items-center justify-center whitespace-nowrap rounded-md border border-white/[0.08] px-2.5 text-[11px] font-semibold text-slate-200 transition-colors hover:border-white/[0.16] hover:bg-white/[0.04] hover:text-white sm:px-3"
+              >
+                Dashboard
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="inline-flex h-8 items-center justify-center whitespace-nowrap rounded-md border border-white/[0.08] px-2.5 text-[11px] font-semibold text-slate-300 transition-colors hover:border-red-400/30 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-70 sm:px-3"
+              >
+                {loggingOut ? "..." : "D\u00e9connexion"}
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                className="inline-flex h-8 items-center justify-center whitespace-nowrap rounded-md bg-blue-600 px-2.5 text-[11px] font-semibold text-white shadow-[0_10px_28px_rgba(37,99,235,0.24)] transition-colors hover:bg-blue-500 sm:px-3"
+              >
+                Connexion
+              </Link>
+              <Link
+                to="/signup"
+                className="inline-flex h-8 items-center justify-center whitespace-nowrap rounded-md border border-white/[0.08] px-2.5 text-[11px] font-semibold text-slate-300 transition-colors hover:border-white/[0.16] hover:bg-white/[0.04] hover:text-white sm:px-3"
+              >
+                Inscription
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>

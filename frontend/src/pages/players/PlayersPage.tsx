@@ -20,6 +20,8 @@ import EntityImage from "../../components/common/EntityImage";
 import ImageSourceInput, { type ImageSourceMode } from "../../components/common/ImageSourceInput";
 import Button from "../../components/common/Button";
 import FilterSearchInput from "../../components/common/FilterSearchInput";
+import FormDrawer from "../../components/common/FormDrawer";
+import PaginationControls, { usePagination } from "../../components/common/PaginationControls";
 import XModal from "../../components/common/XModal";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
@@ -71,6 +73,7 @@ export default function PlayersPage() {
   const [form, setForm] = useState<PlayerForm>(emptyPlayerForm);
   const [photoMode, setPhotoMode] = useState<ImageSourceMode>("url");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const [detailsPlayer, setDetailsPlayer] = useState<ApiPlayer | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -148,6 +151,7 @@ export default function PlayersPage() {
         .includes(q),
     );
   }, [players, teams, searchQuery]);
+  const playersPagination = usePagination(filteredPlayers, searchQuery);
 
   const deletableTeamIds = useMemo(
     () => new Set(myTeams.map((team) => team.id)),
@@ -183,6 +187,7 @@ export default function PlayersPage() {
       setForm({ ...emptyPlayerForm, team_id: form.team_id });
       setPhotoFile(null);
       await loadPlayers();
+      setCreateOpen(false);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setError("Votre session a expiré. Veuillez vous reconnecter.");
@@ -232,126 +237,25 @@ export default function PlayersPage() {
           </ComponentCard>
 
           <ComponentCard title="Créer un joueur" desc="Associé à une de vos équipes" className="xl:col-span-2">
-            {!isAuthenticated && !authLoading ? (
+            <div className={clsx("flex flex-col gap-4 rounded-md border p-5 sm:flex-row sm:items-center sm:justify-between", t.card)}>
               <div>
-                <p className={clsx("text-sm", t.textSecondary)}>Connectez-vous pour créer des joueurs.</p>
-                <Link to="/login" className="mt-4 inline-flex text-sm font-medium text-brand-500 hover:text-brand-400">
-                  Aller a la connexion
-                </Link>
+                <p className={clsx("font-semibold", t.textPrimary)}>Ajouter un joueur</p>
+                <p className={clsx("mt-1 text-sm", t.textSecondary)}>
+                  Ouvrez le formulaire uniquement quand vous ajoutez un effectif.
+                </p>
               </div>
-            ) : myTeams.length === 0 && !myTeamsLoading ? (
-              <p className={clsx("text-sm", t.textSecondary)}>Créez d'abord une équipe.</p>
-            ) : (
-              <form onSubmit={handleCreatePlayer} className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div>
-                  <label htmlFor="player-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe *</label>
-                  <select
-                    id="player-team"
-                    name="team_id"
-                    value={form.team_id}
-                    onChange={(e) => updateForm("team_id", e.target.value)}
-                    required
-                    disabled={submitting || myTeamsLoading}
-                    className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                  >
-                    <option value="">Sélectionner une équipe</option>
-                    {myTeams.map((team) => (
-                      <option key={team.id} value={team.id}>{team.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="player-first-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Prenom *</label>
-                  <input
-                    id="player-first-name"
-                    name="first_name"
-                    value={form.first_name}
-                    onChange={(e) => updateForm("first_name", e.target.value)}
-                    required
-                    disabled={submitting}
-                    className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="player-last-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
-                  <input
-                    id="player-last-name"
-                    name="last_name"
-                    value={form.last_name}
-                    onChange={(e) => updateForm("last_name", e.target.value)}
-                    required
-                    disabled={submitting}
-                    className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="player-birth-date" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Naissance</label>
-                  <input
-                    id="player-birth-date"
-                    name="birth_date"
-                    type="date"
-                    value={form.birth_date}
-                    onChange={(e) => updateForm("birth_date", e.target.value)}
-                    disabled={submitting}
-                    className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="player-position" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Poste</label>
-                  <input
-                    id="player-position"
-                    name="position"
-                    value={form.position}
-                    onChange={(e) => updateForm("position", e.target.value)}
-                    placeholder="ST"
-                    disabled={submitting}
-                    className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="player-number" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Numéro</label>
-                  <input
-                    id="player-number"
-                    name="number"
-                    type="number"
-                    min={0}
-                    value={form.number}
-                    onChange={(e) => updateForm("number", e.target.value)}
-                    disabled={submitting}
-                    className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                  />
-                </div>
-                <div className="md:col-span-3">
-                  <ImageSourceInput
-                    label="Photo"
-                    name="photo"
-                    mode={photoMode}
-                    onModeChange={setPhotoMode}
-                    file={photoFile}
-                    onFileChange={setPhotoFile}
-                    url={form.photo_path}
-                    onUrlChange={(value) => updateForm("photo_path", value)}
-                    previewName={`${form.first_name} ${form.last_name}`.trim() || "Joueur"}
-                    disabled={submitting}
-                  />
-                </div>
-                <div className="md:col-span-3">
-                  {success && (
-                    <div className="mb-3 rounded-sm border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
-                      {success}
-                    </div>
-                  )}
-                  {error && (
-                    <div className="mb-3 rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                      {error}
-                    </div>
-                  )}
-                  <Button type="submit" disabled={submitting || myTeams.length === 0} className="gap-2">
-                    <PlusIcon className="size-4 shrink-0" />
-                    {submitting ? "Création..." : "Créer le joueur"}
-                  </Button>
-                </div>
-              </form>
+              <Button type="button" disabled={!isAuthenticated || myTeams.length === 0} onClick={() => setCreateOpen(true)} className="gap-2">
+                <PlusIcon className="size-4 shrink-0" />
+                Ajouter un joueur
+              </Button>
+            </div>
+            {!isAuthenticated && !authLoading && (
+              <Link to="/login" className="mt-4 inline-flex text-sm font-medium text-brand-500 hover:text-brand-400">
+                Aller a la connexion
+              </Link>
+            )}
+            {isAuthenticated && myTeams.length === 0 && !myTeamsLoading && (
+              <p className={clsx("mt-4 text-sm", t.textSecondary)}>Créez d'abord une équipe.</p>
             )}
           </ComponentCard>
         </div>
@@ -410,7 +314,7 @@ export default function PlayersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPlayers.map((player) => (
+                  {playersPagination.paginatedItems.map((player) => (
                     <tr key={player.id} className={clsx("transition-colors", t.tableRow, t.navHover)}>
                       <td className={clsx("px-4 py-3 font-mono", t.textMuted)}>{player.id}</td>
                       <td className="px-4 py-3">
@@ -442,9 +346,129 @@ export default function PlayersPage() {
                   ))}
                 </tbody>
               </table>
+              <PaginationControls
+                page={playersPagination.page}
+                pageSize={playersPagination.pageSize}
+                totalItems={filteredPlayers.length}
+                onPageChange={playersPagination.setPage}
+                onPageSizeChange={playersPagination.setPageSize}
+              />
             </div>
           )}
         </ComponentCard>
+
+        <FormDrawer
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          title="Ajouter un joueur"
+          description="Renseignez les informations du joueur."
+        >
+          <form onSubmit={handleCreatePlayer} className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div>
+              <label htmlFor="player-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe *</label>
+              <select
+                id="player-team"
+                name="team_id"
+                value={form.team_id}
+                onChange={(e) => updateForm("team_id", e.target.value)}
+                required
+                disabled={submitting || myTeamsLoading}
+                className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+              >
+                <option value="">Sélectionner une équipe</option>
+                {myTeams.map((team) => (
+                  <option key={team.id} value={team.id}>{team.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="player-first-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Prenom *</label>
+              <input
+                id="player-first-name"
+                name="first_name"
+                value={form.first_name}
+                onChange={(e) => updateForm("first_name", e.target.value)}
+                required
+                disabled={submitting}
+                className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+              />
+            </div>
+            <div>
+              <label htmlFor="player-last-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
+              <input
+                id="player-last-name"
+                name="last_name"
+                value={form.last_name}
+                onChange={(e) => updateForm("last_name", e.target.value)}
+                required
+                disabled={submitting}
+                className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+              />
+            </div>
+            <div>
+              <label htmlFor="player-birth-date" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Naissance</label>
+              <input
+                id="player-birth-date"
+                name="birth_date"
+                type="date"
+                value={form.birth_date}
+                onChange={(e) => updateForm("birth_date", e.target.value)}
+                disabled={submitting}
+                className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+              />
+            </div>
+            <div>
+              <label htmlFor="player-position" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Poste</label>
+              <input
+                id="player-position"
+                name="position"
+                value={form.position}
+                onChange={(e) => updateForm("position", e.target.value)}
+                placeholder="ST"
+                disabled={submitting}
+                className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+              />
+            </div>
+            <div>
+              <label htmlFor="player-number" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Numéro</label>
+              <input
+                id="player-number"
+                name="number"
+                type="number"
+                min={0}
+                value={form.number}
+                onChange={(e) => updateForm("number", e.target.value)}
+                disabled={submitting}
+                className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
+              />
+            </div>
+            <div className="md:col-span-3">
+              <ImageSourceInput
+                label="Photo"
+                name="photo"
+                mode={photoMode}
+                onModeChange={setPhotoMode}
+                file={photoFile}
+                onFileChange={setPhotoFile}
+                url={form.photo_path}
+                onUrlChange={(value) => updateForm("photo_path", value)}
+                previewName={`${form.first_name} ${form.last_name}`.trim() || "Joueur"}
+                disabled={submitting}
+              />
+            </div>
+            <div className="md:col-span-3">
+              {error && (
+                <div className="mb-3 rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                  {error}
+                </div>
+              )}
+              <Button type="submit" disabled={submitting || myTeams.length === 0} className="gap-2">
+                <PlusIcon className="size-4 shrink-0" />
+                {submitting ? "Création..." : "Créer le joueur"}
+              </Button>
+            </div>
+          </form>
+        </FormDrawer>
 
         <XModal
           open={Boolean(detailsPlayer)}

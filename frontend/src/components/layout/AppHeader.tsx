@@ -4,11 +4,10 @@ import { clsx } from "clsx";
 import { useXSidebar } from "../context/SidebarContext";
 import { useThemeTokens } from "../theme/useThemeTokens";
 import { resolvePageMeta } from "../theme/pageMeta";
-import { APP_NAME } from "../../config/app";
+import AppLogo from "../common/AppLogo";
 import XThemeSwitcher from "./XThemeSwitcher";
 import UserDropdown from "../header/UserDropdown";
 import AdminNotificationDropdown from "../header/AdminNotificationDropdown";
-import { ShootingStarIcon } from "../../icons";
 
 export default function AppHeader() {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
@@ -66,10 +65,8 @@ export default function AppHeader() {
           </div>
 
           <Link to="/dashboard" className="flex shrink-0 items-center gap-2 lg:hidden">
-            <span className="flex h-7 w-7 items-center justify-center rounded bg-brand-500/15 text-brand-400 ring-1 ring-brand-500/30">
-              <ShootingStarIcon className="size-4" />
-            </span>
-            <span className={clsx("text-sm font-semibold", t.textPrimary)}>{APP_NAME}</span>
+            <AppLogo variant="compact" size="sm" />
+            <span className={clsx("text-sm font-semibold", t.textPrimary)}>Gestion Tournois</span>
           </Link>
 
           <button
