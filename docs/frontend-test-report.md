@@ -139,7 +139,7 @@ Fixed during QA polish:
 - Removed technical wording such as backend/JWT references from normal user-facing labels.
 - Improved select placeholders and active list empty states.
 - Split the dashboard into distinct admin and normal-user experiences.
-- Added backend-driven dashboard charts, a simple tournament bracket, and details modals for tournaments, teams, and players.
+- Added backend-driven dashboard charts and details modals for tournaments, teams, and players.
 
 These were presentation/accessibility polish items and did not break the active API-connected flow.
 
@@ -148,7 +148,7 @@ These were presentation/accessibility polish items and did not break the active 
 - Improved French labels on the match composition page.
 - Improved form label wiring on active frontend forms, including dashboard tournament creation, teams, players, join requests, matches/results, rankings, statistics, match composition, and login.
 - Improved visible French labels/statuses, removed technical wording, and tightened select placeholders and empty states across active frontend pages.
-- Added role-specific dashboard sections, simple charts, a tournament bracket, and details modals on tournaments, teams, and players pages.
+- Added role-specific dashboard sections, simple charts, and details modals on tournaments, teams, and players pages.
 - Added team short-name display and URL/path-based avatar, logo, photo, and tournament banner rendering with safe fallbacks.
 
 ## 11. Final status
@@ -165,6 +165,6 @@ Status: ready for review from a frontend QA perspective.
 
 ## 12. Phase 2 polish note
 
-- Team short names are supported and displayed on active team and match/bracket surfaces.
+- Team short names are supported and displayed on active team and match surfaces.
 - Optional image/profile fields are URL/path based only; no file upload flow was added.
 - Public/admin tournament lists, team lists, player lists, profile, header dropdown, dashboard, and detail modals render images with initials fallback.

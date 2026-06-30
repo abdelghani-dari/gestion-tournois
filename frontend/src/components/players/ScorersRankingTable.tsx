@@ -1,20 +1,29 @@
-import { Link } from "react-router";
 import { clsx } from "clsx";
 import { useThemeTokens } from "../theme/useThemeTokens";
-import { useSeasonData } from "../context/SeasonContext";
-import type { Player } from "../types";
+import type { ApiPlayer, ApiTeam } from "../../api";
 
 interface ScorersRankingTableProps {
-  players?: Player[];
+  players: ApiPlayer[];
+  teams: ApiTeam[];
+  onSelect?: (player: ApiPlayer) => void;
 }
 
-export default function ScorersRankingTable({ players: playersProp }: ScorersRankingTableProps) {
-  const t = useThemeTokens();
-  const { players: allPlayers, getTeamById, formatPlayerName } = useSeasonData();
-  const source = playersProp ?? allPlayers;
+function playerName(player: ApiPlayer) {
+  return `${player.first_name} ${player.last_name}`.trim();
+}
 
-  const ranked = [...source].sort(
-    (a, b) => b.goals - a.goals || b.assists - a.assists || a.name.localeCompare(b.name)
+function teamName(player: ApiPlayer, teams: ApiTeam[]) {
+  return player.team?.name ?? teams.find((team) => team.id === player.team_id)?.name ?? "—";
+}
+
+export default function ScorersRankingTable({ players, teams, onSelect }: ScorersRankingTableProps) {
+  const t = useThemeTokens();
+
+  const ranked = [...players].sort(
+    (a, b) =>
+      (b.goals ?? 0) - (a.goals ?? 0) ||
+      (b.assists ?? 0) - (a.assists ?? 0) ||
+      playerName(a).localeCompare(playerName(b)),
   );
 
   return (
@@ -33,23 +42,26 @@ export default function ScorersRankingTable({ players: playersProp }: ScorersRan
           </tr>
         </thead>
         <tbody className={clsx("divide-y", t.tableDivide)}>
-          {ranked.map((p, idx) => {
-            const team = getTeamById(p.team_id);
+          {ranked.map((player, idx) => {
+            const goals = player.goals ?? 0;
+
             return (
-              <tr key={p.id} className={clsx("transition-colors", t.tableRow)}>
+              <tr key={player.id} className={clsx("transition-colors", t.tableRow)}>
                 <td className={clsx("px-3 py-2.5 text-center text-xs font-bold", idx < 3 ? "text-amber-400" : t.textMuted)}>
                   {idx + 1}
                 </td>
                 <td className="px-2 py-2.5">
-                  <Link to={`/players/${p.id}`} className="block min-w-0 hover:text-brand-500">
-                    <p className={clsx("truncate text-sm font-medium", t.textPrimary)}>
-                      {formatPlayerName(p)}
-                    </p>
-                    <p className={clsx("truncate text-xs", t.textMuted)}>{team?.name}</p>
-                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => onSelect?.(player)}
+                    className="block min-w-0 text-left hover:text-brand-500"
+                  >
+                    <p className={clsx("truncate text-sm font-medium", t.textPrimary)}>{playerName(player)}</p>
+                    <p className={clsx("truncate text-xs", t.textMuted)}>{teamName(player, teams)}</p>
+                  </button>
                 </td>
-                <td className={clsx("px-3 py-2.5 text-center text-sm font-bold tabular-nums", p.goals > 0 ? "text-emerald-500" : t.textMuted)}>
-                  {p.goals}
+                <td className={clsx("px-3 py-2.5 text-center text-sm font-bold tabular-nums", goals > 0 ? "text-emerald-500" : t.textMuted)}>
+                  {goals}
                 </td>
               </tr>
             );

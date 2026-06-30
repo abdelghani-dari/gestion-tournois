@@ -21,8 +21,8 @@ export default function ComponentCard({
   const t = useThemeTokens();
 
   return (
-    <div className={clsx("rounded-md", t.panelGlass, fill && "flex h-full w-full flex-col", className)}>
-      <div className={clsx("flex shrink-0 items-center justify-between gap-4 border-b px-5 py-4 md:px-6", t.border)}>
+    <div className={clsx("overflow-visible rounded-md", t.panelGlass, fill && "flex h-full w-full flex-col", className)}>
+      <div className={clsx("flex shrink-0 items-center justify-between gap-4 overflow-visible border-b px-5 py-4 md:px-6", t.border)}>
         <div className="min-w-0">
           <h3 className={clsx("text-base font-medium", t.textPrimary)}>{title}</h3>
           {desc && <p className={clsx("mt-1 text-sm", t.textSecondary)}>{desc}</p>}

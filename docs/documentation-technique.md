@@ -1,265 +1,326 @@
-# Documentation Technique — Gestion Tournois Locaux
+# Documentation Technique — Tournify (Gestion Tournois Locaux)
 
-## 1. Présentation technique
+**Version :** 1.2 — Juillet 2026  
+**Projet de Fin d'Études** — Application web de gestion de tournois locaux de football
 
-**Gestion Tournois Locaux** est une application web basée sur une architecture frontend/backend.
+---
 
-L'application permet de gérer :
+## 1. Introduction
 
-- les utilisateurs ;
-- les tournois locaux ;
-- la validation des tournois par l'admin ;
-- les équipes ;
-- les joueurs ;
-- les demandes de participation ;
-- les matchs ;
-- les résultats ;
-- les classements ;
-- les statistiques.
+### 1.1 Contexte
 
-L'application ne gère pas les championnats, les compétitions officielles ni les paiements.
+**Tournify** (nom commercial du projet *Gestion Tournois Locaux*) est une plateforme web permettant à un utilisateur de proposer un tournoi local, soumis à validation par un administrateur. Une fois accepté, le tournoi devient public : les équipes demandent leur participation, le créateur planifie les matchs, saisit les scores et consulte le classement et les statistiques.
 
-## 2. Stack technique
+### 1.2 Périmètre fonctionnel
 
-| Partie | Technologie |
+| Inclus | Exclus |
 |---|---|
-| Frontend | React |
-| Backend | Laravel |
-| Base de données | PostgreSQL |
-| API | REST API |
-| Conteneurisation | Docker + Docker Compose |
-| Versioning | Git + GitHub |
+| Tournois locaux | Championnats nationaux |
+| Validation admin | Paiements en ligne |
+| Équipes et joueurs | Compétitions officielles (Botola, UCL…) |
+| Matchs et résultats | Rôles organizer/viewer legacy |
+| Classements et stats | |
 
-## 3. Structure du projet
+### 1.3 Acteurs
 
-```txt
-gestion-tournois/
-│
-├── backend/
-│   ├── app/
-│   ├── database/
-│   ├── routes/
-│   ├── storage/
-│   ├── Dockerfile
-│   └── .env.example
-│
-├── frontend/
-│   ├── src/
-│   ├── public/
-│   ├── package.json
-│   └── Dockerfile
-│
-├── docs/
-│   ├── architecture.md
-│   ├── cahier-des-charges.md
-│   ├── class-diagram.md
-│   ├── conception.md
-│   ├── database-schema.md
-│   ├── fiche-de-cadrage.md
-│   ├── planning.md
-│   ├── sequence-diagrams.md
-│   └── use-case-diagram.md
-│
-├── docker-compose.yml
-└── README.md
+| Acteur | Description |
+|---|---|
+| **Visiteur** | Consulte landing, tournois publics, classements |
+| **Utilisateur (user)** | Crée tournois, équipes, joueurs ; demande participation |
+| **Créateur de tournoi** | Sous-ensemble user : gère *ses* tournois acceptés |
+| **Administrateur** | Valide/refuse tournois ; supervise la plateforme |
+
+---
+
+## 2. Architecture technique
+
+### 2.1 Vue d'ensemble
+
+```mermaid
+flowchart LR
+    subgraph Client
+        Browser[Navigateur Web]
+        React[React SPA - Vite]
+    end
+    subgraph Serveur
+        Laravel[Laravel API REST]
+        Storage[Storage public]
+    end
+    subgraph Data
+        PG[(PostgreSQL)]
+    end
+    Browser --> React
+    React -->|HTTP JSON Bearer| Laravel
+    Laravel --> PG
+    Laravel --> Storage
 ```
 
-## 4. Architecture
+### 2.2 Stack
 
-```txt
-React Frontend
-      |
-      | REST API
-      v
-Laravel Backend
-      |
-      v
-PostgreSQL Database
-```
+| Composant | Technologie | Version indicatif |
+|---|---|---|
+| Frontend | React + TypeScript + Vite | React 19 |
+| Styles | Tailwind CSS + tokens thème | — |
+| Graphiques | ApexCharts | react-apexcharts |
+| Backend | Laravel | 11.x |
+| ORM | Eloquent | — |
+| Auth API | Laravel Sanctum | Token Bearer |
+| BDD | PostgreSQL | 15+ |
+| Conteneurs | Docker Compose | 3 services |
 
-Docker Compose lance les trois services :
+### 2.3 Services Docker
 
-- frontend ;
-- backend ;
-- postgres.
-
-## 5. Services Docker
-
-| Service | Container | Port |
+| Service | Conteneur | Port hôte |
 |---|---|---|
 | frontend | gt-frontend | 5173 |
 | backend | gt-backend | 8000 |
-| postgres | gt-postgres | 5433 sur Windows / 5432 dans Docker |
+| postgres | gt-postgres | 5433 (Windows) |
 
-Commande principale :
+Commande :
 
 ```bash
 docker compose up -d --build
 ```
 
-## 6. Backend Laravel
+---
 
-Le backend Laravel contient :
-
-- les modèles ;
-- les migrations ;
-- les contrôleurs API ;
-- les routes API ;
-- la logique métier ;
-- la validation des données ;
-- la gestion des rôles ;
-- la validation admin ;
-- la gestion des uploads.
-
-## 7. Routes API prévues
-
-### Auth
+## 3. Structure du dépôt
 
 ```txt
-POST /api/register
-POST /api/login
-POST /api/logout
+gestion-tournois/
+├── backend/
+│   ├── app/
+│   │   ├── Http/Controllers/Api/    # Contrôleurs REST
+│   │   ├── Models/                  # Modèles Eloquent
+│   │   └── Policies/                # Autorisations
+│   ├── database/migrations/         # Schéma PostgreSQL
+│   ├── routes/api.php               # Routes API
+│   └── storage/app/public/          # Fichiers uploadés
+├── frontend/
+│   └── src/
+│       ├── api.ts                   # Client HTTP centralisé
+│       ├── pages/                   # Pages par domaine
+│       ├── components/              # Composants réutilisables
+│       ├── context/                   # Auth, thème
+│       └── utils/permissions.ts       # Règles frontend
+└── docs/                            # Livrables PFE
 ```
 
-### Admin
+---
+
+## 4. Modèle de données
+
+### 4.1 Tables principales
+
+| Table | Rôle |
+|---|---|
+| `users` | Comptes (role: admin \| user) |
+| `tournaments` | Tournois (status: pending \| accepted \| refused \| …) |
+| `teams` | Équipes (manager_id → user) |
+| `players` | Joueurs liés à une équipe |
+| `tournament_team` | Équipes inscrites à un tournoi |
+| `join_requests` | Demandes de participation |
+| `match_games` | Matchs (scores, result_status) |
+| `compositions` | Feuilles de match |
+| `rankings` | Classement calculé par tournoi |
+| `statistics` | Stats individuelles (buts, cartons…) |
+
+### 4.2 Diagramme entité-relation (simplifié)
+
+```mermaid
+erDiagram
+    USERS ||--o{ TOURNAMENTS : creates
+    USERS ||--o{ TEAMS : manages
+    TEAMS ||--o{ PLAYERS : has
+    TOURNAMENTS ||--o{ JOIN_REQUESTS : receives
+    TOURNAMENTS ||--o{ MATCH_GAMES : schedules
+    TOURNAMENTS ||--o{ RANKINGS : ranks
+    TEAMS ||--o{ MATCH_GAMES : home_away
+    MATCH_GAMES ||--o{ STATISTICS : generates
+    PLAYERS ||--o{ STATISTICS : records
+```
+
+### 4.3 États métier importants
+
+**Tournoi :** `pending` → validation admin → `accepted` | `refused`
+
+**Résultat match (`result_status`) :**
 
 ```txt
-GET /api/admin/tournaments/pending
-GET /api/admin/tournaments
-PUT /api/admin/tournaments/{id}/accept
-PUT /api/admin/tournaments/{id}/refuse
+pending → confirmed | disputed
 ```
 
-### Tournaments
+Seuls les résultats **confirmés** alimentent le classement.
 
-```txt
-GET /api/tournaments
-POST /api/tournaments
-GET /api/tournaments/{id}
-PUT /api/tournaments/{id}
-DELETE /api/tournaments/{id}
-GET /api/my-tournaments
+---
+
+## 5. API REST
+
+Base URL : `http://localhost:8000/api`
+
+Authentification : en-tête `Authorization: Bearer {token}`
+
+### 5.1 Authentification
+
+| Méthode | Route | Description |
+|---|---|---|
+| POST | `/register` | Inscription |
+| POST | `/login` | Connexion → token |
+| POST | `/logout` | Déconnexion |
+| GET | `/user` | Profil connecté |
+
+### 5.2 Tournois
+
+| Méthode | Route | Description |
+|---|---|---|
+| GET | `/tournaments` | Tournois publics (acceptés) |
+| GET | `/my-tournaments` | Mes tournois |
+| POST | `/tournaments` | Créer (→ pending) |
+| PUT | `/tournaments/{id}` | Modifier (propriétaire) |
+| DELETE | `/tournaments/{id}` | Supprimer |
+
+### 5.3 Admin
+
+| Méthode | Route | Description |
+|---|---|---|
+| GET | `/admin/tournaments/pending` | En attente |
+| PUT | `/admin/tournaments/{id}/accept` | Accepter |
+| PUT | `/admin/tournaments/{id}/refuse` | Refuser |
+
+### 5.4 Équipes et joueurs
+
+| Méthode | Route | Description |
+|---|---|---|
+| GET/POST | `/teams`, `/my-teams` | CRUD équipes |
+| GET/POST | `/players` | CRUD joueurs |
+
+### 5.5 Matchs
+
+| Méthode | Route | Description |
+|---|---|---|
+| GET/POST | `/matches` | Liste / création |
+| PUT | `/matches/{id}` | Modifier date/équipes |
+| PUT | `/matches/{id}/result` | Saisir score |
+| PUT | `/matches/{id}/confirm-result` | Confirmer |
+| PUT | `/matches/{id}/dispute-result` | Contester |
+
+### 5.6 Classements et statistiques
+
+| Méthode | Route | Description |
+|---|---|---|
+| GET | `/rankings?tournament_id=` | Classement |
+| POST | `/rankings/recalculate` | Recalcul |
+| GET/POST | `/statistics` | Stats CRUD |
+
+### 5.7 Dashboard
+
+| Méthode | Route | Description |
+|---|---|---|
+| GET | `/dashboard/summary` | Agrégats, graphiques, aperçus |
+
+---
+
+## 6. Frontend React
+
+### 6.1 Organisation des pages
+
+| Route | Page | Accès |
+|---|---|---|
+| `/` | Landing | Public |
+| `/login`, `/register` | Auth | Public |
+| `/dashboard` | Tableau de bord | Auth |
+| `/tournaments` | Liste tournois | Auth / public partiel |
+| `/teams`, `/players` | Gestion effectifs | Auth |
+| `/matches` | Matchs et résultats | Auth |
+| `/rankings` | Classements | Public lecture |
+| `/statistics` | Statistiques | Auth |
+| `/admin/*` | Espace admin | Admin |
+
+### 6.2 Composants clés
+
+| Composant | Rôle |
+|---|---|
+| `MatchRowList` | Lignes match (dashboard, page matchs, détail tournoi) |
+| `GoalsLineChart` | Graphique évolution buts |
+| `RankingPreviewTable` | Aperçu classement dashboard |
+| `FormDrawer` / `TournamentFormDrawer` | Modals formulaire |
+| `ImageSourceInput` | Upload ou URL image |
+| `SearchableSelect` | Select avec recherche et logos |
+| `XThemeContext` | Thèmes clair / slate / zinc |
+
+### 6.3 Gestion des permissions (frontend)
+
+Fichier `utils/permissions.ts` :
+
+- `canEditTournament`, `canDeleteTournament`
+- `canManageTournamentMatches`
+- Vérification `created_by`, `manager_id`, rôle admin
+
+### 6.4 Thèmes visuels
+
+Trois thèmes via `XThemeContext` :
+
+| Thème | Usage |
+|---|---|
+| `light` | Fond #F3F5F7, sidebar bleu ardoise |
+| `dark` | Slate profond (#020617) |
+| `zinc` | Zinc neutre (#09090b) |
+
+Persistance : `localStorage`
+
+---
+
+## 7. Flux métier principaux
+
+### 7.1 Cycle de vie d'un tournoi
+
+```mermaid
+sequenceDiagram
+    participant U as Utilisateur
+    participant API as Laravel API
+    participant A as Admin
+    participant DB as PostgreSQL
+
+    U->>API: POST /tournaments
+    API->>DB: status = pending
+    A->>API: PUT accept
+    API->>DB: status = accepted
+    Note over U,DB: Tournoi visible publiquement
+    U->>API: POST join-request
+    U->>API: PUT accept join-request
+    U->>API: POST /matches
+    U->>API: PUT /matches/{id}/result
+    U->>API: PUT confirm-result
+    U->>API: POST rankings/recalculate
 ```
 
-Règle : `GET /api/tournaments` retourne seulement les tournois acceptés.
+### 7.2 Saisie statistique (filtres en cascade)
 
-### Teams
+1. Sélection **match** → dropdown équipe limité aux 2 équipes du match
+2. Recherche **équipe** → toutes les équipes du tournoi ; sélection → reset match, filtre matchs de l'équipe
+3. Sélection **équipe** → joueurs de l'équipe uniquement
+4. Recherche **joueur** → tous les joueurs ; sélection → équipe auto + matchs filtrés
 
-```txt
-GET /api/teams
-POST /api/teams
-GET /api/teams/{id}
-PUT /api/teams/{id}
-DELETE /api/teams/{id}
-GET /api/my-teams
-```
+Implémentation : `StatisticsPage.tsx` + prop `expandedOptions` sur `SearchableSelect`
 
-### Players
+---
 
-```txt
-GET /api/players
-POST /api/players
-GET /api/players/{id}
-PUT /api/players/{id}
-DELETE /api/players/{id}
-```
+## 8. Sécurité
 
-### Join Requests
+| Mesure | Détail |
+|---|---|
+| Mots de passe | Bcrypt (Laravel Hash) |
+| API | Middleware `auth:sanctum` |
+| Autorisations | Policies + contrôle `created_by` / `manager_id` |
+| Uploads | Types image, taille max 5 Mo |
+| CORS | Configuré pour frontend local |
+| Secrets | `.env` non versionné |
 
-```txt
-GET /api/join-requests
-POST /api/join-requests
-GET /api/join-requests/{id}
-PUT /api/join-requests/{id}/accept
-PUT /api/join-requests/{id}/refuse
-```
+---
 
-### Matches
+## 9. Déploiement et exploitation
 
-```txt
-GET /api/matches
-POST /api/matches
-GET /api/matches/{id}
-PUT /api/matches/{id}
-DELETE /api/matches/{id}
-PUT /api/matches/{id}/result
-PUT /api/matches/{id}/confirm-result
-PUT /api/matches/{id}/dispute-result
-```
-
-### Rankings
-
-```txt
-GET /api/rankings?tournament_id=1
-POST /api/rankings/recalculate
-```
-
-### Statistics
-
-```txt
-GET /api/statistics
-POST /api/statistics
-GET /api/statistics/{id}
-PUT /api/statistics/{id}
-DELETE /api/statistics/{id}
-```
-
-## 8. Frontend React
-
-Le frontend contient :
-
-- pages principales ;
-- composants réutilisables ;
-- appels API ;
-- formulaires ;
-- tableaux d'affichage ;
-- dashboard utilisateur ;
-- dashboard admin.
-
-### Pages publiques
-
-- Accueil.
-- Liste des tournois acceptés.
-- Détail tournoi.
-- Matchs.
-- Résultats.
-- Classement.
-- Statistiques.
-
-### Pages authentification
-
-- Register.
-- Login.
-
-### Pages Admin
-
-- Dashboard Admin.
-- Tournois en attente.
-- Tous les tournois.
-- Acceptation / refus d'un tournoi.
-
-### Pages User
-
-- Dashboard User.
-- Mes tournois.
-- Créer tournoi.
-- Mes équipes.
-- Créer équipe.
-- Joueurs.
-- Mes demandes.
-
-### Pages Créateur du tournoi
-
-- Détail de mon tournoi.
-- Demandes de participation.
-- Équipes participantes.
-- Création des matchs.
-- Saisie des résultats.
-- Classement.
-
-## 9. Base de données PostgreSQL
-
-Configuration Docker utilisée par Laravel :
+### 9.1 Variables d'environnement backend
 
 ```env
 DB_CONNECTION=pgsql
@@ -268,129 +329,62 @@ DB_PORT=5432
 DB_DATABASE=gestion_tournois
 DB_USERNAME=postgres
 DB_PASSWORD=postgres
+SANCTUM_STATEFUL_DOMAINS=localhost:5173
 ```
 
-Tables principales :
-
-- users ;
-- tournaments ;
-- teams ;
-- players ;
-- tournament_team ;
-- join_requests ;
-- match_games ;
-- compositions ;
-- rankings ;
-- statistics.
-
-## 10. Gestion des rôles et permissions
-
-| Rôle | Permissions principales |
-|---|---|
-| admin | Valider/refuser les tournois, superviser la plateforme |
-| user | Créer tournois, équipes, joueurs, demander participation |
-
-Règles de sécurité :
-
-```txt
-Un user ne peut modifier que les tournois où created_by = son user_id.
-Un user ne peut modifier que les équipes où manager_id = son user_id.
-Un tournoi doit être accepted pour être visible publiquement.
-Un tournoi doit être accepted pour recevoir des demandes de participation.
-```
-
-## 11. Gestion des résultats
-
-Les résultats passent par trois états :
-
-```txt
-pending
-confirmed
-disputed
-```
-
-Seuls les résultats `confirmed` sont utilisés dans le calcul du classement.
-
-## 12. Gestion des images
-
-Les images uploadées sont stockées dans :
-
-```txt
-backend/storage/app/public
-```
-
-La base de données stocke uniquement le chemin.
-
-Exemples :
-
-```txt
-teams/logo.png
-players/photo.jpg
-tournaments/banner.jpg
-```
-
-Commande Laravel nécessaire :
-
-```bash
-php artisan storage:link
-```
-
-Avec Docker :
+### 9.2 Stockage fichiers
 
 ```bash
 docker compose exec backend php artisan storage:link
 ```
 
-## 13. Workflow Git
+Chemins en BDD : `teams/…`, `players/…`, `tournaments/…`
 
-Règles recommandées :
+---
 
-- `main` reste stable.
-- Chaque membre travaille dans une branche.
-- Ne pas pousser directement vers `main`.
-- Utiliser des Pull Requests.
-- Ne jamais pousser `.env`.
-- Ne jamais pousser `node_modules`.
-- Ne jamais pousser `vendor`.
+## 10. Tests
 
-Exemples de branches :
+| Type | Outil / méthode |
+|---|---|
+| API manuelle | Postman / curl |
+| Frontend | Navigation manuelle + comptes seed |
+| Recette | User stories (voir `suivi-realisation-user-stories.md`) |
+| Build TS | `npm run build` dans frontend |
 
-```txt
-feature/auth-users
-feature/admin-tournament-approval
-feature/tournaments-crud
-feature/teams-players
-feature/join-requests
-feature/matches-results
-feature/rankings-statistics
-docs/local-tournament-docs
-```
+---
 
-## 14. Sécurité
+## 11. Workflow Git
 
-Mesures prévues :
+- Branche `main` stable
+- Features : `feature/nom-module`
+- Pull Requests obligatoires
+- Fichiers ignorés : `.env`, `node_modules`, `vendor`
 
-- mots de passe hashés ;
-- validation des données côté backend ;
-- routes protégées selon le rôle ;
-- restriction par propriétaire des données ;
-- fichier `.env` non versionné ;
-- contrôle des fichiers uploadés ;
-- limitation des types et tailles d'images.
+---
 
-## 15. Tests prévus
+## 12. Livrables documentation
 
-- test du lancement Docker ;
-- test des migrations ;
-- test des routes API ;
-- test de l'inscription et connexion ;
-- test de création tournoi ;
-- test d'acceptation/refus par admin ;
-- test de création équipe ;
-- test de création joueurs ;
-- test des demandes de participation ;
-- test de création match ;
-- test de saisie résultat ;
-- test du calcul de classement ;
-- test des statistiques ;
-- test des formulaires React.
+| Document | Fichier |
+|---|---|
+| Cahier des charges | `cahier-des-charges.md` |
+| Architecture | `architecture.md` |
+| Schéma BDD | `database-schema.md` |
+| Cas d'utilisation | `use-case-diagram.md` |
+| Suivi user stories | `suivi-realisation-user-stories.md` |
+| Index docs | `README_DOCS.md` |
+
+---
+
+## 13. Évolutions récentes (juin–juillet 2026)
+
+- Refonte UI matchs : lignes alternées, badge « Résultat à saisir », scores thème-aware
+- Modal modification match avec champs score
+- Dashboard : graphique buts compact, widgets filtrables
+- Cartes tournois : actions footer (dashboard)
+- Thèmes multiples et landing publique
+- Filtres statistiques intelligents (match ↔ équipe ↔ joueur)
+- Classement cliquable vers fiche équipe
+
+---
+
+*Document rédigé pour la soutenance PFE — Tournify, Gestion des Tournois Locaux.*

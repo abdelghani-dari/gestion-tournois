@@ -1,6 +1,6 @@
 import { clsx } from "clsx";
-import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router";
 import {
   ApiError,
   getMyTournaments,
@@ -13,13 +13,27 @@ import {
 } from "../../api";
 import Button from "../../components/common/Button";
 import ComponentCard from "../../components/common/ComponentCard";
+import FormSearchableSelect from "../../components/common/FormSearchableSelect";
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
+import TableRowsSkeleton from "../../components/common/skeletons/TableRowsSkeleton";
+import { resolveTeamLogo } from "../../components/common/teamAssets";
+import MediaImage from "../../components/common/MediaImage";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
+import { AngleRightIcon } from "../../icons";
+import { tournamentSelectOptions } from "../../components/common/selectOptionBuilders";
+
+function rankingRowStripe(index: number) {
+  return index % 2 === 0 ? "bg-black/[0.008] dark:bg-white/[0.012]" : "bg-black/[0.018] dark:bg-white/[0.022]";
+}
 
 function teamName(ranking: ApiRanking) {
   return ranking.team?.name ?? `Équipe #${ranking.team_id}`;
+}
+
+function teamLogo(ranking: ApiRanking) {
+  return ranking.team?.logo_path ?? null;
 }
 
 function tournamentName(tournamentId: string, tournaments: PublicTournament[]) {
@@ -113,9 +127,9 @@ export default function RankingsPage() {
     }
   }, [id]);
 
-  const loadRankings = async () => {
-    if (!selectedTournamentId) {
-      setError("Sélectionnez d'abord un tournoi.");
+  const loadRankings = useCallback(async (tournamentId: string) => {
+    if (!tournamentId) {
+      setRankings([]);
       return;
     }
 
@@ -124,7 +138,7 @@ export default function RankingsPage() {
     setSuccess("");
 
     try {
-      const data = await getRankings(selectedTournamentId);
+      const data = await getRankings(tournamentId);
       setRankings(data);
     } catch (err) {
       setRankings([]);
@@ -132,7 +146,12 @@ export default function RankingsPage() {
     } finally {
       setLoadingRankings(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (loadingTournaments || !selectedTournamentId) return;
+    void loadRankings(selectedTournamentId);
+  }, [selectedTournamentId, loadingTournaments, loadRankings]);
 
   const handleRecalculate = async () => {
     if (!selectedTournamentId) {
@@ -147,8 +166,7 @@ export default function RankingsPage() {
     try {
       await recalculateRankings(selectedTournamentId);
       setSuccess("Classement recalculé.");
-      const data = await getRankings(selectedTournamentId);
-      setRankings(data);
+      await loadRankings(selectedTournamentId);
     } catch (err) {
       setError(readableRankingError(err, "Impossible de recalculer le classement."));
     } finally {
@@ -160,51 +178,27 @@ export default function RankingsPage() {
     <>
       <XPageMeta title="Classements" description="Classements des tournois locaux" />
       <PageStack>
-        <div className={clsx("grid grid-cols-1 lg:grid-cols-3", GRID_GAP)}>
-          <ComponentCard title="Tournoi" desc="Classement public par tournoi" className="lg:col-span-2">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto_auto] md:items-end">
-              <div>
-                <label htmlFor="rankings-tournament" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Tournoi</label>
-                <select
-                  id="rankings-tournament"
-                  name="tournament_id"
-                  value={selectedTournamentId}
-                  onChange={(event) => {
-                    setSelectedTournamentId(event.target.value);
-                    setRankings([]);
-                    setSuccess("");
-                    setError("");
-                  }}
-                  disabled={loadingTournaments}
-                  className={clsx(
-                    "w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none",
-                    t.border,
-                    t.metricBg,
-                    t.textPrimary,
-                  )}
-                >
-                  <option value="">Sélectionner un tournoi</option>
-                  {tournamentOptions.map((tournament) => (
-                    <option key={tournament.id} value={tournament.id}>
-                      #{tournament.id} - {tournament.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+        <div className={clsx("grid grid-cols-1", GRID_GAP)}>
+          <ComponentCard title="Tournoi" desc="Classement public par tournoi" className="relative z-30" bodyClassName="overflow-visible">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto] md:items-end">
+              <FormSearchableSelect
+                id="rankings-tournament"
+                label="Tournoi"
+                value={selectedTournamentId}
+                onChange={(value) => {
+                  setSelectedTournamentId(value);
+                  setSuccess("");
+                  setError("");
+                }}
+                emptyOptionLabel="Sélectionner un tournoi"
+                disabled={loadingTournaments}
+                options={tournamentSelectOptions(tournamentOptions, user?.id)}
+              />
 
               <Button
                 type="button"
-                onClick={loadRankings}
-                disabled={loadingTournaments || loadingRankings || !selectedTournamentId}
-              >
-                {loadingRankings ? "Chargement..." : "Charger le classement"}
-              </Button>
-
-              <Button
-                type="button"
-                variant="secondary"
                 onClick={handleRecalculate}
-                disabled={!isAuthenticated || loadingTournaments || recalculating || !selectedTournamentId}
+                disabled={!isAuthenticated || loadingTournaments || loadingRankings || recalculating || !selectedTournamentId}
                 title={!isAuthenticated ? "Connexion requise" : undefined}
               >
                 {recalculating ? "Recalcul..." : "Recalculer le classement"}
@@ -228,88 +222,80 @@ export default function RankingsPage() {
               </p>
             )}
           </ComponentCard>
-
-          <ComponentCard title="Compte connecté" desc={user ? `${user.email} - ${user.role}` : "Accès public"}>
-            <div className={clsx("rounded-md border p-4", t.card)}>
-              <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Tournoi sélectionné</p>
-              <p className={clsx("mt-1 truncate text-lg font-semibold", t.textPrimary)}>
-                {tournamentName(selectedTournamentId, tournamentOptions)}
-              </p>
-              <p className={clsx("mt-2 text-sm", t.textSecondary)}>
-                {rankings.length} ligne{rankings.length === 1 ? "" : "s"} de classement
-              </p>
-            </div>
-          </ComponentCard>
         </div>
 
-        <ComponentCard title="Table de classement" desc="Données enregistrées">
-          {loadingTournaments && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement des tournois...</p>
-          )}
-
-          {!loadingTournaments && loadingRankings && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement du classement...</p>
-          )}
-
-          {!loadingTournaments && !loadingRankings && rankings.length === 0 && (
+        <ComponentCard title="Table de classement" desc="Données enregistrées" className="relative z-10">
+          {loadingTournaments || loadingRankings ? (
+            <TableRowsSkeleton rows={12} />
+          ) : rankings.length === 0 ? (
             <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune donnée disponible.</p>
-          )}
-
-          {!loadingRankings && rankings.length > 0 && (
+          ) : (
             <div className="x-scroll overflow-x-auto">
-              <table className="w-full min-w-[920px] table-fixed text-sm">
-                <colgroup>
-                  <col className="w-[86px]" />
-                  <col className="w-[24%]" />
-                  <col className="w-[9%]" />
-                  <col className="w-[9%]" />
-                  <col className="w-[9%]" />
-                  <col className="w-[9%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[10%]" />
-                </colgroup>
+              <table className="w-full min-w-[720px] table-fixed text-sm">
                 <thead>
                   <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
-                    <th className="px-4 py-3">Position</th>
-                    <th className="px-4 py-3">Équipe</th>
-                    <th className="px-4 py-3">Joués</th>
-                    <th className="px-4 py-3">Victoires</th>
-                    <th className="px-4 py-3">Nuls</th>
-                    <th className="px-4 py-3">Défaites</th>
-                    <th className="px-4 py-3">Buts pour</th>
-                    <th className="px-4 py-3">Buts contre</th>
-                    <th className="px-4 py-3">Différence</th>
-                    <th className="px-4 py-3">Points</th>
+                    <th className="w-10 px-3 py-3">#</th>
+                    <th className="px-3 py-3">Équipe</th>
+                    <th className="w-12 px-2 py-3 text-center">MJ</th>
+                    <th className="w-10 px-2 py-3 text-center">V</th>
+                    <th className="w-10 px-2 py-3 text-center">N</th>
+                    <th className="w-10 px-2 py-3 text-center">D</th>
+                    <th className="w-12 px-2 py-3 text-center">BP</th>
+                    <th className="w-12 px-2 py-3 text-center">BC</th>
+                    <th className="w-14 px-2 py-3 text-center">Diff</th>
+                    <th className="w-12 px-2 py-3 text-center">Pts</th>
+                    <th className="w-8 px-2 py-3" aria-hidden />
                   </tr>
                 </thead>
                 <tbody>
                   {rankings.map((ranking, index) => (
-                    <tr key={ranking.id} className={clsx("transition-colors", t.tableRow, t.navHover)}>
-                      <td className="px-4 py-3">
-                        <span className={clsx("font-mono font-bold", index < 3 ? "text-amber-400" : t.textMuted)}>
+                    <tr
+                      key={ranking.id}
+                      className={clsx("group transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.025]", rankingRowStripe(index))}
+                    >
+                      <td className="px-3 py-3 group-hover:rounded-l-lg">
+                        <span className={clsx("font-mono font-bold tabular-nums", index < 3 ? "text-amber-400" : t.textPrimary)}>
                           {index + 1}
                         </span>
                       </td>
-                      <td className={clsx("px-4 py-3 font-medium", t.textPrimary)}>
-                        <span className="block truncate" title={teamName(ranking)}>
-                          {teamName(ranking)}
-                        </span>
+                      <td className="px-3 py-3">
+                        <Link
+                          to={`/teams/${ranking.team_id}`}
+                          className={clsx("flex min-w-0 cursor-pointer items-center gap-3", t.textPrimary)}
+                        >
+                          <MediaImage
+                            src={teamLogo(ranking)}
+                            fallback={resolveTeamLogo(null)}
+                            alt=""
+                            className="h-7 w-7 shrink-0 object-contain"
+                          />
+                          <span className="truncate font-medium hover:text-brand-400" title={teamName(ranking)}>
+                            {teamName(ranking)}
+                          </span>
+                        </Link>
                       </td>
-                      <td className={clsx("px-4 py-3 tabular-nums", t.textSecondary)}>{ranking.played}</td>
-                      <td className="px-4 py-3 tabular-nums text-emerald-500">{ranking.wins}</td>
-                      <td className={clsx("px-4 py-3 tabular-nums", t.textSecondary)}>{ranking.draws}</td>
-                      <td className="px-4 py-3 tabular-nums text-red-400">{ranking.losses}</td>
-                      <td className={clsx("px-4 py-3 tabular-nums", t.textSecondary)}>{ranking.goals_for}</td>
-                      <td className={clsx("px-4 py-3 tabular-nums", t.textSecondary)}>{ranking.goals_against}</td>
-                      <td className="px-4 py-3 tabular-nums">
+                      <td className={clsx("px-2 py-3 text-center tabular-nums", t.textSecondary)}>{ranking.played}</td>
+                      <td className="px-2 py-3 text-center tabular-nums text-emerald-500">{ranking.wins}</td>
+                      <td className={clsx("px-2 py-3 text-center tabular-nums", t.textSecondary)}>{ranking.draws}</td>
+                      <td className="px-2 py-3 text-center tabular-nums text-red-400">{ranking.losses}</td>
+                      <td className={clsx("px-2 py-3 text-center tabular-nums", t.textSecondary)}>{ranking.goals_for}</td>
+                      <td className={clsx("px-2 py-3 text-center tabular-nums", t.textSecondary)}>{ranking.goals_against}</td>
+                      <td className="px-2 py-3 text-center tabular-nums">
                         <span className={ranking.goal_difference >= 0 ? "text-emerald-500" : "text-red-400"}>
                           {ranking.goal_difference > 0 ? "+" : ""}
                           {ranking.goal_difference}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-semibold tabular-nums text-brand-500">{ranking.points}</td>
+                      <td className="px-2 py-3 text-center font-semibold tabular-nums text-brand-500">{ranking.points}</td>
+                      <td className="px-2 py-3 group-hover:rounded-r-lg">
+                        <Link
+                          to={`/teams/${ranking.team_id}`}
+                          aria-label={`Voir ${teamName(ranking)}`}
+                          className={clsx("inline-flex cursor-pointer items-center justify-center opacity-40 transition-opacity group-hover:opacity-100", t.textMuted, "hover:text-brand-400")}
+                        >
+                          <AngleRightIcon className="size-4" />
+                        </Link>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

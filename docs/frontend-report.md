@@ -81,7 +81,7 @@ Shows a different interface depending on the authenticated role.
 - Normal users see their tournament, team, player, join-request, and match overview, plus the tournament creation form.
 - Admin users see validation-focused metrics: pending, accepted, refused, and total tournaments, with links toward admin tournament validation.
 - The dashboard includes simple backend-driven horizontal charts for tournament status, match status, result status, and ranking points.
-- The dashboard includes a simple `Tableau du tournoi` bracket section built from backend matches.
+- The dashboard includes tournament widgets and charts built from backend data.
 
 Admin users can still create tournaments through normal authenticated backend permissions, but tournament creation is no longer the main admin dashboard focus.
 

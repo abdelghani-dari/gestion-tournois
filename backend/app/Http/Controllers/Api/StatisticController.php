@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\AppliesListSorting;
 use App\Http\Controllers\Controller;
 use App\Models\MatchGame;
 use App\Models\Player;
@@ -11,6 +12,8 @@ use Illuminate\Http\Request;
 
 class StatisticController extends Controller
 {
+    use AppliesListSorting;
+
     private const STAT_TYPES = 'goal,assist,yellow_card,red_card,clean_sheet';
 
     public function index(Request $request): JsonResponse
@@ -22,13 +25,20 @@ class StatisticController extends Controller
             'stat_type' => ['sometimes', 'in:'.self::STAT_TYPES],
         ]);
 
-        $query = Statistic::with(['matchGame.homeTeam', 'matchGame.awayTeam', 'team', 'player'])->latest();
+        $query = Statistic::with(['matchGame.homeTeam', 'matchGame.awayTeam', 'team', 'player']);
 
         foreach (['match_game_id', 'team_id', 'player_id', 'stat_type'] as $field) {
             if (isset($validated[$field])) {
                 $query->where($field, $validated[$field]);
             }
         }
+
+        $this->applyListSorting($query, $request, [
+            'id' => 'id',
+            'stat_type' => 'stat_type',
+            'value' => 'value',
+            'created_at' => 'created_at',
+        ]);
 
         return response()->json($query->get());
     }
@@ -73,6 +83,12 @@ class StatisticController extends Controller
 
     public function destroy(Statistic $statistic): JsonResponse
     {
+        $statistic->load('matchGame.tournament');
+
+        if (! $this->canDeleteStatistic($statistic)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $statistic->delete();
 
         return response()->json(['message' => 'Statistic deleted.']);
@@ -102,5 +118,17 @@ class StatisticController extends Controller
         }
 
         return null;
+    }
+
+    private function canDeleteStatistic(Statistic $statistic): bool
+    {
+        if (auth('api')->user()?->role === 'admin') {
+            return true;
+        }
+
+        $tournament = $statistic->matchGame?->tournament;
+
+        return $tournament !== null
+            && (int) $tournament->created_by === (int) auth('api')->id();
     }
 }

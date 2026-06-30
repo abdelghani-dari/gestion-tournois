@@ -1,195 +1,96 @@
-# Gestion Tournois — Application de Gestion Sportive
+# Tournify — Gestion des Tournois Locaux
 
-Application web de gestion sportive permettant de gérer les saisons, championnats, tournois, équipes, joueurs, matchs, compositions, classements et statistiques.
+Application web de gestion de **tournois locaux de football** : création et validation de tournois, équipes, joueurs, matchs, résultats, classements et statistiques.
 
-## Technologies utilisées
+## Stack technique
 
-- Backend : Laravel
-- Frontend : React
-- Base de données : PostgreSQL
-- API : REST API
-- Déploiement local : Docker + Docker Compose
-- Versioning : Git + GitHub
+| Couche | Technologie |
+|---|---|
+| Frontend | React 19 + Vite + TypeScript + Tailwind CSS |
+| Backend | Laravel 11 (API REST) |
+| Base de données | PostgreSQL |
+| Conteneurisation | Docker Compose |
+| Authentification | Laravel Sanctum (token Bearer) |
+
+## Fonctionnalités principales
+
+- Inscription / connexion (rôles **admin** et **user**)
+- Création de tournoi local soumis à validation admin
+- Gestion des équipes et joueurs (logos, photos)
+- Demandes de participation aux tournois acceptés
+- Planification des matchs et saisie des scores
+- Confirmation / contestation des résultats
+- Classement automatique par tournoi
+- Statistiques (buts, passes, cartons)
+- Dashboard avec graphiques et widgets filtrables
+- Thèmes visuels : clair, slate (dark), zinc
+- Page d'accueil publique (landing)
 
 ## Prérequis
-
-Avant de lancer le projet, installer :
 
 - Git
 - Docker Desktop
 
-## Installation avec Docker
-
-Cloner le projet :
+## Installation
 
 ```bash
 git clone https://github.com/abdelghani-dari/gestion-tournois.git
 cd gestion-tournois
-```
-
-Lancer tous les services :
-
-```bash
 docker compose up -d --build
 ```
 
-Installer les dépendances Laravel si nécessaire :
-
-```bash
-docker compose exec backend composer install
-```
-
-Créer le fichier `.env` du backend :
+Configuration backend (première fois) :
 
 ```bash
 docker compose exec backend cp .env.example .env
-```
-
-Générer la clé Laravel :
-
-```bash
 docker compose exec backend php artisan key:generate
-```
-
-Lancer les migrations :
-
-```bash
-docker compose exec backend php artisan migrate
-```
-
-Créer le lien symbolique pour les images uploadées :
-
-```bash
+docker compose exec backend php artisan migrate --seed
 docker compose exec backend php artisan storage:link
 ```
 
-## Accès à l'application
+## Accès
 
-Frontend :
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| API Laravel | http://localhost:8000 |
+| PostgreSQL (hôte Windows) | localhost:5433 |
 
-```txt
-http://localhost:5173
-```
+## Comptes de démonstration
 
-Backend Laravel :
+| Rôle | Email | Mot de passe |
+|---|---|---|
+| Admin | admin@example.com | password |
+| Utilisateur | user@example.com | password |
+| Créateur | creator2@example.com | password |
 
-```txt
-http://localhost:8000
-```
-
-PostgreSQL depuis Windows :
-
-```txt
-localhost:5433
-```
-
-PostgreSQL depuis Docker/Laravel :
+## Structure du projet
 
 ```txt
-postgres:5432
+gestion-tournois/
+├── backend/          # API Laravel
+├── frontend/         # Application React (src/pages, src/components)
+├── docs/             # Documentation PFE (français)
+└── docker-compose.yml
 ```
 
-## Configuration base de données Docker
+## Documentation
 
-Dans `backend/.env.example`, la configuration Docker est :
+Voir le dossier [`docs/`](docs/README_DOCS.md) :
 
-```env
-DB_CONNECTION=pgsql
-DB_HOST=postgres
-DB_PORT=5432
-DB_DATABASE=gestion_tournois
-DB_USERNAME=postgres
-DB_PASSWORD=postgres
-```
+- `documentation-technique.md` — référence technique complète
+- `architecture.md` — architecture et diagrammes
+- `cahier-des-charges.md` — besoins fonctionnels
+- `suivi-realisation-user-stories.md` — suivi des user stories (phase finalisation)
 
-## Gestion des images
+## Équipe PFE
 
-Les images uploadées par les utilisateurs doivent être stockées dans Laravel :
+- **Abdelghani Dari** — Chef de projet
+- **Mohamed Amaghyouz** — Tests et recette
+- **Elmehdi Hajjab** — Développement frontend
+- **Youssef Benali** — Développement frontend
+- **Omar Idrissi** — Développement backend
 
-```txt
-backend/storage/app/public
-```
+## Licence
 
-La base de données doit stocker seulement le chemin de l'image.
-
-Exemples :
-
-```txt
-teams/logo.png
-players/photo.jpg
-tournaments/banner.jpg
-```
-
-Les images statiques utilisées uniquement par l'interface React doivent être placées dans :
-
-```txt
-frontend/src/assets
-```
-
-ou :
-
-```txt
-frontend/public
-```
-
-## Commandes utiles
-
-Voir les containers :
-
-```bash
-docker compose ps
-```
-
-Arrêter les containers :
-
-```bash
-docker compose down
-```
-
-Redémarrer le projet :
-
-```bash
-docker compose up -d
-```
-
-Voir les logs :
-
-```bash
-docker compose logs -f
-```
-
-Accéder au backend :
-
-```bash
-docker compose exec backend bash
-```
-
-## Workflow Git recommandé
-
-- `main` doit rester stable.
-- Chaque membre travaille dans sa propre branche.
-- Ne pas pousser directement sur `main`.
-- Utiliser des Pull Requests.
-- Ne jamais pousser `.env`.
-- Ne jamais pousser `node_modules` ou `vendor`.
-
-Exemples de branches :
-
-```txt
-feature/teams-crud
-feature/players-crud
-feature/matches
-feature/rankings
-docs/conception
-docs/readme-setup
-```
-
-## Prochaines étapes
-
-- Finaliser la conception UML.
-- Créer le diagramme de cas d'utilisation.
-- Créer le diagramme de classes.
-- Créer le schéma de base de données.
-- Développer les migrations Laravel.
-- Développer les API REST.
-- Créer les pages React.
+Projet académique — PFE encadré.

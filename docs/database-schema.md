@@ -37,6 +37,7 @@ Table des tournois locaux.
 | city | string nullable | Ville |
 | location | string nullable | Lieu exact |
 | banner_path | string nullable | Image du tournoi |
+| format | string | Format du tournoi (`league` uniquement) |
 | start_date | date | Date de début |
 | end_date | date | Date de fin |
 | status | string | draft, open, active, finished, cancelled |

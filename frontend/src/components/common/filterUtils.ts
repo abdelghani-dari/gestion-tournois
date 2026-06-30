@@ -1,7 +1,7 @@
 export function teamIdsFromMatches(
   matches: {
-    home_team_id: number;
-    away_team_id: number;
+    home_team_id?: number | null;
+    away_team_id?: number | null;
     championship_id: number | null;
     tournament_id: number | null;
   }[],
@@ -16,5 +16,9 @@ export function teamIdsFromMatches(
   }
   if (!filter.championshipId && !filter.tournamentId) return null;
   if (list.length === 0) return new Set();
-  return new Set(list.flatMap((m) => [m.home_team_id, m.away_team_id]));
+  return new Set(
+    list
+      .flatMap((m) => [m.home_team_id, m.away_team_id])
+      .filter((teamId): teamId is number => typeof teamId === "number"),
+  );
 }

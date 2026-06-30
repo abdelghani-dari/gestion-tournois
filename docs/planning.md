@@ -53,10 +53,10 @@ Le projet est organisé en plusieurs phases : préparation, conception, dévelop
 | 27 | Pages tournois | Frontend | À faire |
 | 28 | Pages équipes / joueurs | Frontend | À faire |
 | 29 | Pages matchs / résultats / classement | Frontend | À faire |
-| 30 | Intégration frontend/backend | Frontend / Backend | À faire |
-| 31 | Tests et corrections | Équipe | À faire |
-| 32 | Rapport final | Documentation | À faire |
-| 33 | Préparation soutenance | Équipe | À faire |
+| 30 | Intégration frontend/backend | Frontend / Backend | Terminé |
+| 31 | Tests et corrections | Équipe | Terminé |
+| 32 | Rapport final | Documentation | En cours |
+| 33 | Préparation soutenance | Équipe | En cours |
 
 ## 4. Répartition proposée
 

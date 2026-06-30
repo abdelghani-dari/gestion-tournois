@@ -20,7 +20,21 @@ class JoinRequestController extends Controller
             'status' => ['sometimes', 'string', 'max:255'],
         ]);
 
+        $user = auth('api')->user();
         $query = JoinRequest::with(['tournament', 'team', 'manager'])->latest();
+
+        // Scope by role: admin sees all; creator sees only their tournament requests; user only sees their own sent requests
+        if ($user && $user->role !== 'admin') {
+            if ($user->role === 'creator') {
+                // Creator sees requests directed at their own tournaments
+                $myTournamentIds = \App\Models\Tournament::where('created_by', $user->id)->pluck('id');
+                $query->whereIn('tournament_id', $myTournamentIds)
+                      ->orWhere('manager_id', $user->id);
+            } else {
+                // Regular user / team manager: only their own outgoing requests
+                $query->where('manager_id', $user->id);
+            }
+        }
 
         if (isset($validated['tournament_id'])) {
             $query->where('tournament_id', $validated['tournament_id']);
@@ -88,7 +102,7 @@ class JoinRequestController extends Controller
 
     public function accept(JoinRequest $joinRequest): JsonResponse
     {
-        if ((int) $joinRequest->tournament->created_by !== (int) auth('api')->id()) {
+        if (! $this->isAdmin() && (int) $joinRequest->tournament->created_by !== (int) auth('api')->id()) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -106,7 +120,7 @@ class JoinRequestController extends Controller
 
     public function refuse(JoinRequest $joinRequest): JsonResponse
     {
-        if ((int) $joinRequest->tournament->created_by !== (int) auth('api')->id()) {
+        if (! $this->isAdmin() && (int) $joinRequest->tournament->created_by !== (int) auth('api')->id()) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -118,5 +132,10 @@ class JoinRequestController extends Controller
         Cache::forget("tournament:{$joinRequest->tournament_id}:details");
 
         return response()->json($joinRequest->load(['tournament', 'team', 'manager']));
+    }
+
+    private function isAdmin(): bool
+    {
+        return auth('api')->user()?->role === 'admin';
     }
 }

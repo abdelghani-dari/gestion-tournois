@@ -790,3 +790,17 @@ span.flatpickr-weekday,
 .simplebar-scrollbar.simplebar-visible:before {
   @apply opacity-100;
 }
+
+/* ── Global autocomplete / autofill overrides ── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  /* Force dark background via inset box-shadow trick (the only cross-browser way) */
+  -webkit-box-shadow: 0 0 0 1000px #0d1f35 inset !important;
+  box-shadow: 0 0 0 1000px #0d1f35 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff;
+  transition: background-color 9999s ease-in-out 0s;
+}
+

@@ -8,6 +8,7 @@ export type AuthUser = {
   role: "admin" | "user" | string;
   account_status?: "pending" | "active" | "refused" | string;
   avatar_url?: string | null;
+  tournament_count?: number;
 };
 
 type AuthResponse = {

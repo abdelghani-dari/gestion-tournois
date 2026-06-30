@@ -1,261 +1,70 @@
-# Changements à Implémenter — Gestion Tournois Locaux
+# Journal des changements — Implémentation
 
-## 1. Objectif
+Historique des modifications majeures alignées sur le code (juin–juillet 2026).
 
-Ce document résume les changements techniques à implémenter dans le code Laravel/React pour adapter le projet à la nouvelle orientation.
+## Statut global : prototype fonctionnel livré
 
-La nouvelle version gère uniquement les tournois locaux avec validation par l'administrateur.
+| Module | Backend | Frontend | Tests |
+|---|---|---|---|
+| Auth | ✅ | ✅ | ✅ |
+| Tournois + validation admin | ✅ | ✅ | ✅ |
+| Équipes / joueurs | ✅ | ✅ | ✅ |
+| Demandes participation | ✅ | ✅ | ✅ |
+| Matchs / résultats | ✅ | ✅ | ✅ |
+| Classements | ✅ | ✅ | ✅ |
+| Statistiques | ✅ | ✅ | ✅ |
+| Dashboard | ✅ | ✅ | ✅ |
+| Landing publique | — | ✅ | ✅ |
+| Thèmes UI | — | ✅ | ✅ |
 
-## 2. À supprimer ou ignorer
+## Changements récents (finalisation)
 
-### Tables / modules à supprimer
+### Nettoyage format tournoi
+- Suppression du concept knockout / bracket (reporté à une évolution future)
+- Colonnes bracket retirées de `match_games` (`round_number`, `bracket_position`, `next_match_id`, etc.)
+- API et UI limitées au format ligue avec classement
 
-```txt
-championships
-championship_team
-fake_payments
-```
+### UI Matchs
+- Suppression pulse/rouge de fond sur lignes en retard
+- Badge « Résultat à saisir » texte rouge sans bordure
+- Lignes alternées paires/impaires ; padding horizontal uniquement
+- Page matchs : cartes Planifier + Résultat en 2 colonnes
+- Modal edit match : champs score + API `enterMatchResult`
 
-### Champs à supprimer ou ignorer
+### Dashboard
+- Widget graphique buts sans en-tête redondant
+- Dropdown tournoi inline ; skeleton hauteur fixe
+- Derniers matchs avec même composant `MatchRowList`
 
-```txt
-users.payment_status
-users.subscription_plan
-tournaments.level
-tournaments.source
-match_games.championship_id
-rankings.championship_id
-join_requests.championship_id
-statistics.championship_id si existe
-posts.championship_id si posts gardés
-```
+### Tournois
+- Cartes dashboard : Modifier/Supprimer en footer (pas sur bannière)
+- Création via `TournamentFormDrawer` modal
 
-### Routes à supprimer
+### Classements
+- Lien équipe → `/teams/{id}` ; chevron ; hover arrondi
+- `RankingPreviewTable` et `RankingsPage` mis à jour
 
-```txt
-/api/championships
-/api/fake-payments
-```
+### Statistiques
+- Filtres cascade match ↔ équipe ↔ joueur
+- Prop `expandedOptions` sur `SearchableSelect` pour recherche élargie
 
-## 3. Modifications base de données
+### Modals / formulaires
+- Largeur `max-w-lg` ; onglets upload gris ; zones compactes
+- Boutons primaires sans icône PlusIcon
 
-### Modifier users
+### Thèmes
+- Light / Dark (slate) / Zinc via `XThemeContext`
+- Tooltips graphiques adaptés au thème
 
-Garder seulement :
+## Éléments legacy retirés ou ignorés
 
-```txt
-role: admin / user
-```
+- Modèle championnats / compétitions officielles
+- Paiements simulés
+- Rôles `organizer`, `team_manager`, `viewer`
 
-Supprimer :
+## Prochaines améliorations possibles (hors PFE)
 
-```txt
-payment_status
-subscription_plan
-```
-
-### Modifier tournaments
-
-Ajouter ou garder :
-
-```txt
-created_by
-name
-description
-city
-location
-banner_path
-start_date
-end_date
-status: draft / open / active / finished / cancelled
-approval_status: pending / accepted / refused
-admin_note
-approved_by
-approved_at
-```
-
-### Modifier teams
-
-Garder :
-
-```txt
-manager_id
-name
-logo_path
-city
-```
-
-### Modifier match_games
-
-Garder uniquement :
-
-```txt
-tournament_id
-created_by
-home_team_id
-away_team_id
-match_date
-home_score
-away_score
-status
-result_status
-```
-
-Supprimer :
-
-```txt
-championship_id
-```
-
-### Modifier rankings
-
-Garder uniquement :
-
-```txt
-tournament_id
-team_id
-played
-wins
-draws
-losses
-goals_for
-goals_against
-goal_difference
-points
-```
-
-Supprimer :
-
-```txt
-championship_id
-```
-
-### Modifier join_requests
-
-Garder uniquement :
-
-```txt
-tournament_id
-team_id
-manager_id
-status
-message
-```
-
-Supprimer :
-
-```txt
-championship_id
-```
-
-## 4. Nouvelles règles métier
-
-```txt
-Admin:
-- peut accepter ou refuser un tournoi.
-- peut voir les tournois en attente.
-
-User:
-- peut créer un tournoi.
-- peut créer une équipe.
-- peut ajouter des joueurs.
-- peut demander la participation à un tournoi accepté.
-
-Créateur du tournoi:
-- peut gérer uniquement ses propres tournois.
-- peut accepter/refuser les demandes de participation.
-- peut créer les matchs.
-- peut saisir les résultats.
-- peut recalculer le classement.
-```
-
-## 5. Routes backend recommandées
-
-### Admin
-
-```txt
-GET /api/admin/tournaments/pending
-PUT /api/admin/tournaments/{id}/accept
-PUT /api/admin/tournaments/{id}/refuse
-```
-
-### Tournaments
-
-```txt
-GET /api/tournaments
-POST /api/tournaments
-GET /api/tournaments/{id}
-PUT /api/tournaments/{id}
-DELETE /api/tournaments/{id}
-GET /api/my-tournaments
-```
-
-### Teams / Players
-
-```txt
-GET /api/teams
-POST /api/teams
-GET /api/my-teams
-GET /api/players
-POST /api/players
-```
-
-### Join Requests
-
-```txt
-POST /api/join-requests
-PUT /api/join-requests/{id}/accept
-PUT /api/join-requests/{id}/refuse
-```
-
-### Matches / Results
-
-```txt
-POST /api/matches
-PUT /api/matches/{id}/result
-PUT /api/matches/{id}/confirm-result
-PUT /api/matches/{id}/dispute-result
-```
-
-### Rankings / Statistics
-
-```txt
-GET /api/rankings?tournament_id=1
-POST /api/rankings/recalculate
-GET /api/statistics
-POST /api/statistics
-```
-
-## 6. Ordre recommandé de développement
-
-```txt
-1. Mettre à jour les migrations.
-2. Mettre à jour les modèles et relations.
-3. Supprimer ou ignorer Championships et FakePayments.
-4. Ajouter approval_status dans tournaments.
-5. Ajouter routes admin accept/refuse.
-6. Adapter JoinRequest pour tournament_id seulement.
-7. Adapter MatchGame pour tournament_id seulement.
-8. Adapter Ranking pour tournament_id seulement.
-9. Tester avec php artisan migrate:fresh --seed.
-10. Créer un frontend simple de test.
-```
-
-## 7. Tests minimum à faire
-
-```txt
-php artisan migrate:fresh --seed
-php artisan route:list
-php -l app/Models/*.php
-php -l app/Http/Controllers/Api/*.php
-GET /api/tournaments
-POST /api/tournaments
-GET /api/admin/tournaments/pending
-PUT /api/admin/tournaments/1/accept
-POST /api/teams
-POST /api/join-requests
-PUT /api/join-requests/1/accept
-POST /api/matches
-PUT /api/matches/1/result
-GET /api/rankings?tournament_id=1
-```
+- Tests automatisés (PHPUnit, Vitest)
+- CI/CD GitHub Actions
+- Déploiement cloud (Render, Railway)
+- Notifications email

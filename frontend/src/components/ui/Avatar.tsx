@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { PLAYER_PLACEHOLDER_URL } from "../common/playerAssets";
+
 const sizeClasses = {
   xsmall: "h-6 w-6",
   small: "h-8 w-8",
@@ -22,20 +25,28 @@ export default function Avatar({
   size = "medium",
   status = "none",
 }: {
-  src: string;
+  src?: string | null;
   alt?: string;
   size?: keyof typeof sizeClasses;
   status?: "online" | "offline" | "busy" | "none";
 }) {
+  const [failed, setFailed] = useState(false);
   const statusColors = {
     online: "bg-emerald-500",
     offline: "bg-slate-500",
     busy: "bg-amber-500",
   };
 
+  const resolvedSrc = !src?.trim() || failed ? PLAYER_PLACEHOLDER_URL : src.trim();
+
   return (
     <div className={`relative rounded-full ${sizeClasses[size]}`}>
-      <img src={src} alt={alt} className="h-full w-full rounded-full object-cover ring-1 ring-white/10" />
+      <img
+        src={resolvedSrc}
+        alt={alt}
+        onError={() => setFailed(true)}
+        className="h-full w-full rounded-full object-cover ring-1 ring-white/10"
+      />
       {status !== "none" && (
         <span
           className={`absolute bottom-0 right-0 rounded-full border-2 border-slate-900 ${statusSizeClasses[size]} ${statusColors[status]}`}

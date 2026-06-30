@@ -1,47 +1,22 @@
 import { Link } from "react-router";
 import { clsx } from "clsx";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { getPendingTournaments, getPendingUsers } from "../../api";
+import { useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { AlertIcon } from "../../icons";
+import { BellIcon } from "../../icons";
+import CountBadge from "../common/CountBadge";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { useHeaderDropdown } from "../context/HeaderDropdownContext";
 import { useThemeTokens } from "../theme/useThemeTokens";
+import { usePendingCounts } from "../context/PendingCountsContext";
 
 export default function AdminNotificationDropdown() {
   const t = useThemeTokens();
-  const { isAdmin, loading: authLoading } = useAuth();
+  const { isAdmin } = useAuth();
   const { isOpen, toggle, close } = useHeaderDropdown();
   const open = isOpen("admin-notifications");
-  const [pendingUsersCount, setPendingUsersCount] = useState(0);
-  const [pendingTournamentsCount, setPendingTournamentsCount] = useState(0);
+  const { pendingUsersCount, pendingTournamentsCount } = usePendingCounts();
 
   const totalPending = pendingUsersCount + pendingTournamentsCount;
-
-  const loadCounts = useCallback(async () => {
-    if (!isAdmin) return;
-
-    try {
-      const [pendingUsers, pendingTournaments] = await Promise.all([
-        getPendingUsers(),
-        getPendingTournaments(),
-      ]);
-      setPendingUsersCount(pendingUsers.length);
-      setPendingTournamentsCount(pendingTournaments.length);
-    } catch {
-      setPendingUsersCount(0);
-      setPendingTournamentsCount(0);
-    }
-  }, [isAdmin]);
-
-  useEffect(() => {
-    if (!authLoading && isAdmin) {
-      const timer = window.setTimeout(() => void loadCounts(), 0);
-      return () => window.clearTimeout(timer);
-    }
-
-    return undefined;
-  }, [authLoading, isAdmin, loadCounts]);
 
   const items = useMemo(() => {
     const pendingItems: Array<{ label: string; count: number; path: string }> = [];
@@ -73,16 +48,14 @@ export default function AdminNotificationDropdown() {
         type="button"
         onClick={() => toggle("admin-notifications")}
         className={clsx(
-          "dropdown-toggle relative flex h-10 w-10 items-center justify-center rounded-lg border transition-colors lg:h-11 lg:w-11",
+          "dropdown-toggle relative flex h-9 w-9 items-center justify-center rounded-lg border transition-colors",
           t.headerIconBtn,
         )}
         title="Notifications"
       >
-        <AlertIcon className="size-[18px]" />
+        <BellIcon className="size-[18px]" />
         {totalPending > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-semibold leading-none text-white">
-            {totalPending}
-          </span>
+          <CountBadge count={totalPending} className="absolute -right-0.5 -top-0.5" />
         )}
       </button>
 
@@ -109,9 +82,7 @@ export default function AdminNotificationDropdown() {
                 className={clsx("flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors", t.navHover)}
               >
                 <span className={clsx("font-medium", t.textPrimary)}>{item.label}</span>
-                <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-400">
-                  {item.count}
-                </span>
+                <CountBadge count={item.count} />
               </Link>
             ))}
           </div>
@@ -120,3 +91,4 @@ export default function AdminNotificationDropdown() {
     </div>
   );
 }
+

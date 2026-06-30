@@ -7,7 +7,8 @@ export interface PageMeta {
 
 const STATIC: Record<string, PageMeta> = {
   "/dashboard": { title: "Dashboard", description: "Vue d'ensemble des tournois locaux" },
-  "/tournaments": { title: "Tournois", description: "Tournois locaux acceptes" },
+  "/tournaments": { title: "Tournois", description: "Découvrez les tournois disponibles et gérez vos propres tournois" },
+  "/tournaments/create": { title: "Créer un tournoi", description: "Nouvelle proposition de tournoi local" },
   "/teams": { title: "Equipes", description: "Gestion des equipes" },
   "/players": { title: "Joueurs", description: "Effectifs et profils joueurs" },
   "/join-requests": { title: "Demandes", description: "Demandes d'inscription aux tournois" },

@@ -15,7 +15,9 @@ class AdminUserController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        return response()->json(User::query()->latest()->get());
+        return response()->json(
+            User::query()->withCount('tournaments')->latest()->get()
+        );
     }
 
     public function pending(): JsonResponse
@@ -73,6 +75,26 @@ class AdminUserController extends Controller
             'approved_at' => now(),
             'admin_note' => $validated['admin_note'] ?? null,
         ]);
+
+        return response()->json($user);
+    }
+
+    public function update(Request $request, User $user): JsonResponse
+    {
+        if (! $this->isAdmin()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $validated = $request->validate([
+            'role' => ['sometimes', 'required', 'in:admin,creator,user'],
+            'account_status' => ['sometimes', 'required', 'in:pending,active,refused'],
+        ]);
+
+        if (isset($validated['role']) && (int) $user->id === (int) auth('api')->id()) {
+            return response()->json(['message' => 'You cannot change your own role.'], 422);
+        }
+
+        $user->update($validated);
 
         return response()->json($user);
     }

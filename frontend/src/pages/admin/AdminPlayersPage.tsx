@@ -1,7 +1,9 @@
 import { clsx } from "clsx";
 import { useCallback, useEffect, useState } from "react";
-import { createAdminPlayer, getAdminPlayers, getAdminTeams, type ApiPlayer, type ApiTeam, type PlayerPayload } from "../../api";
+import { ApiError, createAdminPlayer, deletePlayer, getAdminPlayers, getAdminTeams, type ApiPlayer, type ApiTeam, type PlayerPayload } from "../../api";
 import Button from "../../components/common/Button";
+import ConfirmModal from "../../components/common/ConfirmModal";
+import FormSearchableSelect from "../../components/common/FormSearchableSelect";
 import ComponentCard from "../../components/common/ComponentCard";
 import EntityImage from "../../components/common/EntityImage";
 import ImageSourceInput, { type ImageSourceMode } from "../../components/common/ImageSourceInput";
@@ -31,11 +33,14 @@ export default function AdminPlayersPage() {
   const [players, setPlayers] = useState<ApiPlayer[]>([]);
   const [teams, setTeams] = useState<ApiTeam[]>([]);
   const [form, setForm] = useState<PlayerPayload>(emptyForm);
-  const [photoMode, setPhotoMode] = useState<ImageSourceMode>("url");
+  const [photoMode, setPhotoMode] = useState<ImageSourceMode>("upload");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [playerToDelete, setPlayerToDelete] = useState<ApiPlayer | null>(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -73,6 +78,7 @@ export default function AdminPlayersPage() {
     event.preventDefault();
     setSaving(true);
     setError("");
+    setSuccess("");
     try {
       await createAdminPlayer({
         ...form,
@@ -90,6 +96,31 @@ export default function AdminPlayersPage() {
     }
   };
 
+  const playerName = (player: ApiPlayer) => `${player.first_name} ${player.last_name}`.trim();
+
+  const handleConfirmDelete = async () => {
+    if (!playerToDelete) return;
+
+    setDeletingId(playerToDelete.id);
+    setError("");
+    setSuccess("");
+
+    try {
+      await deletePlayer(playerToDelete.id);
+      setSuccess("Joueur supprime.");
+      setPlayerToDelete(null);
+      await loadData();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        setError("Suppression refusee par l'API pour ce joueur.");
+      } else {
+        setError(err instanceof Error ? err.message : "Suppression impossible.");
+      }
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <>
       <XPageMeta title="Admin Joueurs" description="Tous les joueurs" />
@@ -103,14 +134,23 @@ export default function AdminPlayersPage() {
             <div className="rounded-sm border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">Accès administrateur requis.</div>
           ) : (
             <div className="space-y-5">
-              {error && <div className="rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
+              {(error || success) && (
+                <div
+                  className={clsx(
+                    "rounded-sm border px-4 py-3 text-sm",
+                    error ? "border-red-500/20 bg-red-500/10 text-red-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+                  )}
+                >
+                  {error || success}
+                </div>
+              )}
               {loading ? (
                 <p className={clsx("py-8 text-center text-sm", t.textMuted)}>Chargement...</p>
               ) : players.length === 0 ? (
                 <p className={clsx("py-8 text-center text-sm", t.textMuted)}>Aucun joueur disponible.</p>
               ) : (
                 <div className="x-scroll overflow-x-auto">
-                  <table className="w-full min-w-[900px] table-fixed text-sm">
+                  <table className="w-full min-w-[980px] table-fixed text-sm">
                     <thead>
                       <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
                         <th className="px-4 py-3">ID</th>
@@ -121,6 +161,7 @@ export default function AdminPlayersPage() {
                         <th className="px-4 py-3">Poste</th>
                         <th className="px-4 py-3">Numéro</th>
                         <th className="px-4 py-3">Créé le</th>
+                        <th className="px-4 py-3">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -140,6 +181,11 @@ export default function AdminPlayersPage() {
                           <td className={clsx("px-4 py-3", t.textSecondary)}>{player.position || "-"}</td>
                           <td className={clsx("px-4 py-3", t.textSecondary)}>{player.number ?? "-"}</td>
                           <td className={clsx("px-4 py-3", t.textSecondary)}>{formatDate(player.created_at)}</td>
+                          <td className="px-4 py-3">
+                            <Button type="button" size="sm" variant="danger" disabled={deletingId === player.id} onClick={() => setPlayerToDelete(player)}>
+                              {deletingId === player.id ? "Suppression..." : "Supprimer"}
+                            </Button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -152,9 +198,17 @@ export default function AdminPlayersPage() {
 
         <XModal open={createOpen} onClose={closeCreate} title="Ajouter un joueur" className="max-w-3xl">
           <form onSubmit={handleCreate} className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <select className={clsx("rounded-sm border px-3 py-2 text-sm", t.border, t.metricBg, t.textPrimary)} value={form.team_id} required onChange={(e) => setForm((current) => ({ ...current, team_id: Number(e.target.value) }))}>
-              {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
-            </select>
+            <FormSearchableSelect
+              id="admin-player-team"
+              label="Équipe *"
+              value={form.team_id ? String(form.team_id) : ""}
+              onChange={(value) => setForm((current) => ({ ...current, team_id: Number(value) }))}
+              emptyOptionLabel="Sélectionner une équipe"
+              options={teams.map((team) => ({
+                value: String(team.id),
+                label: team.name,
+              }))}
+            />
             <input className={clsx("rounded-sm border px-3 py-2 text-sm", t.border, t.metricBg, t.textPrimary)} placeholder="Prénom *" value={form.first_name} required onChange={(e) => setForm((current) => ({ ...current, first_name: e.target.value }))} />
             <input className={clsx("rounded-sm border px-3 py-2 text-sm", t.border, t.metricBg, t.textPrimary)} placeholder="Nom *" value={form.last_name} required onChange={(e) => setForm((current) => ({ ...current, last_name: e.target.value }))} />
             <input type="date" className={clsx("rounded-sm border px-3 py-2 text-sm", t.border, t.metricBg, t.textPrimary)} value={form.birth_date} onChange={(e) => setForm((current) => ({ ...current, birth_date: e.target.value }))} />
@@ -164,6 +218,7 @@ export default function AdminPlayersPage() {
               <ImageSourceInput
                 label="Photo"
                 name="photo"
+                variant="photo"
                 mode={photoMode}
                 onModeChange={setPhotoMode}
                 file={photoFile}
@@ -180,6 +235,20 @@ export default function AdminPlayersPage() {
             </div>
           </form>
         </XModal>
+
+        <ConfirmModal
+          open={Boolean(playerToDelete)}
+          onClose={() => setPlayerToDelete(null)}
+          title="Supprimer le joueur"
+          message={
+            playerToDelete
+              ? `Voulez-vous vraiment supprimer le joueur « ${playerName(playerToDelete)} » ? Cette action est irréversible.`
+              : ""
+          }
+          confirmLabel="Supprimer"
+          loading={deletingId !== null}
+          onConfirm={() => void handleConfirmDelete()}
+        />
       </PageStack>
     </>
   );

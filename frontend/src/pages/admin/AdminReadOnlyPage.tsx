@@ -1,6 +1,7 @@
 import { clsx } from "clsx";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  deleteMatch,
   getAdminJoinRequests,
   getAdminMatches,
   getAdminPlayers,
@@ -10,6 +11,8 @@ import {
   type ApiTeam,
   type JoinRequest,
 } from "../../api";
+import Button from "../../components/common/Button";
+import ConfirmModal from "../../components/common/ConfirmModal";
 import ComponentCard from "../../components/common/ComponentCard";
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack from "../../components/common/PageStack";
@@ -80,10 +83,13 @@ export default function AdminReadOnlyPage({ kind }: { kind: AdminReadOnlyKind })
   const { isAdmin, loading: authLoading } = useAuth();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [matchToDeleteId, setMatchToDeleteId] = useState<number | null>(null);
   const [error, setError] = useState("");
 
   const title = pageTitles[kind];
   const columns = useMemo(() => (rows[0] ? Object.keys(rows[0]) : []), [rows]);
+  const displayColumns = useMemo(() => (kind === "matches" && columns.length > 0 ? [...columns, "Actions"] : columns), [columns, kind]);
 
   const loadRows = useCallback(async () => {
     if (!isAdmin) return;
@@ -109,6 +115,23 @@ export default function AdminReadOnlyPage({ kind }: { kind: AdminReadOnlyKind })
     return undefined;
   }, [authLoading, loadRows]);
 
+  const handleConfirmDelete = async () => {
+    if (matchToDeleteId == null) return;
+
+    setDeletingId(matchToDeleteId);
+    setError("");
+
+    try {
+      await deleteMatch(matchToDeleteId);
+      setMatchToDeleteId(null);
+      await loadRows();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Suppression impossible.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <>
       <XPageMeta title={`Admin ${title}`} description="Supervision" />
@@ -127,15 +150,21 @@ export default function AdminReadOnlyPage({ kind }: { kind: AdminReadOnlyKind })
               <table className="w-full min-w-[860px] table-fixed text-sm">
                 <thead>
                   <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
-                    {columns.map((column) => <th key={column} className="px-4 py-3">{column}</th>)}
+                    {displayColumns.map((column) => <th key={column} className="px-4 py-3">{column}</th>)}
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((row) => (
                     <tr key={String(row.ID)} className={clsx("transition-colors", t.tableRow, t.navHover)}>
-                      {columns.map((column) => (
+                      {displayColumns.map((column) => (
                         <td key={column} className={clsx("px-4 py-3", column === "ID" ? `font-mono ${t.textMuted}` : t.textSecondary)}>
-                          {row[column] ?? "-"}
+                          {column === "Actions" && typeof row.ID === "number" ? (
+                            <Button type="button" size="sm" variant="danger" disabled={deletingId === row.ID} onClick={() => setMatchToDeleteId(row.ID as number)}>
+                              {deletingId === row.ID ? "Suppression..." : "Supprimer"}
+                            </Button>
+                          ) : (
+                            row[column] ?? "-"
+                          )}
                         </td>
                       ))}
                     </tr>
@@ -145,6 +174,16 @@ export default function AdminReadOnlyPage({ kind }: { kind: AdminReadOnlyKind })
             </div>
           )}
         </ComponentCard>
+
+        <ConfirmModal
+          open={matchToDeleteId != null}
+          onClose={() => setMatchToDeleteId(null)}
+          title="Supprimer le match"
+          message="Voulez-vous vraiment supprimer ce match ? Cette action est irréversible."
+          confirmLabel="Supprimer"
+          loading={deletingId !== null}
+          onConfirm={() => void handleConfirmDelete()}
+        />
       </PageStack>
     </>
   );

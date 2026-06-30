@@ -3,6 +3,9 @@ const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
 export const API_BASE = (configuredApiUrl || "http://localhost:8000/api").replace(/\/+$/, "");
 export const APP_BASE = API_BASE.replace(/\/api$/, "");
 
+/** Base URL for all backend-stored media files: http://localhost:8000/storage */
+export const STORAGE_BASE = `${APP_BASE}/storage`;
+
 const TOKEN_KEY = "auth_token";
 
 export class ApiError extends Error {
@@ -31,7 +34,21 @@ export function clearToken() {
 
 function getErrorMessage(data: unknown, fallback: string) {
   if (data && typeof data === "object") {
-    const maybeMessage = (data as { message?: unknown }).message;
+    const d = data as Record<string, unknown>;
+
+    // Laravel validation errors: { errors: { field: ["message"] } }
+    if (d.errors && typeof d.errors === "object") {
+      const errors = d.errors as Record<string, unknown>;
+      const firstKey = Object.keys(errors)[0];
+      if (firstKey) {
+        const msgs = errors[firstKey];
+        const msg = Array.isArray(msgs) ? msgs[0] : msgs;
+        if (typeof msg === "string" && msg.trim()) return msg;
+      }
+    }
+
+    // Standard { message: "..." }
+    const maybeMessage = d.message;
     if (typeof maybeMessage === "string" && maybeMessage.trim()) {
       return maybeMessage;
     }
@@ -68,20 +85,25 @@ function toFormData(payload: Record<string, unknown>) {
   return formData;
 }
 
+type ApiRequestOptions = RequestInit & {
+  auth?: boolean;
+};
+
 export async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
-  const headers = new Headers(options.headers);
+  const { auth = true, ...fetchOptions } = options;
+  const headers = new Headers(fetchOptions.headers);
   const token = getToken();
 
   headers.set("Accept", "application/json");
 
-  if (options.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) {
+  if (fetchOptions.body && !(fetchOptions.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
-  if (token) {
+  if (auth && token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
@@ -89,9 +111,9 @@ export async function apiRequest<T>(
 
   try {
     response = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
+      ...fetchOptions,
       headers,
-      signal: options.signal ?? AbortSignal.timeout(10_000),
+      signal: fetchOptions.signal ?? AbortSignal.timeout(10_000),
     });
   } catch (error) {
     console.error(`API request failed: ${endpoint}`, error);
@@ -107,6 +129,11 @@ export async function apiRequest<T>(
   const data = await parseResponse(response);
 
   if (!response.ok) {
+    if (response.status === 401 && auth && token) {
+      clearToken();
+      window.dispatchEvent(new CustomEvent("auth:expired"));
+    }
+
     const error = new ApiError(
       getErrorMessage(data, `Request failed with status ${response.status}`),
       response.status,
@@ -133,19 +160,68 @@ function extractArray<T>(response: unknown): T[] {
   return [];
 }
 
+export type PaginatedMeta = {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+};
+
+export type PaginatedResult<T> = {
+  data: T[];
+  meta: PaginatedMeta;
+};
+
+function extractPaginated<T>(response: unknown): PaginatedResult<T> {
+  if (response && typeof response === "object" && "meta" in response) {
+    const payload = response as PaginatedResult<T>;
+    return {
+      data: Array.isArray(payload.data) ? payload.data : extractArray<T>(response),
+      meta: payload.meta,
+    };
+  }
+
+  const data = extractArray<T>(response);
+  return {
+    data,
+    meta: {
+      current_page: 1,
+      last_page: 1,
+      per_page: data.length || 1,
+      total: data.length,
+    },
+  };
+}
+
+function extractObject<T>(response: unknown): T {
+  if (response && typeof response === "object") {
+    const data = (response as { data?: unknown }).data;
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      return data as T;
+    }
+  }
+
+  return response as T;
+}
+
 export type PublicTournament = {
   id: number;
+  created_by?: number | null;
   name: string;
   description?: string | null;
   city?: string | null;
   location?: string | null;
   banner_path?: string | null;
+  format?: "league" | string | null;
   start_date?: string | null;
   end_date?: string | null;
   status?: string | null;
   approval_status?: string | null;
   teams?: ApiTeam[];
+  matches?: ApiMatch[];
+  rankings?: ApiRanking[];
   admin_note?: string | null;
+  approved_at?: string | null;
   creator?: {
     id?: number;
     name?: string | null;
@@ -161,13 +237,34 @@ export type PublicTournament = {
     name?: string | null;
     email?: string | null;
   } | null;
+  approvedBy?: {
+    id?: number;
+    name?: string | null;
+    email?: string | null;
+  } | null;
 };
 
 type PublicTournamentsResponse = PublicTournament[] | { data?: PublicTournament[] };
 
-export async function getPublicTournaments() {
-  const response = await apiRequest<PublicTournamentsResponse>("/tournaments");
+function assertValidId(id: number | string, message: string) {
+  if (id == null || id === "" || !Number.isFinite(Number(id))) {
+    throw new ApiError(message, 0, null);
+  }
+}
+
+export async function getTournaments() {
+  const response = await apiRequest<PublicTournamentsResponse>("/tournaments", { auth: false });
   return extractArray<PublicTournament>(response);
+}
+
+export async function getPublicTournaments() {
+  return getTournaments();
+}
+
+export async function getTournament(id: number | string) {
+  assertValidId(id, "Un tournoi valide est requis.");
+  const response = await apiRequest<PublicTournament | { data?: PublicTournament }>(`/tournaments/${id}`, { auth: false });
+  return extractObject<PublicTournament>(response);
 }
 
 export type MyTournament = PublicTournament;
@@ -180,6 +277,7 @@ export type CreateTournamentPayload = {
   banner_path?: string;
   banner_url?: string;
   banner?: File | null;
+  format?: "league";
   start_date: string;
   end_date: string;
 };
@@ -195,6 +293,19 @@ export async function createTournament(payload: CreateTournamentPayload) {
   return apiRequest<MyTournament>("/tournaments", {
     method: "POST",
     body: toFormData(payload),
+  });
+}
+
+export async function deleteTournament(id: number) {
+  return apiRequest<unknown>(`/tournaments/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function updateTournament(id: number, payload: Partial<CreateTournamentPayload>) {
+  return apiRequest<MyTournament>(`/tournaments/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
   });
 }
 
@@ -234,6 +345,7 @@ export type AdminUser = {
   admin_note?: string | null;
   approved_at?: string | null;
   created_at?: string | null;
+  tournament_count?: number;
 };
 
 type AdminUsersResponse = AdminUser[] | { data?: AdminUser[] };
@@ -246,6 +358,13 @@ export async function getPendingUsers() {
 export async function getAdminUsers() {
   const response = await apiRequest<AdminUsersResponse>("/admin/users");
   return extractArray<AdminUser>(response);
+}
+
+export async function updateAdminUser(id: number, payload: { role?: string; account_status?: string }) {
+  return apiRequest<AdminUser>(`/admin/users/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function acceptUser(id: number) {
@@ -283,6 +402,14 @@ export type ApiTeam = {
   } | null;
 };
 
+export type TeamListParams = {
+  search?: string;
+  tournament_id?: number | null;
+  manager_id?: number | null;
+  page?: number;
+  per_page?: number;
+};
+
 export type TeamPayload = {
   name: string;
   short_name?: string;
@@ -300,8 +427,18 @@ export async function getMyTeams() {
   return extractArray<ApiTeam>(response);
 }
 
-export async function getTeams() {
-  const response = await apiRequest<TeamsResponse>("/teams");
+export async function getTeams(params?: TeamListParams) {
+  const query = new URLSearchParams();
+  if (params?.search?.trim()) query.set("search", params.search.trim());
+  if (params?.tournament_id != null) query.set("tournament_id", String(params.tournament_id));
+  if (params?.manager_id != null) query.set("manager_id", String(params.manager_id));
+  if (params?.page != null) query.set("page", String(params.page));
+  if (params?.per_page != null) query.set("per_page", String(params.per_page));
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await apiRequest<TeamsResponse | PaginatedResult<ApiTeam>>(`/teams${suffix}`);
+  if (params?.page != null || params?.per_page != null) {
+    return extractPaginated<ApiTeam>(response);
+  }
   return extractArray<ApiTeam>(response);
 }
 
@@ -331,7 +468,18 @@ export async function createTeam(payload: TeamPayload) {
   });
 }
 
+export async function getTeam(id: number | string) {
+  return apiRequest<ApiTeam>(`/teams/${id}`, { auth: false });
+}
+
 export async function updateTeam(id: number, payload: TeamPayload) {
+  const hasFile = payload.logo instanceof File;
+  if (hasFile) {
+    return apiRequest<ApiTeam>(`/teams/${id}`, {
+      method: "POST",
+      body: toFormData(payload),
+    });
+  }
   return apiRequest<ApiTeam>(`/teams/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
@@ -353,8 +501,19 @@ export type ApiPlayer = {
   position?: string | null;
   number?: number | null;
   photo_path?: string | null;
+  goals?: number;
+  assists?: number;
   created_at?: string | null;
   team?: ApiTeam | null;
+};
+
+export type PlayerListParams = {
+  search?: string;
+  team_id?: number | null;
+  tournament_id?: number | null;
+  manager_id?: number | null;
+  page?: number;
+  per_page?: number;
 };
 
 export type PlayerPayload = {
@@ -371,8 +530,19 @@ export type PlayerPayload = {
 
 type PlayersResponse = ApiPlayer[] | { data?: ApiPlayer[] };
 
-export async function getPlayers() {
-  const response = await apiRequest<PlayersResponse>("/players");
+export async function getPlayers(params?: PlayerListParams) {
+  const query = new URLSearchParams();
+  if (params?.search?.trim()) query.set("search", params.search.trim());
+  if (params?.team_id != null) query.set("team_id", String(params.team_id));
+  if (params?.tournament_id != null) query.set("tournament_id", String(params.tournament_id));
+  if (params?.manager_id != null) query.set("manager_id", String(params.manager_id));
+  if (params?.page != null) query.set("page", String(params.page));
+  if (params?.per_page != null) query.set("per_page", String(params.per_page));
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await apiRequest<PlayersResponse | PaginatedResult<ApiPlayer>>(`/players${suffix}`);
+  if (params?.page != null || params?.per_page != null) {
+    return extractPaginated<ApiPlayer>(response);
+  }
   return extractArray<ApiPlayer>(response);
 }
 
@@ -396,6 +566,13 @@ export async function createPlayer(payload: PlayerPayload) {
 }
 
 export async function updatePlayer(id: number, payload: PlayerPayload) {
+  const hasFile = payload.photo instanceof File;
+  if (hasFile) {
+    return apiRequest<ApiPlayer>(`/players/${id}`, {
+      method: "POST",
+      body: toFormData(payload),
+    });
+  }
   return apiRequest<ApiPlayer>(`/players/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
@@ -479,8 +656,8 @@ export async function refuseJoinRequest(id: number) {
 export type ApiMatch = {
   id: number;
   tournament_id: number;
-  home_team_id: number;
-  away_team_id: number;
+  home_team_id?: number | null;
+  away_team_id?: number | null;
   match_date?: string | null;
   home_score?: number | null;
   away_score?: number | null;
@@ -521,13 +698,22 @@ export async function getMatches(params?: Record<string, string | number | null 
   return extractArray<ApiMatch>(response);
 }
 
+export async function getTournamentMatches(tournament_id: number | string) {
+  assertValidId(tournament_id, "Un tournoi valide est requis pour charger les matchs.");
+  const query = new URLSearchParams({ tournament_id: String(tournament_id) });
+  const response = await apiRequest<MatchesResponse>(`/matches?${query.toString()}`, { auth: false });
+  return extractArray<ApiMatch>(response);
+}
+
 export async function getAdminMatches() {
   const response = await apiRequest<MatchesResponse>("/admin/matches");
   return extractArray<ApiMatch>(response);
 }
 
-export async function getMatch(id: number) {
-  return apiRequest<ApiMatch>(`/matches/${id}`);
+export async function getMatch(id: number | string) {
+  assertValidId(id, "Un match valide est requis.");
+  const response = await apiRequest<ApiMatch | { data?: ApiMatch }>(`/matches/${id}`, { auth: false });
+  return extractObject<ApiMatch>(response);
 }
 
 export async function createMatch(payload: MatchPayload) {
@@ -585,6 +771,80 @@ export type ApiRanking = {
   tournament?: PublicTournament | null;
 };
 
+export type DashboardTopScorer = Pick<ApiPlayer, "id" | "team_id" | "first_name" | "last_name" | "photo_path" | "goals" | "team">;
+
+export type GoalsByMonthPoint = {
+  month: string;
+  period?: string;
+  scored: number;
+  conceded: number;
+  yellow_cards: number;
+  red_cards: number;
+};
+
+export type TeamStatsByMonthPoint = {
+  month: string;
+  period?: string;
+  goals_scored: number;
+  goals_conceded: number;
+  points: number;
+  yellow_cards: number;
+  red_cards: number;
+};
+
+export type TournamentPreviewItem = {
+  id: number;
+  name: string;
+  banner_path?: string | null;
+  status?: string | null;
+  approval_status?: string | null;
+  team_count: number;
+  start_date?: string | null;
+  end_date?: string | null;
+  total_goals?: number;
+};
+
+export type DashboardViewMeta = {
+  sidebar_mode: "tournaments" | "scorers";
+  my_tournament_count: number;
+  is_creator_scope: boolean;
+};
+
+export type FeaturedTournament = {
+  id: number;
+  name: string;
+  status?: string | null;
+};
+
+export type BarChartPoint = {
+  label: string;
+  value: number;
+  image_url?: string | null;
+  image_url_secondary?: string | null;
+};
+
+export type TournamentOption = {
+  id: number;
+  name: string;
+  created_by?: number | null;
+};
+
+export type SelectedTournamentProgress = {
+  played: number;
+  scheduled: number;
+  total: number;
+  teams_count: number;
+};
+
+export type DashboardChartStats = {
+  top_tournaments_by_goals: BarChartPoint[];
+  top_teams_by_goals: BarChartPoint[];
+  top_yellow_cards: BarChartPoint[];
+  top_red_cards: BarChartPoint[];
+  goals_by_week: BarChartPoint[];
+  top_matches_by_goals: BarChartPoint[];
+};
+
 export type DashboardSummary = {
   user: {
     id: number;
@@ -606,23 +866,60 @@ export type DashboardSummary = {
   match_status: Record<string, number>;
   result_status: Record<string, number>;
   first_tournament_id: number | null;
+  selected_tournament_id: number | null;
+  tournament_options: TournamentOption[];
+  featured_tournament: FeaturedTournament | null;
   ranking_preview: ApiRanking[];
   match_preview: ApiMatch[];
+  recent_matches: ApiMatch[];
+  top_scorers: DashboardTopScorer[];
+  goals_by_month: GoalsByMonthPoint[];
+  team_stats_by_month: TeamStatsByMonthPoint[];
+  selected_team_id: number | null;
+  tournaments_preview: TournamentPreviewItem[];
+  creator_tournament_rankings: TournamentPreviewItem[];
+  dashboard_view: DashboardViewMeta;
+  chart_stats: DashboardChartStats;
   pending_tournaments: MyTournament[];
+  selected_tournament_progress: SelectedTournamentProgress | null;
 };
 
-export async function getDashboardSummary() {
-  return apiRequest<DashboardSummary>("/dashboard/summary");
+export type PublicHomePreview = {
+  featured_tournament: FeaturedTournament | null;
+  ranking_preview: ApiRanking[];
+  top_scorers: DashboardTopScorer[];
+  trending_tournaments: TournamentPreviewItem[];
+};
+
+export async function getDashboardSummary(tournamentId?: number | null, teamId?: number | null) {
+  const query = new URLSearchParams();
+  if (tournamentId != null) query.set("tournament_id", String(tournamentId));
+  if (teamId != null) query.set("team_id", String(teamId));
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return apiRequest<DashboardSummary>(`/dashboard/summary${suffix}`);
+}
+
+export async function getPublicHomePreview() {
+  return apiRequest<PublicHomePreview>("/public/home-preview", { auth: false });
+}
+
+export async function updatePassword(payload: {
+  current_password: string;
+  password: string;
+  password_confirmation: string;
+}) {
+  return apiRequest<{ message: string }>("/me/password", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 }
 
 type RankingsResponse = ApiRanking[] | { data?: ApiRanking[] };
 
 export async function getRankings(tournament_id: number | string) {
-  if (tournament_id == null || tournament_id === "" || !Number.isFinite(Number(tournament_id))) {
-    throw new ApiError("Un tournoi valide est requis pour charger le classement.", 0, null);
-  }
+  assertValidId(tournament_id, "Un tournoi valide est requis pour charger le classement.");
   const query = new URLSearchParams({ tournament_id: String(tournament_id) });
-  const response = await apiRequest<RankingsResponse>(`/rankings?${query.toString()}`);
+  const response = await apiRequest<RankingsResponse>(`/rankings?${query.toString()}`, { auth: false });
   return extractArray<ApiRanking>(response);
 }
 
@@ -669,7 +966,7 @@ export async function getStatistics(params?: Record<string, string | number | nu
   }
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const response = await apiRequest<StatisticsResponse>(`/statistics${suffix}`);
+  const response = await apiRequest<StatisticsResponse>(`/statistics${suffix}`, { auth: false });
   return extractArray<ApiStatistic>(response);
 }
 
@@ -731,7 +1028,7 @@ export async function getCompositions(params?: Record<string, string | number | 
   }
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const response = await apiRequest<CompositionsResponse>(`/compositions${suffix}`);
+  const response = await apiRequest<CompositionsResponse>(`/compositions${suffix}`, { auth: false });
   return extractArray<ApiComposition>(response);
 }
 

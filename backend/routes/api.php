@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\JoinRequestController;
 use App\Http\Controllers\Api\MatchGameController;
 use App\Http\Controllers\Api\PlayerController;
+use App\Http\Controllers\Api\PublicHomeController;
 use App\Http\Controllers\Api\RankingController;
 use App\Http\Controllers\Api\StatisticController;
 use App\Http\Controllers\Api\TeamController;
@@ -35,10 +36,12 @@ Route::get('teams', [TeamController::class, 'index']);
 Route::get('teams/{team}', [TeamController::class, 'show']);
 Route::get('players', [PlayerController::class, 'index']);
 Route::get('players/{player}', [PlayerController::class, 'show']);
+Route::get('public/home-preview', [PublicHomeController::class, 'preview']);
 
 Route::middleware('auth:api')->group(function () {
     Route::get('dashboard/summary', [DashboardController::class, 'summary']);
     Route::get('me', [AuthController::class, 'me']);
+    Route::put('me/password', [AuthController::class, 'updatePassword']);
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('refresh', [AuthController::class, 'refresh']);
 
@@ -53,6 +56,7 @@ Route::middleware('auth:api')->group(function () {
     Route::put('admin/tournaments/{tournament}/refuse', [AdminTournamentController::class, 'refuse']);
     Route::get('admin/users', [AdminUserController::class, 'index']);
     Route::get('admin/users/pending', [AdminUserController::class, 'pending']);
+    Route::put('admin/users/{user}', [AdminUserController::class, 'update']);
     Route::put('admin/users/{user}/accept', [AdminUserController::class, 'accept']);
     Route::put('admin/users/{user}/refuse', [AdminUserController::class, 'refuse']);
     Route::get('admin/teams', [AdminDataController::class, 'teams']);
@@ -65,11 +69,13 @@ Route::middleware('auth:api')->group(function () {
 
     Route::post('teams', [TeamController::class, 'store']);
     Route::put('teams/{team}', [TeamController::class, 'update']);
+    Route::post('teams/{team}', [TeamController::class, 'update']);
     Route::delete('teams/{team}', [TeamController::class, 'destroy']);
     Route::get('my-teams', [TeamController::class, 'myTeams']);
 
     Route::post('players', [PlayerController::class, 'store']);
     Route::put('players/{player}', [PlayerController::class, 'update']);
+    Route::post('players/{player}', [PlayerController::class, 'update']);
     Route::delete('players/{player}', [PlayerController::class, 'destroy']);
 
     Route::get('join-requests', [JoinRequestController::class, 'index']);

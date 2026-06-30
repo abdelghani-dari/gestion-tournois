@@ -3,6 +3,7 @@ export function statusLabel(value?: string | null) {
     open: "Ouvert",
     draft: "Brouillon",
     pending: "En attente",
+    ready: "Pret",
     accepted: "Accepté",
     approved: "Accepté",
     refused: "Refusé",
@@ -23,7 +24,7 @@ export function statusLabel(value?: string | null) {
 
 export function statusTone(value?: string | null) {
   const normalized = value ?? "";
-  if (["accepted", "open", "active", "approved", "confirmed", "played", "completed"].includes(normalized)) {
+  if (["accepted", "open", "active", "approved", "confirmed", "played", "completed", "ready"].includes(normalized)) {
     return "bg-emerald-500/15 text-emerald-400";
   }
   if (["pending", "draft", "upcoming", "scheduled"].includes(normalized)) {

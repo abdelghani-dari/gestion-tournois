@@ -1,8 +1,10 @@
-# Architecture Technique — Gestion Tournois Locaux
+# Architecture Technique — Tournify (Gestion Tournois Locaux)
+
+**Version :** 1.2 — Juillet 2026
 
 ## 1. Objectif
 
-Ce document présente l'architecture technique de l'application **Gestion Tournois Locaux**.
+Ce document présente l'architecture technique de l'application **Tournify** (*Gestion Tournois Locaux*).
 
 L'application suit une architecture web moderne basée sur :
 

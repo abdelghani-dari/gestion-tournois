@@ -42,6 +42,7 @@ classDiagram
         +string city
         +string location
         +string banner_path
+        +string format
         +date start_date
         +date end_date
         +string status
@@ -184,6 +185,7 @@ classDiagram
 - `Tournament.approved_by` est optionnel : il reste vide tant que le tournoi est en attente.
 - `Tournament.approval_status` permet à l'admin d'accepter ou refuser un tournoi.
 - `Tournament.status` représente l'état sportif du tournoi : `draft`, `open`, `active`, `finished` ou `cancelled`.
+- `Tournament.format` est fixé à `league` (championnat local avec classement).
 - `JoinRequest` permet à une équipe de demander la participation à un tournoi.
 - `TournamentTeam` est la table pivot qui contient uniquement les équipes acceptées dans un tournoi.
 - `MatchGame.home_team_id` et `MatchGame.away_team_id` représentent deux relations différentes vers `Team`.

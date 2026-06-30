@@ -1,17 +1,36 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { clsx } from "clsx";
-import { Link } from "react-router";
-import { getPublicTournaments, type PublicTournament } from "../../api";
+import { Link, useSearchParams } from "react-router";
+import {
+  ApiError,
+  deleteTournament,
+  getMyTournaments,
+  getPublicTournaments,
+  type MyTournament,
+  type PublicTournament,
+} from "../../api";
+import ConfirmModal from "../../components/common/ConfirmModal";
+import EntityImage from "../../components/common/EntityImage";
+import FilterSearchInput from "../../components/common/FilterSearchInput";
+import PaginationControls, { usePagination } from "../../components/common/PaginationControls";
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
-import ComponentCard from "../../components/common/ComponentCard";
-import Button from "../../components/common/Button";
-import EntityImage from "../../components/common/EntityImage";
-import XModal from "../../components/common/XModal";
 import { statusLabel, statusTone } from "../../components/common/statusLabels";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
-import { PlusIcon } from "../../icons";
+import { canDeleteTournament, canEditTournament } from "../../utils/permissions";
+import TournamentFormDrawer from "../../components/tournaments/TournamentFormDrawer";
+import { MapPin, Calendar } from "lucide-react";
+import { AngleRightIcon, ShootingStarIcon } from "../../icons";
+
+type TournamentTab = "all" | "mine" | "open" | "league" | "finished";
+
+type TournamentCardItem = PublicTournament & {
+  isMine: boolean;
+  isPublic: boolean;
+};
+
+const PAGE_SIZE_OPTIONS = [6, 12, 24];
 
 function formatDate(date?: string | null) {
   if (!date) return "-";
@@ -22,256 +41,464 @@ function formatDate(date?: string | null) {
   });
 }
 
-function TournamentStatus({ value, tone = "default" }: { value?: string | null; tone?: "default" | "approval" }) {
+function normalizeStatus(value?: string | null) {
+  return (value ?? "").trim().toLowerCase();
+}
+
+function isAccepted(tournament: PublicTournament) {
+  const approval = normalizeStatus(tournament.approval_status);
+  return !approval || ["accepted", "approved"].includes(approval);
+}
+
+function isOpenForRequests(tournament: PublicTournament) {
+  return ["open", "active"].includes(normalizeStatus(tournament.status));
+}
+
+function isLeague(tournament: PublicTournament) {
+  return !tournament.format || tournament.format === "league";
+}
+
+function tournamentStatusLabel(value?: string | null) {
+  const normalized = normalizeStatus(value);
+  if (normalized === "finished") return "Terminé";
+  return statusLabel(value);
+}
+
+function tournamentStatusTone(value?: string | null) {
+  const normalized = normalizeStatus(value);
+  if (normalized === "finished") return "bg-emerald-500/15 text-emerald-400";
+  return statusTone(value);
+}
+
+function mergeTournaments(
+  publicTournaments: PublicTournament[],
+  myTournaments: MyTournament[],
+  userId?: number,
+) {
+  const myIds = new Set(myTournaments.map((tournament) => tournament.id));
+  const byId = new Map<number, TournamentCardItem>();
+
+  for (const tournament of publicTournaments) {
+    byId.set(tournament.id, {
+      ...tournament,
+      isMine: myIds.has(tournament.id) || (userId != null && Number(tournament.created_by) === Number(userId)),
+      isPublic: true,
+    });
+  }
+
+  for (const tournament of myTournaments) {
+    byId.set(tournament.id, {
+      ...(byId.get(tournament.id) ?? {}),
+      ...tournament,
+      isMine: true,
+      isPublic: byId.get(tournament.id)?.isPublic ?? isAccepted(tournament),
+    });
+  }
+
+  return Array.from(byId.values()).sort((a, b) => {
+    const aDate = new Date(a.start_date ?? a.end_date ?? 0).getTime();
+    const bDate = new Date(b.start_date ?? b.end_date ?? 0).getTime();
+    return bDate - aDate;
+  });
+}
+
+function isFinished(tournament: PublicTournament) {
+  return ["finished", "completed"].includes(normalizeStatus(tournament.status));
+}
+
+function Badge({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <span className={clsx("inline-flex items-center rounded-sm px-2.5 py-1 text-xs font-semibold", className)}>
+      {children}
+    </span>
+  );
+}
+
+function StatusBadge({ value }: { value?: string | null }) {
   const t = useThemeTokens();
-  const labelTone = statusTone(value);
+  return (
+    <Badge className={tournamentStatusTone(value) || clsx(t.metricBg, t.textSecondary)}>
+      {tournamentStatusLabel(value)}
+    </Badge>
+  );
+}
+
+function CardFooterAction({
+  to,
+  onClick,
+  label,
+  tone = "default",
+  disabled,
+}: {
+  to?: string;
+  onClick?: () => void;
+  label: string;
+  tone?: "default" | "danger";
+  disabled?: boolean;
+}) {
+  const t = useThemeTokens();
+  const className = clsx(
+    "inline-flex flex-1 items-center justify-center gap-1 rounded-md px-1.5 py-1.5 text-[11px] font-medium whitespace-nowrap transition-colors",
+    tone === "danger"
+      ? "text-red-400 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50"
+      : clsx(t.textSecondary, t.navHover, "hover:text-brand-400"),
+  );
+
+  if (to) {
+    return (
+      <Link to={to} className={className}>
+        <span>{label}</span>
+        <AngleRightIcon className="size-3 shrink-0 opacity-70" />
+      </Link>
+    );
+  }
 
   return (
-    <span
-      className={clsx(
-        "inline-flex rounded-sm px-2 py-0.5 text-xs font-medium",
-        labelTone || (tone === "approval" ? "bg-slate-500/15 text-slate-300" : clsx(t.metricBg, t.textSecondary)),
-      )}
-    >
-      {statusLabel(value)}
-    </span>
+    <button type="button" onClick={onClick} disabled={disabled} className={className}>
+      <span>{label}</span>
+      <AngleRightIcon className="size-3 shrink-0 opacity-70" />
+    </button>
+  );
+}
+
+function TournamentCard({
+  tournament,
+  canEdit,
+  canDelete,
+  deletingId,
+  onDelete,
+  onEdit,
+}: {
+  tournament: TournamentCardItem;
+  canEdit: boolean;
+  canDelete: boolean;
+  deletingId: number | null;
+  onDelete: (tournament: TournamentCardItem) => void;
+  onEdit: (id: number) => void;
+}) {
+  const t = useThemeTokens();
+
+  return (
+    <article className={clsx("group relative flex min-h-full flex-col overflow-hidden rounded-xl border transition-colors", t.card, t.cardHover)}>
+      <div className="relative">
+        <EntityImage
+          src={tournament.banner_path}
+          name={tournament.name}
+          className="h-36 w-full border-0 bg-brand-500/10 object-cover"
+        />
+        <div className="absolute right-2 top-2">
+          <StatusBadge value={tournament.status} />
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col p-3">
+        <h2 className={clsx("line-clamp-1 text-sm font-bold", t.textPrimary)} title={tournament.name}>
+          {tournament.name}
+        </h2>
+        <p className={clsx("mt-1 line-clamp-2 flex-1 text-[11px] leading-relaxed", t.textMuted)}>
+          {tournament.description || "Tournoi public pour équipes locales."}
+        </p>
+        <div className={clsx("mt-3 grid grid-cols-2 gap-2 text-[10px]", t.textMuted)}>
+          <span className="inline-flex items-center gap-1">
+            <MapPin className="size-3 text-brand-400" />
+            {tournament.city || "—"}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Calendar className="size-3 text-brand-400" />
+            {formatDate(tournament.start_date)}
+          </span>
+        </div>
+        <div className={clsx("mt-4 flex flex-row items-center justify-between gap-1 border-t pt-3", t.borderSubtle)}>
+          <CardFooterAction to={`/tournaments/${tournament.id}`} label="Détails" />
+          {canEdit && <CardFooterAction label="Modifier" onClick={() => onEdit(tournament.id)} />}
+          {canDelete && (
+            <CardFooterAction
+              label={deletingId === tournament.id ? "..." : "Supprimer"}
+              tone="danger"
+              disabled={deletingId === tournament.id}
+              onClick={() => onDelete(tournament)}
+            />
+          )}
+        </div>
+      </div>
+    </article>
   );
 }
 
 export default function TournamentsPage() {
   const t = useThemeTokens();
-  const { isAuthenticated, isAdmin } = useAuth();
-  const [tournaments, setTournaments] = useState<PublicTournament[]>([]);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [detailsTournament, setDetailsTournament] = useState<PublicTournament | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { isAuthenticated, user } = useAuth();
+  const [publicTournaments, setPublicTournaments] = useState<PublicTournament[]>([]);
+  const [myTournaments, setMyTournaments] = useState<MyTournament[]>([]);
+  const [activeTab, setActiveTab] = useState<TournamentTab>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [tournamentToDelete, setTournamentToDelete] = useState<TournamentCardItem | null>(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const loadTournaments = useCallback(async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const [publicData, myData] = await Promise.all([
+        getPublicTournaments(),
+        isAuthenticated ? getMyTournaments() : Promise.resolve([]),
+      ]);
+
+      setPublicTournaments(publicData.filter(isAccepted));
+      setMyTournaments(myData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossible de charger les tournois.");
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    let active = true;
-
-    async function loadTournaments() {
-      setLoading(true);
-      setError("");
-
-      try {
-        const data = await getPublicTournaments();
-        if (!active) return;
-        const acceptedTournaments = data.filter((tournament) => tournament.approval_status === "accepted");
-        setTournaments(acceptedTournaments);
-        setSelectedId(acceptedTournaments[0]?.id ?? null);
-      } catch (err) {
-        if (!active) return;
-        setError(err instanceof Error ? err.message : "Impossible de charger les tournois publics.");
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
     void loadTournaments();
+  }, [loadTournaments]);
 
-    return () => {
-      active = false;
-    };
-  }, []);
+  useEffect(() => {
+    if (searchParams.get("create") === "1") {
+      setCreateOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+    const edit = searchParams.get("edit");
+    if (edit) {
+      setEditId(Number(edit));
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
-  const selected = useMemo(
-    () => tournaments.find((tr) => tr.id === selectedId) ?? tournaments[0],
-    [tournaments, selectedId],
+  const closeForm = () => {
+    setCreateOpen(false);
+    setEditId(null);
+  };
+
+  const tournamentItems = useMemo(
+    () => mergeTournaments(publicTournaments, myTournaments, user?.id),
+    [publicTournaments, myTournaments, user?.id],
   );
+
+  const tabItems = useMemo(
+    () => [
+      { id: "all" as const, label: "Tous les tournois", count: tournamentItems.length },
+      { id: "mine" as const, label: "Mes tournois", count: myTournaments.length },
+      { id: "open" as const, label: "Ouverts", count: tournamentItems.filter(isOpenForRequests).length },
+      { id: "league" as const, label: "Ligue", count: tournamentItems.filter(isLeague).length },
+      { id: "finished" as const, label: "Terminés", count: tournamentItems.filter(isFinished).length },
+    ],
+    [myTournaments.length, tournamentItems],
+  );
+
+  const filteredTournaments = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return tournamentItems
+      .filter((tournament) => {
+        if (activeTab === "mine" && !tournament.isMine) return false;
+        if (activeTab === "open" && !isOpenForRequests(tournament)) return false;
+        if (activeTab === "league" && !isLeague(tournament)) return false;
+        if (activeTab === "finished" && !isFinished(tournament)) return false;
+        return true;
+      })
+      .filter((tournament) => {
+        if (!query) return true;
+        return [tournament.name, tournament.city ?? "", tournament.location ?? "", tournament.description ?? ""]
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+      });
+  }, [activeTab, searchQuery, tournamentItems]);
+
+  const pagination = usePagination(
+    filteredTournaments,
+    `${activeTab}:${searchQuery}`,
+    PAGE_SIZE_OPTIONS[0],
+  );
+
+  const visibleTournaments = pagination.paginatedItems;
+  const publicOpenCount = publicTournaments.filter(isOpenForRequests).length;
+  const leagueCount = tournamentItems.filter(isLeague).length;
+
+  const handleConfirmDelete = async () => {
+    if (!tournamentToDelete) return;
+
+    setDeletingId(tournamentToDelete.id);
+    setSuccess("");
+    setError("");
+
+    try {
+      await deleteTournament(tournamentToDelete.id);
+      setSuccess("Tournoi supprimé.");
+      setTournamentToDelete(null);
+      await loadTournaments();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        setError("Vous pouvez seulement supprimer vos propres tournois.");
+      } else if (err instanceof ApiError && err.status === 401) {
+        setError("Votre session a expiré. Veuillez vous reconnecter.");
+      } else {
+        setError(err instanceof Error ? err.message : "Impossible de supprimer le tournoi.");
+      }
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const emptyMessage = activeTab === "mine" && myTournaments.length === 0
+    ? "Vous n'avez pas encore créé de tournoi"
+    : publicTournaments.length === 0 && activeTab !== "mine"
+      ? "Aucun tournoi disponible"
+      : "Aucun tournoi ne correspond aux filtres.";
 
   return (
     <>
-      <XPageMeta title="Tournois" description="Liste des tournois publics acceptés" />
+      <XPageMeta title="Tournois" description="Découvrez les tournois disponibles et gérez vos propres tournois" />
       <PageStack>
-        {tournaments.length > 1 && (
-          <div className={clsx("flex flex-wrap gap-2 rounded-md border p-1.5", t.border)}>
-            {tournaments.map((tr) => (
-              <button
-                key={tr.id}
-                type="button"
-                onClick={() => setSelectedId(tr.id)}
-                className={clsx(
-                  "rounded-sm px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap",
-                  selected?.id === tr.id ? t.tabActive : t.tabInactive,
-                )}
-              >
-                {tr.name}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <ComponentCard
-          title={selected?.name ?? "Tournois publics"}
-          desc={selected?.description || "Tournois locaux acceptés par l'administration"}
-          action={
-            <Link
-              to={isAdmin ? "/admin/tournaments" : isAuthenticated ? "/dashboard" : "/login"}
-              className="inline-flex items-center justify-center gap-2 rounded-sm border border-brand-500/50 bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600"
-            >
-              <PlusIcon className="size-4 shrink-0" />
-              <span>Créer un tournoi</span>
-            </Link>
-          }
-        >
-          {selected && (
-            <EntityImage
-              src={selected.banner_path}
-              name={selected.name}
-              className="mb-5 h-44 w-full rounded-md"
-            />
-          )}
-
-          {loading && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>
-              Chargement des tournois publics...
+        <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-400">Espace compétition</p>
+            <h1 className={clsx("mt-2 text-3xl font-semibold tracking-normal", t.textPrimary)}>Tournois</h1>
+            <p className={clsx("mt-2 max-w-2xl text-sm", t.textSecondary)}>
+              Découvrez les tournois disponibles et gérez vos propres tournois
             </p>
-          )}
-
-          {!loading && error && (
-            <div className="rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-              {error}
-            </div>
-          )}
-
-          {!loading && !error && tournaments.length === 0 && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>
-              Aucune donnée disponible.
-            </p>
-          )}
-
-          {!loading && !error && tournaments.length > 0 && (
-            <div className={clsx("grid grid-cols-1 lg:grid-cols-3", GRID_GAP)}>
-              <div className={clsx("rounded-md border p-5", t.card)}>
-                <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Tournois acceptés</p>
-                <p className={clsx("mt-1 text-2xl font-bold", t.textPrimary)}>{tournaments.length}</p>
-              </div>
-              <div className={clsx("rounded-md border p-5", t.card)}>
-                <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Ville</p>
-                <p className={clsx("mt-1 truncate text-lg font-semibold", t.textPrimary)}>{selected?.city || "-"}</p>
-              </div>
-              <div className={clsx("rounded-md border p-5", t.card)}>
-                <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Lieu</p>
-                <p className={clsx("mt-1 truncate text-lg font-semibold", t.textPrimary)}>{selected?.location || "-"}</p>
-              </div>
-            </div>
-          )}
-        </ComponentCard>
-
-        {!loading && !error && tournaments.length > 0 && (
-          <div className={clsx("overflow-hidden rounded-md border", t.card)}>
-            <div className="x-scroll overflow-x-auto">
-              <table className="w-full min-w-[960px] table-fixed text-sm">
-                <colgroup>
-                  <col className="w-[70px]" />
-                  <col className="w-[20%]" />
-                  <col className="w-[24%]" />
-                  <col className="w-[13%]" />
-                  <col className="w-[16%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[11%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[12%]" />
-                </colgroup>
-                <thead>
-                  <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
-                    <th className="px-4 py-3">ID</th>
-                    <th className="px-4 py-3">Nom</th>
-                    <th className="px-4 py-3">Description</th>
-                    <th className="px-4 py-3">Ville</th>
-                    <th className="px-4 py-3">Lieu</th>
-                    <th className="px-4 py-3 whitespace-nowrap">Début</th>
-                    <th className="px-4 py-3 whitespace-nowrap">Fin</th>
-                    <th className="px-4 py-3">Statut</th>
-                    <th className="px-4 py-3">Validation</th>
-                    <th className="px-4 py-3">Détails</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tournaments.map((tr) => (
-                    <tr key={tr.id} className={clsx("transition-colors", t.tableRow, t.navHover)}>
-                      <td className={clsx("px-4 py-3 font-mono", t.textMuted)}>{tr.id}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <EntityImage src={tr.banner_path} name={tr.name} className="h-10 w-14 shrink-0 rounded-sm" />
-                          <button
-                            type="button"
-                            onClick={() => setSelectedId(tr.id)}
-                            className="block max-w-full truncate text-left font-medium text-brand-500 hover:text-brand-400"
-                            title={tr.name}
-                          >
-                            {tr.name}
-                          </button>
-                        </div>
-                      </td>
-                      <td className={clsx("px-4 py-3", t.textSecondary)}>
-                        <span className="block truncate" title={tr.description ?? ""}>
-                          {tr.description || "-"}
-                        </span>
-                      </td>
-                      <td className={clsx("px-4 py-3", t.textSecondary)}>{tr.city || "-"}</td>
-                      <td className={clsx("px-4 py-3", t.textSecondary)}>
-                        <span className="block truncate" title={tr.location ?? ""}>
-                          {tr.location || "-"}
-                        </span>
-                      </td>
-                      <td className={clsx("px-4 py-3 whitespace-nowrap tabular-nums", t.textSecondary)}>
-                        {formatDate(tr.start_date)}
-                      </td>
-                      <td className={clsx("px-4 py-3 whitespace-nowrap tabular-nums", t.textSecondary)}>
-                        {formatDate(tr.end_date)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <TournamentStatus value={tr.status} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <TournamentStatus value={tr.approval_status} tone="approval" />
-                      </td>
-                      <td className="px-4 py-3">
-                        <Button type="button" size="sm" variant="secondary" onClick={() => setDetailsTournament(tr)}>
-                          Détails
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </div>
-        )}
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            className="inline-flex items-center justify-center rounded-sm border border-brand-500/50 bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600"
+          >
+            Créer un tournoi
+          </button>
+        </section>
 
-        <XModal
-          open={Boolean(detailsTournament)}
-          onClose={() => setDetailsTournament(null)}
-          title={detailsTournament?.name ?? "Détails du tournoi"}
-        >
-          {detailsTournament && (
-            <div className="space-y-3 text-sm">
-              <EntityImage
-                src={detailsTournament.banner_path}
-                name={detailsTournament.name}
-                className="h-36 w-full rounded-md"
-              />
-              {[
-                ["Nom", detailsTournament.name],
-                ["Ville", detailsTournament.city || "-"],
-                ["Lieu", detailsTournament.location || "-"],
-                ["Date début", formatDate(detailsTournament.start_date)],
-                ["Date fin", formatDate(detailsTournament.end_date)],
-                ["Statut", statusLabel(detailsTournament.status)],
-                ["Validation", statusLabel(detailsTournament.approval_status)],
-                ["Description", detailsTournament.description || "-"],
-              ].map(([label, value]) => (
-                <div key={label} className="flex justify-between gap-4">
-                  <span className={t.textMuted}>{label}</span>
-                  <span className={clsx("text-right", t.textPrimary)}>{value}</span>
-                </div>
+        <section className={clsx("grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4", GRID_GAP)}>
+          {[
+            { label: "Tournois publics", value: publicTournaments.length, tone: "text-cyan-300" },
+            { label: "Mes tournois", value: myTournaments.length, tone: "text-brand-300" },
+            { label: "Ouverts", value: publicOpenCount, tone: "text-emerald-300" },
+            { label: "Ligue", value: leagueCount, tone: "text-amber-300" },
+          ].map((metric) => (
+            <div key={metric.label} className={clsx("rounded-md border p-5", t.card)}>
+              <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>{metric.label}</p>
+              <p className={clsx("mt-2 text-3xl font-semibold tabular-nums", metric.tone)}>{metric.value}</p>
+            </div>
+          ))}
+        </section>
+
+        <section className={clsx("relative z-30 rounded-md border p-4", t.panelGlass)}>
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-wrap gap-2">
+              {tabItems.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={clsx(
+                    "inline-flex items-center gap-2 rounded-sm px-3 py-2 text-sm font-medium transition-colors",
+                    activeTab === tab.id ? t.tabActive : t.tabInactive,
+                  )}
+                >
+                  <span>{tab.label}</span>
+                  <span className="rounded-sm bg-black/20 px-1.5 py-0.5 text-[11px] tabular-nums">{tab.count}</span>
+                </button>
               ))}
             </div>
-          )}
-        </XModal>
+
+            <FilterSearchInput
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Rechercher par nom ou ville..."
+              className="w-full max-w-none sm:w-72"
+            />
+          </div>
+        </section>
+
+        {(error || success) && (
+          <div
+            className={clsx(
+              "rounded-sm border px-4 py-3 text-sm",
+              error ? "border-red-500/20 bg-red-500/10 text-red-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+            )}
+          >
+            {error || success}
+          </div>
+        )}
+
+        {loading ? (
+          <div className={clsx("rounded-md border py-16 text-center text-sm", t.card, t.textMuted)}>
+            Chargement des tournois...
+          </div>
+        ) : visibleTournaments.length === 0 ? (
+          <div className={clsx("rounded-md border py-16 text-center", t.card)}>
+            <ShootingStarIcon className="mx-auto size-10 text-brand-400" />
+            <p className={clsx("mt-4 text-sm font-medium", t.textPrimary)}>{emptyMessage}</p>
+            {activeTab === "mine" && (
+              <button type="button" onClick={() => setCreateOpen(true)} className="mt-4 text-sm font-medium text-brand-400 hover:text-brand-300">
+                Créer un tournoi
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className={clsx("grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3", GRID_GAP)}>
+              {visibleTournaments.map((tournament) => (
+                <TournamentCard
+                  key={tournament.id}
+                  tournament={tournament}
+                  canEdit={canEditTournament(user, tournament)}
+                  canDelete={canDeleteTournament(user, tournament)}
+                  deletingId={deletingId}
+                  onDelete={setTournamentToDelete}
+                  onEdit={(id) => setEditId(id)}
+                />
+              ))}
+            </div>
+
+            <PaginationControls
+              page={pagination.page}
+              pageSize={pagination.pageSize}
+              totalItems={filteredTournaments.length}
+              onPageChange={pagination.setPage}
+              onPageSizeChange={pagination.setPageSize}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
+            />
+          </>
+        )}
+
+        <TournamentFormDrawer
+          open={createOpen || editId != null}
+          editId={editId}
+          onClose={closeForm}
+          onSuccess={() => void loadTournaments()}
+        />
+
+        <ConfirmModal
+          open={Boolean(tournamentToDelete)}
+          onClose={() => setTournamentToDelete(null)}
+          title="Supprimer le tournoi"
+          message={
+            tournamentToDelete
+              ? `Voulez-vous vraiment supprimer le tournoi « ${tournamentToDelete.name} » ? Cette action est irréversible.`
+              : ""
+          }
+          confirmLabel="Supprimer"
+          loading={deletingId !== null}
+          onConfirm={() => void handleConfirmDelete()}
+        />
       </PageStack>
     </>
   );

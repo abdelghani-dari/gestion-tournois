@@ -35,7 +35,7 @@ export interface ThemeTokens {
 
 export const THEME_TOKENS: Record<XTheme, ThemeTokens> = {
   light: {
-    shellBg: "bg-zinc-50",
+    shellBg: "bg-[#F3F5F7]",
     sidebarBg: "bg-white border-zinc-200 shadow-sm",
     headerBg: "bg-white",
     headerBorder: "border-zinc-200",
