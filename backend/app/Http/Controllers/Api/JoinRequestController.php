@@ -23,16 +23,18 @@ class JoinRequestController extends Controller
         $user = auth('api')->user();
         $query = JoinRequest::with(['tournament', 'team', 'manager'])->latest();
 
-        // Scope by role: admin sees all; creator sees only their tournament requests; user only sees their own sent requests
+        // Admin sees all; non-admin users see requests for their tournaments plus their own outgoing requests.
         if ($user && $user->role !== 'admin') {
-            if ($user->role === 'creator') {
-                // Creator sees requests directed at their own tournaments
-                $myTournamentIds = \App\Models\Tournament::where('created_by', $user->id)->pluck('id');
-                $query->whereIn('tournament_id', $myTournamentIds)
-                      ->orWhere('manager_id', $user->id);
-            } else {
-                // Regular user / team manager: only their own outgoing requests
+            $myTournamentIds = Tournament::where('created_by', $user->id)->pluck('id');
+
+            if ($myTournamentIds->isEmpty()) {
                 $query->where('manager_id', $user->id);
+            } else {
+                $query->where(function ($query) use ($myTournamentIds, $user): void {
+                    $query
+                        ->whereIn('tournament_id', $myTournamentIds)
+                        ->orWhere('manager_id', $user->id);
+                });
             }
         }
 
