@@ -46,14 +46,20 @@ class StatisticController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'match_game_id' => ['nullable', 'exists:match_games,id'],
-            'team_id' => ['nullable', 'exists:teams,id'],
-            'player_id' => ['nullable', 'exists:players,id'],
+            'match_game_id' => ['required', 'exists:match_games,id'],
+            'team_id' => ['required', 'exists:teams,id'],
+            'player_id' => ['nullable', 'required_unless:stat_type,clean_sheet', 'exists:players,id'],
             'stat_type' => ['required', 'in:'.self::STAT_TYPES],
             'value' => ['required', 'integer', 'min:1'],
         ]);
 
-        $error = $this->validateStatisticContext($validated);
+        $matchGame = MatchGame::with('tournament')->findOrFail($validated['match_game_id']);
+
+        if (! $this->canManageMatch($matchGame)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $error = $this->validateStatisticContext($matchGame, $validated);
 
         if ($error !== null) {
             return response()->json(['message' => $error], 422);
@@ -71,10 +77,25 @@ class StatisticController extends Controller
 
     public function update(Request $request, Statistic $statistic): JsonResponse
     {
+        $statistic->load('matchGame.tournament');
+
+        if (! $this->canManageStatistic($statistic)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'stat_type' => ['sometimes', 'required', 'in:'.self::STAT_TYPES],
             'value' => ['sometimes', 'required', 'integer', 'min:1'],
         ]);
+
+        $error = $this->validateStatisticContext($statistic->matchGame, [
+            ...$statistic->only(['match_game_id', 'team_id', 'player_id', 'stat_type', 'value']),
+            ...$validated,
+        ]);
+
+        if ($error !== null) {
+            return response()->json(['message' => $error], 422);
+        }
 
         $statistic->update($validated);
 
@@ -85,7 +106,7 @@ class StatisticController extends Controller
     {
         $statistic->load('matchGame.tournament');
 
-        if (! $this->canDeleteStatistic($statistic)) {
+        if (! $this->canManageStatistic($statistic)) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -94,10 +115,14 @@ class StatisticController extends Controller
         return response()->json(['message' => 'Statistic deleted.']);
     }
 
-    private function validateStatisticContext(array $data): ?string
+    private function validateStatisticContext(MatchGame $matchGame, array $data): ?string
     {
-        if (empty($data['match_game_id']) && empty($data['team_id']) && empty($data['player_id'])) {
-            return 'At least one of match_game_id, team_id, or player_id must be provided.';
+        if (! in_array((int) $data['team_id'], [(int) $matchGame->home_team_id, (int) $matchGame->away_team_id], true)) {
+            return 'The team must be one of the match teams.';
+        }
+
+        if (($data['stat_type'] ?? null) !== 'clean_sheet' && empty($data['player_id'])) {
+            return 'The player field is required for this statistic type.';
         }
 
         if (! empty($data['player_id']) && ! empty($data['team_id'])) {
@@ -108,27 +133,18 @@ class StatisticController extends Controller
             }
         }
 
-        if (! empty($data['match_game_id']) && ! empty($data['team_id'])) {
-            $matchGame = MatchGame::find($data['match_game_id']);
-
-            if ($matchGame !== null
-                && ! in_array((int) $data['team_id'], [(int) $matchGame->home_team_id, (int) $matchGame->away_team_id], true)) {
-                return 'The team must be one of the match teams.';
-            }
-        }
-
         return null;
     }
 
-    private function canDeleteStatistic(Statistic $statistic): bool
+    private function canManageStatistic(Statistic $statistic): bool
     {
-        if (auth('api')->user()?->role === 'admin') {
-            return true;
-        }
+        return $statistic->matchGame !== null
+            && $this->canManageMatch($statistic->matchGame);
+    }
 
-        $tournament = $statistic->matchGame?->tournament;
-
-        return $tournament !== null
-            && (int) $tournament->created_by === (int) auth('api')->id();
+    private function canManageMatch(MatchGame $matchGame): bool
+    {
+        return auth('api')->user()?->role === 'admin'
+            || (int) $matchGame->tournament->created_by === (int) auth('api')->id();
     }
 }
