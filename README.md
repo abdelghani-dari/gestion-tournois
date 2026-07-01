@@ -70,63 +70,31 @@ docker compose exec backend php artisan storage:link
 gestion-tournois/
 ├── backend/          # API Laravel
 ├── frontend/         # Application React (src/pages, src/components)
-├── docs/             # Documentation PFE (français)
+├── tests/            # Tests de performance k6
 └── docker-compose.yml
 ```
 
 ## Tests backend
 
-La suite de tests backend couvre les principaux parcours API Laravel : authentification, tournois, validation administrateur, équipes, joueurs, demandes de participation, matchs, résultats, classements, statistiques, sécurité et régressions.
+Résumé actuel :
 
-Elle contient aussi des tests unitaires pour les règles métier isolées. Ces tests vérifient les services métier sans appeler les routes API, sans base de données et sans JWT.
-
-Exécuter tous les tests backend :
-
-```bash
-docker compose exec backend php artisan test
-```
-
-Exécuter un fichier ou un filtre de test spécifique :
-
-```bash
-docker compose exec backend php artisan test --filter=AuthTest
-```
-
-Exécuter uniquement les tests unitaires :
-
-```bash
-docker compose exec backend php artisan test --testsuite=Unit
-```
-
-Résultat actuel : **162 tests passés, 834 assertions**.
-
-Résultat des tests unitaires : **48 tests passés, 115 assertions**.
-
-Documentation détaillée :
-
-- [`docs/testing-strategy.md`](docs/testing-strategy.md)
-- [`docs/testing-results.md`](docs/testing-results.md)
+- Tous les tests backend : **167 tests passés, 856 assertions**
+- Tests unitaires : **48 tests passés, 115 assertions**
+- Tests smoke : **5 tests passés, 22 assertions**
 
 Le workflow CI GitHub Actions est défini dans [`.github/workflows/backend-tests.yml`](.github/workflows/backend-tests.yml).
 
 ## Tests E2E frontend
 
-Les tests end-to-end frontend utilisent Playwright avec Chromium dans Docker.
-
-Ils couvrent actuellement la connexion, la création d'un tournoi depuis l'interface et l'affichage public des tournois acceptés. Des helpers partagés sont disponibles dans `frontend/e2e/helpers.ts`.
+Les tests Playwright couvrent la connexion, la création d'un tournoi depuis l'interface et l'affichage public des tournois acceptés.
 
 Résultat actuel : **3 tests passés**.
 
-Documentation détaillée : [`docs/e2e-testing.md`](docs/e2e-testing.md).
+## Tests performance
 
-## Documentation
+Le test k6 vérifie les endpoints publics principaux et le login de préparation.
 
-Voir le dossier [`docs/`](docs/README_DOCS.md) :
-
-- `documentation-technique.md` — référence technique complète
-- `architecture.md` — architecture et diagrammes
-- `cahier-des-charges.md` — besoins fonctionnels
-- `suivi-realisation-user-stories.md` — suivi des user stories (phase finalisation)
+Dernier résultat : **checks 100%**, **http_req_failed 0%**, p95 sous **800 ms** pour les endpoints testés.
 
 ## Équipe PFE
 
