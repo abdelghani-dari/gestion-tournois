@@ -1,7 +1,7 @@
+import { useMemo, type ReactNode } from "react";
 import Chart from "react-apexcharts";
 import type { ApexOptions } from "apexcharts";
 import { clsx } from "clsx";
-import type { ReactNode } from "react";
 import { getChartBase } from "./chartTheme";
 import { useXTheme } from "../context/XThemeContext";
 import { useThemeTokens } from "../theme/useThemeTokens";
@@ -38,37 +38,43 @@ export default function GoalsLineChart({ data, tournamentName, loading = false, 
   const { theme } = useXTheme();
   const t = useThemeTokens();
   const chartBase = getChartBase(theme);
-  const categories = data.map((point) => point.month);
-  const periods = data.map((point) => point.period ?? point.month);
-  const scored = data.map((point) => point.scored);
-  const yellowCards = data.map((point) => point.yellow_cards ?? 0);
-  const redCards = data.map((point) => point.red_cards ?? 0);
-  const empty = !hasChartData(data);
+  const { categories, periods, scored, yellowCards, redCards, empty } = useMemo(() => {
+    return {
+      categories: data.map((point) => point.month),
+      periods: data.map((point) => point.period ?? point.month),
+      scored: data.map((point) => point.scored),
+      yellowCards: data.map((point) => point.yellow_cards ?? 0),
+      redCards: data.map((point) => point.red_cards ?? 0),
+      empty: !hasChartData(data),
+    };
+  }, [data]);
 
-  const options: ApexOptions = {
-    ...chartBase,
-    colors: ["#465FFF", "#facc15", "#ef4444"],
-    chart: { ...chartBase.chart, type: "area", height: CHART_HEIGHT },
-    stroke: { curve: "smooth", width: 2 },
-    fill: {
-      type: "gradient",
-      gradient: { opacityFrom: 0.35, opacityTo: 0.05 },
-    },
-    xaxis: { ...chartBase.xaxis, categories },
-    tooltip: {
-      ...chartBase.tooltip,
-      x: {
-        formatter: (_value, opts) => periods[opts?.dataPointIndex ?? 0] ?? _value,
+  const options = useMemo<ApexOptions>(() => {
+    return {
+      ...chartBase,
+      colors: ["#465FFF", "#facc15", "#ef4444"],
+      chart: { ...chartBase.chart, type: "area", height: CHART_HEIGHT },
+      stroke: { curve: "smooth", width: 2 },
+      fill: {
+        type: "gradient",
+        gradient: { opacityFrom: 0.35, opacityTo: 0.05 },
       },
-    },
-    legend: { show: true, position: "top", horizontalAlign: "right" },
-  };
+      xaxis: { ...chartBase.xaxis, categories },
+      tooltip: {
+        ...chartBase.tooltip,
+        x: {
+          formatter: (_value, opts) => periods[opts?.dataPointIndex ?? 0] ?? _value,
+        },
+      },
+      legend: { show: true, position: "top", horizontalAlign: "right" },
+    };
+  }, [chartBase, categories, periods]);
 
-  const series = [
+  const series = useMemo(() => [
     { name: "Buts", data: scored },
     { name: "Cartons jaunes", data: yellowCards },
     { name: "Cartons rouges", data: redCards, hidden: true } as any,
-  ];
+  ], [scored, yellowCards, redCards]);
 
   return (
     <div>

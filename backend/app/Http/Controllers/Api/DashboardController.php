@@ -42,6 +42,7 @@ class DashboardController extends Controller
         });
 
         $firstTournamentId = (clone $tournaments)
+            ->orderByRaw("case when lower(trim(name)) = 'd10-champs' then 0 else 1 end")
             ->orderByRaw("case when approval_status = 'accepted' then 0 else 1 end")
             ->orderBy('id')
             ->value('id');

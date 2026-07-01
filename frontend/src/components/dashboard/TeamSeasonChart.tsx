@@ -1,7 +1,7 @@
+import { useMemo, type ReactNode } from "react";
 import Chart from "react-apexcharts";
 import type { ApexOptions } from "apexcharts";
 import { clsx } from "clsx";
-import type { ReactNode } from "react";
 import { getChartBase } from "./chartTheme";
 import { useXTheme } from "../context/XThemeContext";
 import { useThemeTokens } from "../theme/useThemeTokens";
@@ -56,65 +56,72 @@ export default function TeamSeasonChart({
   const { theme } = useXTheme();
   const t = useThemeTokens();
   const chartBase = getChartBase(theme);
-  const categories = data.map((point) => point.month);
-  const periods = data.map((point) => point.period ?? point.month);
-  const goalsScored = data.map((point) => point.goals_scored);
-  const goalsConceded = data.map((point) => point.goals_conceded);
-  const points = data.map((point) => point.points);
-  const empty = !hasChartData(data);
 
-  const options: ApexOptions = {
-    ...chartBase,
-    colors: ["#465FFF", "#34d399", "#a78bfa"],
-    chart: { ...chartBase.chart, type: "line", height: CHART_HEIGHT },
-    stroke: {
-      curve: "smooth",
-      width: [2, 2, 3],
-      dashArray: [0, 0, 0],
-    },
-    fill: {
-      type: ["gradient", "gradient", "solid"],
-      gradient: { opacityFrom: 0.3, opacityTo: 0.02 },
-    },
-    xaxis: {
-      ...chartBase.xaxis,
-      categories,
-    },
-    tooltip: {
-      ...chartBase.tooltip,
-      x: {
-        formatter: (_value, opts) => periods[opts?.dataPointIndex ?? 0] ?? _value,
-      },
-    },
-    yaxis: [
-      {
-        ...chartBase.yaxis,
-        seriesName: "Buts marqués",
-        title: { text: "Buts", style: { color: "#94a3b8", fontSize: "11px" } },
-        min: 0,
-      },
-      {
-        ...chartBase.yaxis,
-        seriesName: "Buts marqués",
-        show: false,
-        min: 0,
-      },
-      {
-        ...chartBase.yaxis,
-        opposite: true,
-        seriesName: "Points",
-        title: { text: "Points", style: { color: "#94a3b8", fontSize: "11px" } },
-        min: 0,
-      },
-    ],
-    legend: { show: true, position: "top", horizontalAlign: "right" },
-  };
+  const { categories, periods, goalsScored, goalsConceded, points, empty } = useMemo(() => {
+    return {
+      categories: data.map((point) => point.month),
+      periods: data.map((point) => point.period ?? point.month),
+      goalsScored: data.map((point) => point.goals_scored),
+      goalsConceded: data.map((point) => point.goals_conceded),
+      points: data.map((point) => point.points),
+      empty: !hasChartData(data),
+    };
+  }, [data]);
 
-  const series = [
+  const options = useMemo<ApexOptions>(() => {
+    return {
+      ...chartBase,
+      colors: ["#465FFF", "#34d399", "#a78bfa"],
+      chart: { ...chartBase.chart, type: "line", height: CHART_HEIGHT },
+      stroke: {
+        curve: "smooth",
+        width: [2, 2, 3],
+        dashArray: [0, 0, 0],
+      },
+      fill: {
+        type: ["gradient", "gradient", "solid"],
+        gradient: { opacityFrom: 0.3, opacityTo: 0.02 },
+      },
+      xaxis: {
+        ...chartBase.xaxis,
+        categories,
+      },
+      tooltip: {
+        ...chartBase.tooltip,
+        x: {
+          formatter: (_value, opts) => periods[opts?.dataPointIndex ?? 0] ?? _value,
+        },
+      },
+      yaxis: [
+        {
+          ...chartBase.yaxis,
+          seriesName: "Buts marqués",
+          title: { text: "Buts", style: { color: "#94a3b8", fontSize: "11px" } },
+          min: 0,
+        },
+        {
+          ...chartBase.yaxis,
+          seriesName: "Buts marqués",
+          show: false,
+          min: 0,
+        },
+        {
+          ...chartBase.yaxis,
+          opposite: true,
+          seriesName: "Points",
+          title: { text: "Points", style: { color: "#94a3b8", fontSize: "11px" } },
+          min: 0,
+        },
+      ],
+      legend: { show: true, position: "top", horizontalAlign: "right" },
+    };
+  }, [chartBase, categories, periods]);
+
+  const series = useMemo(() => [
     { name: "Buts marqués", type: "area", data: goalsScored },
     { name: "Buts encaissés", type: "area", data: goalsConceded },
     { name: "Points", type: "line", data: points },
-  ];
+  ], [goalsScored, goalsConceded, points]);
 
   const subtitle = [teamName, tournamentName].filter(Boolean).join(" · ") || "Équipe · Tournoi";
 

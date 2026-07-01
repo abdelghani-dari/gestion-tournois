@@ -39,6 +39,17 @@ import {
   UserIcon,
 } from "../../icons";
 
+const summaryPromises: Record<string, Promise<DashboardSummary>> = {};
+function fetchDashboardSummaryCached(tournamentId?: number, teamId?: number) {
+  const key = `${tournamentId ?? ""}:${teamId ?? ""}`;
+  if (!summaryPromises[key]) {
+    summaryPromises[key] = getDashboardSummary(tournamentId, teamId).finally(() => {
+      delete summaryPromises[key];
+    });
+  }
+  return summaryPromises[key];
+}
+
 function dashboardErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
     if (error.status === 401) return "Votre session a expiré. Veuillez vous reconnecter.";
@@ -53,19 +64,25 @@ function MetricCard({
   value,
   tone,
   icon,
+  loading,
 }: {
   label: string;
   value: number;
   tone?: string;
   icon: ReactNode;
+  loading?: boolean;
 }) {
   const t = useThemeTokens();
   return (
     <div className={clsx("rounded-md border p-4", t.card)}>
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>{label}</p>
-          <p className={clsx("mt-2 text-3xl font-bold tabular-nums", tone ?? t.textPrimary)}>{value}</p>
+          {loading ? (
+            <Skeleton className={clsx("mt-2 h-9 w-16 rounded", t.metricBg)} />
+          ) : (
+            <p className={clsx("mt-2 text-3xl font-bold tabular-nums", tone ?? t.textPrimary)}>{value}</p>
+          )}
         </div>
         <span className={clsx("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-500/10", tone ?? "text-brand-400")}>
           {icon}
@@ -246,7 +263,7 @@ export default function DashboardPage() {
     setDashboardError("");
 
     try {
-      const data = await getDashboardSummary();
+      const data = await fetchDashboardSummaryCached();
       setSummary(data);
       setWidgetSummaries({});
       setWidgetTournamentIds({});
@@ -266,7 +283,7 @@ export default function DashboardPage() {
     setWidgetLoading((prev) => ({ ...prev, [key]: true }));
 
     try {
-      const data = await getDashboardSummary(tournamentId);
+      const data = await fetchDashboardSummaryCached(tournamentId);
       setWidgetSummaries((prev) => ({ ...prev, [key]: data }));
     } catch (err) {
       console.error(`Dashboard widget failed: ${key}`, err);
@@ -281,7 +298,7 @@ export default function DashboardPage() {
     setWidgetLoading((prev) => ({ ...prev, teamSeason: true }));
 
     try {
-      const data = await getDashboardSummary(tournamentId, teamId);
+      const data = await fetchDashboardSummaryCached(tournamentId, teamId);
       setWidgetSummaries((prev) => ({ ...prev, teamSeason: data }));
     } catch (err) {
       console.error("Dashboard team season widget failed", err);
@@ -296,23 +313,23 @@ export default function DashboardPage() {
       setWidgetLoading((prev) => ({ ...prev, teamSeason: true }));
 
       try {
-        const teamsResponse = await getTeams({ tournament_id: tournamentId });
-        const teams = Array.isArray(teamsResponse) ? teamsResponse : teamsResponse.data ?? [];
-        setTeamSeasonTeams(teams);
+         const teamsResponse = await getTeams({ tournament_id: tournamentId });
+         const teams = Array.isArray(teamsResponse) ? teamsResponse : teamsResponse.data ?? [];
+         setTeamSeasonTeams(teams);
 
-        const resolvedTeamId =
-          preferredTeamId && teams.some((team) => team.id === preferredTeamId)
-            ? preferredTeamId
-            : teams[0]?.id ?? null;
+         const resolvedTeamId =
+           preferredTeamId && teams.some((team) => team.id === preferredTeamId)
+             ? preferredTeamId
+             : teams[0]?.id ?? null;
 
-        setTeamSeasonTeamId(resolvedTeamId);
+         setTeamSeasonTeamId(resolvedTeamId);
 
-        if (resolvedTeamId) {
-          const data = await getDashboardSummary(tournamentId, resolvedTeamId);
-          setWidgetSummaries((prev) => ({ ...prev, teamSeason: data }));
-        } else {
-          setWidgetSummaries((prev) => ({ ...prev, teamSeason: undefined }));
-        }
+         if (resolvedTeamId) {
+           const data = await fetchDashboardSummaryCached(tournamentId, resolvedTeamId);
+           setWidgetSummaries((prev) => ({ ...prev, teamSeason: data }));
+         } else {
+           setWidgetSummaries((prev) => ({ ...prev, teamSeason: undefined }));
+         }
       } catch (err) {
         console.error("Dashboard team season widget failed", err);
       } finally {
@@ -432,17 +449,17 @@ export default function DashboardPage() {
         <div className={clsx("grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4", GRID_GAP)}>
           {isAdmin ? (
             <>
-              <MetricCard label="En attente" value={summary?.tournament_status.pending ?? 0} tone="text-amber-400" icon={<PaperPlaneIcon className="size-5" />} />
-              <MetricCard label="Acceptés" value={summary?.tournament_status.accepted ?? 0} tone="text-emerald-400" icon={<ShootingStarIcon className="size-5" />} />
-              <MetricCard label="Matchs joués" value={playedCount} tone="text-rose-400" icon={<TaskIcon className="size-5" />} />
-              <MetricCard label="Résultats confirmés" value={counts?.confirmed_results ?? 0} tone="text-cyan-400" icon={<TableIcon className="size-5" />} />
+              <MetricCard label="En attente" value={summary?.tournament_status.pending ?? 0} tone="text-amber-400" icon={<PaperPlaneIcon className="size-5" />} loading={loading} />
+              <MetricCard label="Acceptés" value={summary?.tournament_status.accepted ?? 0} tone="text-emerald-400" icon={<ShootingStarIcon className="size-5" />} loading={loading} />
+              <MetricCard label="Matchs joués" value={playedCount} tone="text-rose-400" icon={<TaskIcon className="size-5" />} loading={isWidgetLoading("progress")} />
+              <MetricCard label="Résultats confirmés" value={counts?.confirmed_results ?? 0} tone="text-cyan-400" icon={<TableIcon className="size-5" />} loading={loading} />
             </>
           ) : (
             <>
-              <MetricCard label="Mes tournois" value={counts?.my_tournaments ?? 0} tone="text-brand-400" icon={<ShootingStarIcon className="size-5" />} />
-              <MetricCard label="Mes équipes" value={counts?.my_teams ?? 0} tone="text-cyan-400" icon={<GroupIcon className="size-5" />} />
-              <MetricCard label="Mes joueurs" value={counts?.my_players ?? 0} tone="text-indigo-400" icon={<UserIcon className="size-5" />} />
-              <MetricCard label="Matchs" value={counts?.matches ?? 0} tone="text-rose-400" icon={<TaskIcon className="size-5" />} />
+              <MetricCard label="Mes tournois" value={counts?.my_tournaments ?? 0} tone="text-brand-400" icon={<ShootingStarIcon className="size-5" />} loading={loading} />
+              <MetricCard label="Mes équipes" value={counts?.my_teams ?? 0} tone="text-cyan-400" icon={<GroupIcon className="size-5" />} loading={loading} />
+              <MetricCard label="Mes joueurs" value={counts?.my_players ?? 0} tone="text-indigo-400" icon={<UserIcon className="size-5" />} loading={loading} />
+              <MetricCard label="Matchs" value={counts?.matches ?? 0} tone="text-rose-400" icon={<TaskIcon className="size-5" />} loading={loading} />
             </>
           )}
         </div>

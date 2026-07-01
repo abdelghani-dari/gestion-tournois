@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import Chart from "react-apexcharts";
 import type { ApexOptions } from "apexcharts";
 import { clsx } from "clsx";
@@ -17,50 +18,57 @@ export default function DashboardBarChart({ title, subtitle, data, color }: Dash
   const { theme } = useXTheme();
   const t = useThemeTokens();
   const chartBase = getChartBase(theme);
-  const categories = data.map((point) => point.label);
-  const values = data.map((point) => point.value);
 
-  const options: ApexOptions = {
-    ...chartBase,
-    colors: [color],
-    chart: {
-      ...chartBase.chart,
-      type: "bar",
-      height: 260,
-      toolbar: { show: false },
-    },
-    plotOptions: {
-      bar: { borderRadius: 6, columnWidth: "52%", distributed: false },
-    },
-    fill: {
-      type: "gradient",
-      gradient: {
-        shade: "dark",
-        type: "vertical",
-        shadeIntensity: 0.4,
-        inverseColors: true, // inverseColors: true will put the darker shade on top
-        opacityFrom: 0.95,
-        opacityTo: 0.95,
-        stops: [0, 100],
+  const { categories, values } = useMemo(() => {
+    return {
+      categories: data.map((point) => point.label),
+      values: data.map((point) => point.value),
+    };
+  }, [data]);
+
+  const options = useMemo<ApexOptions>(() => {
+    return {
+      ...chartBase,
+      colors: [color],
+      chart: {
+        ...chartBase.chart,
+        type: "bar",
+        height: 260,
+        toolbar: { show: false },
       },
-    },
-    dataLabels: { enabled: false },
-    xaxis: {
-      ...chartBase.xaxis,
-      categories,
-      labels: {
-        ...chartBase.xaxis?.labels,
-        rotate: -35,
-        trim: true,
-        hideOverlappingLabels: true,
+      plotOptions: {
+        bar: { borderRadius: 6, columnWidth: "52%", distributed: false },
       },
-    },
-    yaxis: chartBase.yaxis,
-    tooltip: {
-      ...chartBase.tooltip,
-      y: { formatter: (value) => `${value}` },
-    },
-  };
+      fill: {
+        type: "gradient",
+        gradient: {
+          shade: "dark",
+          type: "vertical",
+          shadeIntensity: 0.4,
+          inverseColors: true,
+          opacityFrom: 0.95,
+          opacityTo: 0.95,
+          stops: [0, 100],
+        },
+      },
+      dataLabels: { enabled: false },
+      xaxis: {
+        ...chartBase.xaxis,
+        categories,
+        labels: {
+          ...chartBase.xaxis?.labels,
+          rotate: -35,
+          trim: true,
+          hideOverlappingLabels: true,
+        },
+      },
+      yaxis: chartBase.yaxis,
+      tooltip: {
+        ...chartBase.tooltip,
+        y: { formatter: (value) => `${value}` },
+      },
+    };
+  }, [chartBase, categories, color]);
 
   if (data.length === 0) {
     return (
