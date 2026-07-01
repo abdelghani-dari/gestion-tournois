@@ -27,12 +27,13 @@ Ce test couvre le flux de connexion entre le frontend et le backend.
 Le test de connexion vérifie que :
 
 - la page frontend `/login` s'ouvre correctement;
-- les identifiants de démonstration sont saisis dans le formulaire;
-- la soumission du formulaire appelle bien l'authentification backend;
+- un utilisateur E2E unique est créé via `POST /api/register`;
+- cet utilisateur E2E temporaire est activé dans la base de données de local;
+- la connexion se fait via la vraie interface `/login`;
 - le token JWT et l'état de connexion sont enregistrés côté frontend;
 - l'utilisateur est redirigé vers le dashboard ou qu'un état authentifié est visible.
 
-Ce test valide donc le lien complet entre l'interface de connexion, l'API Laravel et la gestion du token JWT côté navigateur.
+Ce test valide donc le lien complet entre l'inscription API, l'interface de connexion, l'API Laravel et la gestion du token JWT côté navigateur.
 
 ## Exécution des tests E2E
 
@@ -60,13 +61,11 @@ Résultat actuel de la suite E2E :
 
 Le backend et la base de données doivent être démarrés.
 
-La base doit être seedée avec les comptes de démonstration, notamment :
+La base de données n'a pas besoin des données de démonstration pour le test E2E de connexion. Le test ne dépend plus du compte `admin@example.com`.
 
-```text
-admin@example.com / password
-```
+Les utilisateurs créés via l'inscription sont en attente par défaut. Pour ce test, le conteneur frontend doit donc pouvoir accéder à la base de données de test afin d'activer l'utilisateur E2E temporaire avant la connexion.
 
-Si la base est vide, exécuter les migrations et seeders backend avant de lancer le test E2E.
+Si la base est vide, exécuter les migrations backend avant de lancer le test E2E.
 
 ## Tests E2E prévus
 
