@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tournament;
+use App\Services\OwnershipRules;
+use App\Services\TournamentRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -11,13 +13,56 @@ use Illuminate\Support\Facades\Cache;
 
 class TournamentController extends Controller
 {
+    private const PUBLIC_TOURNAMENT_CACHE_KEY = 'public:tournaments:v2';
+
+    private const PUBLIC_TOURNAMENT_COLUMNS = [
+        'id',
+        'created_by',
+        'name',
+        'description',
+        'city',
+        'location',
+        'banner_path',
+        'format',
+        'start_date',
+        'end_date',
+        'status',
+        'approval_status',
+        'admin_note',
+        'approved_by',
+        'approved_at',
+        'created_at',
+        'updated_at',
+    ];
+
+    private const PUBLIC_TEAM_COLUMNS = [
+        'teams.id',
+        'teams.manager_id',
+        'teams.name',
+        'teams.short_name',
+        'teams.logo_path',
+        'teams.city',
+        'teams.created_at',
+        'teams.updated_at',
+    ];
+
+    public function __construct(
+        private TournamentRules $tournamentRules,
+        private OwnershipRules $ownershipRules
+    ) {
+    }
+
     public function index(): JsonResponse
     {
         return response()->json(
             Cache::remember(
-                'public:tournaments',
+                self::PUBLIC_TOURNAMENT_CACHE_KEY,
                 60,
-                fn () => Tournament::with('teams')
+                fn () => Tournament::query()
+                    ->select(self::PUBLIC_TOURNAMENT_COLUMNS)
+                    ->with([
+                        'teams' => fn ($query) => $query->select(self::PUBLIC_TEAM_COLUMNS),
+                    ])
                     ->where('approval_status', 'accepted')
                     ->latest()
                     ->get()
@@ -45,16 +90,17 @@ class TournamentController extends Controller
 
         $user = auth('api')->user();
         $isAdmin = $user?->role === 'admin';
+        $approvalDefaults = $this->tournamentRules->defaultsForNewTournament(
+            $isAdmin,
+            $user?->id,
+            $isAdmin ? now() : null
+        );
 
         $tournament = Tournament::create([
             ...$validated,
             'format' => $validated['format'] ?? 'league',
             'created_by' => $user?->id,
-            'status' => $isAdmin ? 'open' : 'draft',
-            'approval_status' => $isAdmin ? 'accepted' : 'pending',
-            'admin_note' => null,
-            'approved_by' => $isAdmin ? $user->id : null,
-            'approved_at' => $isAdmin ? now() : null,
+            ...$approvalDefaults,
         ]);
 
         $this->forgetTournamentCache($tournament->id);
@@ -73,7 +119,11 @@ class TournamentController extends Controller
 
     public function update(Request $request, Tournament $tournament): JsonResponse
     {
-        if (! $this->isAdmin() && (int) $tournament->created_by !== (int) auth('api')->id()) {
+        if (! $this->ownershipRules->canManageTournamentResources(
+            $tournament->created_by,
+            auth('api')->id(),
+            auth('api')->user()?->role
+        )) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -105,7 +155,11 @@ class TournamentController extends Controller
 
     public function destroy(Tournament $tournament): JsonResponse
     {
-        if (! $this->isAdmin() && (int) $tournament->created_by !== (int) auth('api')->id()) {
+        if (! $this->ownershipRules->canManageTournamentResources(
+            $tournament->created_by,
+            auth('api')->id(),
+            auth('api')->user()?->role
+        )) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -132,6 +186,7 @@ class TournamentController extends Controller
     private function forgetTournamentCache(int $tournamentId): void
     {
         Cache::forget('public:tournaments');
+        Cache::forget(self::PUBLIC_TOURNAMENT_CACHE_KEY);
         Cache::forget("tournament:{$tournamentId}:details");
         Cache::forget("tournament:{$tournamentId}:rankings");
         Cache::forget("tournament:{$tournamentId}:statistics");
@@ -139,7 +194,7 @@ class TournamentController extends Controller
 
     private function isAdmin(): bool
     {
-        return auth('api')->user()?->role === 'admin';
+        return $this->ownershipRules->isAdmin(auth('api')->user()?->role);
     }
 
     private function imagePath(Request $request, string $field, string $directory, string $prefix): ?string

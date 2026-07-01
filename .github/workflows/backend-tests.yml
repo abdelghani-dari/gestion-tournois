@@ -1,0 +1,73 @@
+name: Backend Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend-tests:
+    name: Laravel Backend Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: gestion_tournois_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d gestion_tournois_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      APP_ENV: testing
+      APP_DEBUG: 'true'
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: '5432'
+      DB_DATABASE: gestion_tournois_test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      CACHE_STORE: file
+      CACHE_DRIVER: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: sync
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_pgsql, pgsql, bcmath, ctype, fileinfo, json, openssl, tokenizer, xml
+          coverage: none
+          tools: composer:v2
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare environment file
+        run: cp .env.example .env
+
+      - name: Generate application key
+        run: php artisan key:generate --force
+
+      - name: Generate JWT secret
+        run: php artisan jwt:secret --force
+
+      - name: Run database migrations
+        run: php artisan migrate --force
+
+      - name: Run backend tests
+        run: php artisan test

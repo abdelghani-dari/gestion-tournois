@@ -10,7 +10,7 @@ Application web de gestion de **tournois locaux de football** : création et val
 | Backend | Laravel 11 (API REST) |
 | Base de données | PostgreSQL |
 | Conteneurisation | Docker Compose |
-| Authentification | Laravel Sanctum (token Bearer) |
+| Authentification | JWT Bearer Token |
 
 ## Fonctionnalités principales
 
@@ -70,18 +70,31 @@ docker compose exec backend php artisan storage:link
 gestion-tournois/
 ├── backend/          # API Laravel
 ├── frontend/         # Application React (src/pages, src/components)
-├── docs/             # Documentation PFE (français)
+├── tests/            # Tests de performance k6
 └── docker-compose.yml
 ```
 
-## Documentation
+## Tests backend
 
-Voir le dossier [`docs/`](docs/README_DOCS.md) :
+Résumé actuel :
 
-- `documentation-technique.md` — référence technique complète
-- `architecture.md` — architecture et diagrammes
-- `cahier-des-charges.md` — besoins fonctionnels
-- `suivi-realisation-user-stories.md` — suivi des user stories (phase finalisation)
+- Tous les tests backend : **167 tests passés, 856 assertions**
+- Tests unitaires : **48 tests passés, 115 assertions**
+- Tests smoke : **5 tests passés, 22 assertions**
+
+Le workflow CI GitHub Actions est défini dans [`.github/workflows/backend-tests.yml`](.github/workflows/backend-tests.yml).
+
+## Tests E2E frontend
+
+Les tests Playwright couvrent la connexion, la création d'un tournoi depuis l'interface et l'affichage public des tournois acceptés.
+
+Résultat actuel : **3 tests passés**.
+
+## Tests performance
+
+Le test k6 vérifie les endpoints publics principaux et le login de préparation.
+
+Dernier résultat : **checks 100%**, **http_req_failed 0%**, p95 sous **800 ms** pour les endpoints testés.
 
 ## Équipe PFE
 

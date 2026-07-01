@@ -6,12 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Models\JoinRequest;
 use App\Models\Team;
 use App\Models\Tournament;
+use App\Services\JoinRequestRules;
+use App\Services\OwnershipRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class JoinRequestController extends Controller
 {
+    public function __construct(
+        private JoinRequestRules $joinRequestRules,
+        private OwnershipRules $ownershipRules
+    ) {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -23,16 +31,18 @@ class JoinRequestController extends Controller
         $user = auth('api')->user();
         $query = JoinRequest::with(['tournament', 'team', 'manager'])->latest();
 
-        // Scope by role: admin sees all; creator sees only their tournament requests; user only sees their own sent requests
+        // Admin sees all; non-admin users see requests for their tournaments plus their own outgoing requests.
         if ($user && $user->role !== 'admin') {
-            if ($user->role === 'creator') {
-                // Creator sees requests directed at their own tournaments
-                $myTournamentIds = \App\Models\Tournament::where('created_by', $user->id)->pluck('id');
-                $query->whereIn('tournament_id', $myTournamentIds)
-                      ->orWhere('manager_id', $user->id);
-            } else {
-                // Regular user / team manager: only their own outgoing requests
+            $myTournamentIds = Tournament::where('created_by', $user->id)->pluck('id');
+
+            if ($myTournamentIds->isEmpty()) {
                 $query->where('manager_id', $user->id);
+            } else {
+                $query->where(function ($query) use ($myTournamentIds, $user): void {
+                    $query
+                        ->whereIn('tournament_id', $myTournamentIds)
+                        ->orWhere('manager_id', $user->id);
+                });
             }
         }
 
@@ -62,15 +72,16 @@ class JoinRequestController extends Controller
         $tournament = Tournament::findOrFail($validated['tournament_id']);
         $team = Team::findOrFail($validated['team_id']);
 
-        if ($tournament->approval_status !== 'accepted') {
-            return response()->json(['message' => 'Tournament must be accepted before teams can request participation.'], 422);
+        $eligibilityError = $this->joinRequestRules->requestEligibilityError(
+            $tournament->approval_status,
+            $tournament->status
+        );
+
+        if ($eligibilityError !== null) {
+            return response()->json(['message' => $eligibilityError], 422);
         }
 
-        if (! in_array($tournament->status, ['open', 'active'], true)) {
-            return response()->json(['message' => 'Tournament must be open or active before teams can request participation.'], 422);
-        }
-
-        if ((int) $team->manager_id !== (int) auth('api')->id()) {
+        if (! $this->ownershipRules->ownsTeam($team->manager_id, auth('api')->id())) {
             return response()->json(['message' => 'The manager does not own this team.'], 422);
         }
 
@@ -78,11 +89,13 @@ class JoinRequestController extends Controller
             ->where('team_id', $validated['team_id'])
             ->exists();
 
-        if ($alreadyRequested) {
+        if ($this->joinRequestRules->duplicateRequestIsInvalid($alreadyRequested)) {
             return response()->json(['message' => 'This team already has a join request for this tournament.'], 422);
         }
 
-        if ($tournament->teams()->where('teams.id', $validated['team_id'])->exists()) {
+        if ($this->joinRequestRules->teamAlreadyInTournamentIsInvalid(
+            $tournament->teams()->where('teams.id', $validated['team_id'])->exists()
+        )) {
             return response()->json(['message' => 'This team is already in the tournament.'], 422);
         }
 
@@ -102,7 +115,11 @@ class JoinRequestController extends Controller
 
     public function accept(JoinRequest $joinRequest): JsonResponse
     {
-        if (! $this->isAdmin() && (int) $joinRequest->tournament->created_by !== (int) auth('api')->id()) {
+        if (! $this->isAdmin()
+            && ! $this->joinRequestRules->creatorCanManageRequest(
+                $joinRequest->tournament->created_by,
+                auth('api')->id()
+            )) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -120,7 +137,11 @@ class JoinRequestController extends Controller
 
     public function refuse(JoinRequest $joinRequest): JsonResponse
     {
-        if (! $this->isAdmin() && (int) $joinRequest->tournament->created_by !== (int) auth('api')->id()) {
+        if (! $this->isAdmin()
+            && ! $this->joinRequestRules->creatorCanManageRequest(
+                $joinRequest->tournament->created_by,
+                auth('api')->id()
+            )) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -136,6 +157,6 @@ class JoinRequestController extends Controller
 
     private function isAdmin(): bool
     {
-        return auth('api')->user()?->role === 'admin';
+        return $this->ownershipRules->isAdmin(auth('api')->user()?->role);
     }
 }

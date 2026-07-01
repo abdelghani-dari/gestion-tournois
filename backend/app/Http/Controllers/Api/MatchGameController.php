@@ -5,12 +5,20 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\MatchGame;
 use App\Models\Tournament;
+use App\Services\MatchResultRules;
+use App\Services\OwnershipRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class MatchGameController extends Controller
 {
+    public function __construct(
+        private MatchResultRules $matchResultRules,
+        private OwnershipRules $ownershipRules
+    ) {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -90,7 +98,7 @@ class MatchGameController extends Controller
         $homeTeamId = $validated['home_team_id'] ?? $matchGame->home_team_id;
         $awayTeamId = $validated['away_team_id'] ?? $matchGame->away_team_id;
 
-        if ((int) $homeTeamId === (int) $awayTeamId) {
+        if (! $this->matchResultRules->teamsAreDifferent($homeTeamId, $awayTeamId)) {
             return response()->json(['message' => 'Home and away teams must be different.'], 422);
         }
 
@@ -204,8 +212,11 @@ class MatchGameController extends Controller
 
     private function canManageTournament(Tournament $tournament): bool
     {
-        return auth('api')->user()?->role === 'admin'
-            || (int) $tournament->created_by === (int) auth('api')->id();
+        return $this->ownershipRules->canManageTournamentResources(
+            $tournament->created_by,
+            auth('api')->id(),
+            auth('api')->user()?->role
+        );
     }
 
     private function canDeleteTournament(Tournament $tournament): bool
@@ -216,15 +227,11 @@ class MatchGameController extends Controller
 
     private function validateResultReady(MatchGame $matchGame): ?string
     {
-        if ($matchGame->status !== 'played') {
-            return 'Match must be played before confirming or disputing its result.';
-        }
-
-        if ($matchGame->home_score === null || $matchGame->away_score === null) {
-            return 'Scores must be entered before confirming or disputing the result.';
-        }
-
-        return null;
+        return $this->matchResultRules->resultReadyError(
+            $matchGame->status,
+            $matchGame->home_score,
+            $matchGame->away_score
+        );
     }
 
     private function forgetCompetitionCache(int $tournamentId): void
