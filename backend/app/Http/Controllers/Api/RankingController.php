@@ -7,7 +7,6 @@ use App\Models\Ranking;
 use App\Models\Tournament;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 
 class RankingController extends Controller
 {
@@ -17,17 +16,7 @@ class RankingController extends Controller
             'tournament_id' => ['required', 'exists:tournaments,id'],
         ]);
 
-        $tournamentId = (int) $validated['tournament_id'];
-
-        return response()->json(
-            Cache::remember(
-                "tournament:{$tournamentId}:rankings",
-                60,
-                fn () => $this->sortedRankings($tournamentId)
-                    ->get()
-                    ->toArray()
-            )
-        );
+        return response()->json($this->sortedRankings((int) $validated['tournament_id'])->get());
     }
 
     public function recalculate(Request $request): JsonResponse
@@ -37,11 +26,6 @@ class RankingController extends Controller
         ]);
 
         $tournament = Tournament::with('teams')->findOrFail($validated['tournament_id']);
-
-        if ((int) $tournament->created_by !== (int) auth('api')->id()
-            && auth('api')->user()?->role !== 'admin') {
-            return response()->json(['message' => 'Forbidden.'], 403);
-        }
 
         Ranking::where('tournament_id', $tournament->id)->delete();
 
@@ -98,8 +82,6 @@ class RankingController extends Controller
             $homeRanking->save();
             $awayRanking->save();
         }
-
-        Cache::forget("tournament:{$tournament->id}:rankings");
 
         return response()->json($this->sortedRankings($tournament->id)->get());
     }
