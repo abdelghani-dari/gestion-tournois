@@ -111,7 +111,13 @@ Le workflow CI GitHub Actions est défini dans [`.github/workflows/backend-tests
 
 ## Tests E2E frontend
 
-Les tests end-to-end frontend utilisent Playwright. La documentation est disponible dans [`docs/e2e-testing.md`](docs/e2e-testing.md).
+Les tests end-to-end frontend utilisent Playwright avec Chromium dans Docker.
+
+Ils couvrent actuellement la connexion, la création d'un tournoi depuis l'interface et l'affichage public des tournois acceptés. Des helpers partagés sont disponibles dans `frontend/e2e/helpers.ts`.
+
+Résultat actuel : **3 tests passés**.
+
+Documentation détaillée : [`docs/e2e-testing.md`](docs/e2e-testing.md).
 
 ## Documentation
 

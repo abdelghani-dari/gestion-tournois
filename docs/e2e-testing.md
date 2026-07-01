@@ -12,15 +12,23 @@ Les tests E2E utilisent **Playwright**.
 
 Playwright permet d'ouvrir l'application dans un navigateur Chromium, d'interagir avec l'interface comme un utilisateur réel, puis de vérifier le résultat affiché ou l'état de l'application.
 
-## Test actuel
+## Tests actuels
 
-Le premier test E2E est :
+La suite E2E contient actuellement trois tests :
 
 ```text
 frontend/e2e/login.spec.ts
+frontend/e2e/tournament-create.spec.ts
+frontend/e2e/public-tournaments.spec.ts
 ```
 
-Ce test couvre le flux de connexion entre le frontend et le backend.
+Un fichier de helpers partagés est utilisé pour éviter la duplication dans les tests :
+
+```text
+frontend/e2e/helpers.ts
+```
+
+Ces helpers gèrent notamment la création d'utilisateurs E2E uniques, leur activation en base si nécessaire, la connexion et le routage des appels API vers le backend Docker.
 
 ## Ce que vérifie le test de connexion
 
@@ -28,12 +36,22 @@ Le test de connexion vérifie que :
 
 - la page frontend `/login` s'ouvre correctement;
 - un utilisateur E2E unique est créé via `POST /api/register`;
-- cet utilisateur E2E temporaire est activé dans la base de données de local;
+- cet utilisateur E2E temporaire est activé dans la base de données locale;
 - la connexion se fait via la vraie interface `/login`;
 - le token JWT et l'état de connexion sont enregistrés côté frontend;
 - l'utilisateur est redirigé vers le dashboard ou qu'un état authentifié est visible.
 
 Ce test valide donc le lien complet entre l'inscription API, l'interface de connexion, l'API Laravel et la gestion du token JWT côté navigateur.
+
+## Autres parcours couverts
+
+Les tests E2E couvrent aussi :
+
+- la création d'un tournoi depuis l'interface par un utilisateur authentifié;
+- l'affichage public d'un tournoi accepté;
+- l'absence d'affichage public d'un tournoi encore en attente.
+
+Les données utilisées par les tests sont créées avec des noms et emails uniques afin d'éviter les dépendances aux données de démonstration.
 
 ## Exécution des tests E2E
 
@@ -54,7 +72,7 @@ docker compose exec frontend npm run test:e2e
 Résultat actuel de la suite E2E :
 
 ```text
-1 passed
+3 passed
 ```
 
 ## Prérequis
@@ -63,15 +81,14 @@ Le backend et la base de données doivent être démarrés.
 
 La base de données n'a pas besoin des données de démonstration pour le test E2E de connexion. Le test ne dépend plus du compte `admin@example.com`.
 
-Les utilisateurs créés via l'inscription sont en attente par défaut. Pour ce test, le conteneur frontend doit donc pouvoir accéder à la base de données de test afin d'activer l'utilisateur E2E temporaire avant la connexion.
+Les utilisateurs créés via l'inscription sont en attente par défaut. Pour ce test, le conteneur frontend doit donc pouvoir accéder à la base de données de local afin d'activer l'utilisateur E2E temporaire avant la connexion.
 
-Si la base est vide, exécuter les migrations backend avant de lancer le test E2E.
+Si la base est vide, exécuter les migrations backend avant de lancer les tests E2E.
 
 ## Tests E2E prévus
 
 Les prochains tests E2E pourront couvrir :
 
-- le parcours complet de création et validation d'un tournoi;
 - l'approbation d'un tournoi par un administrateur;
 - l'envoi et l'acceptation d'une demande de participation;
 - la saisie d'un résultat de match;
