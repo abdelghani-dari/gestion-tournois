@@ -13,6 +13,39 @@ use Illuminate\Support\Facades\Cache;
 
 class TournamentController extends Controller
 {
+    private const PUBLIC_TOURNAMENT_CACHE_KEY = 'public:tournaments:v2';
+
+    private const PUBLIC_TOURNAMENT_COLUMNS = [
+        'id',
+        'created_by',
+        'name',
+        'description',
+        'city',
+        'location',
+        'banner_path',
+        'format',
+        'start_date',
+        'end_date',
+        'status',
+        'approval_status',
+        'admin_note',
+        'approved_by',
+        'approved_at',
+        'created_at',
+        'updated_at',
+    ];
+
+    private const PUBLIC_TEAM_COLUMNS = [
+        'teams.id',
+        'teams.manager_id',
+        'teams.name',
+        'teams.short_name',
+        'teams.logo_path',
+        'teams.city',
+        'teams.created_at',
+        'teams.updated_at',
+    ];
+
     public function __construct(
         private TournamentRules $tournamentRules,
         private OwnershipRules $ownershipRules
@@ -23,9 +56,13 @@ class TournamentController extends Controller
     {
         return response()->json(
             Cache::remember(
-                'public:tournaments',
+                self::PUBLIC_TOURNAMENT_CACHE_KEY,
                 60,
-                fn () => Tournament::with('teams')
+                fn () => Tournament::query()
+                    ->select(self::PUBLIC_TOURNAMENT_COLUMNS)
+                    ->with([
+                        'teams' => fn ($query) => $query->select(self::PUBLIC_TEAM_COLUMNS),
+                    ])
                     ->where('approval_status', 'accepted')
                     ->latest()
                     ->get()
@@ -149,6 +186,7 @@ class TournamentController extends Controller
     private function forgetTournamentCache(int $tournamentId): void
     {
         Cache::forget('public:tournaments');
+        Cache::forget(self::PUBLIC_TOURNAMENT_CACHE_KEY);
         Cache::forget("tournament:{$tournamentId}:details");
         Cache::forget("tournament:{$tournamentId}:rankings");
         Cache::forget("tournament:{$tournamentId}:statistics");

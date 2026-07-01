@@ -17,6 +17,19 @@ class StatisticController extends Controller
     use AppliesListSorting;
 
     private const STAT_TYPES = 'goal,assist,yellow_card,red_card,clean_sheet';
+    private const DEFAULT_INDEX_LIMIT = 100;
+    private const MAX_INDEX_LIMIT = 500;
+
+    private const STATISTIC_COLUMNS = [
+        'id',
+        'match_game_id',
+        'team_id',
+        'player_id',
+        'stat_type',
+        'value',
+        'created_at',
+        'updated_at',
+    ];
 
     public function __construct(
         private StatisticRules $statisticRules,
@@ -28,17 +41,31 @@ class StatisticController extends Controller
     {
         $validated = $request->validate([
             'match_game_id' => ['sometimes', 'exists:match_games,id'],
+            'tournament_id' => ['sometimes', 'exists:tournaments,id'],
             'team_id' => ['sometimes', 'exists:teams,id'],
             'player_id' => ['sometimes', 'exists:players,id'],
             'stat_type' => ['sometimes', 'in:'.self::STAT_TYPES],
+            'limit' => ['sometimes', 'integer', 'min:1', 'max:'.self::MAX_INDEX_LIMIT],
         ]);
 
-        $query = Statistic::with(['matchGame.homeTeam', 'matchGame.awayTeam', 'team', 'player']);
+        $query = Statistic::query()
+            ->select(self::STATISTIC_COLUMNS)
+            ->with([
+                'matchGame:id,tournament_id,created_by,home_team_id,away_team_id,match_date,home_score,away_score,status,result_status,created_at,updated_at',
+                'matchGame.homeTeam:id,manager_id,name,short_name,logo_path,city,created_at,updated_at',
+                'matchGame.awayTeam:id,manager_id,name,short_name,logo_path,city,created_at,updated_at',
+                'team:id,manager_id,name,short_name,logo_path,city,created_at,updated_at',
+                'player:id,team_id,first_name,last_name,birth_date,position,number,photo_path,created_at,updated_at',
+            ]);
 
         foreach (['match_game_id', 'team_id', 'player_id', 'stat_type'] as $field) {
             if (isset($validated[$field])) {
                 $query->where($field, $validated[$field]);
             }
+        }
+
+        if (isset($validated['tournament_id'])) {
+            $query->whereHas('matchGame', fn ($matchQuery) => $matchQuery->where('tournament_id', $validated['tournament_id']));
         }
 
         $this->applyListSorting($query, $request, [
@@ -48,7 +75,11 @@ class StatisticController extends Controller
             'created_at' => 'created_at',
         ]);
 
-        return response()->json($query->get());
+        return response()->json(
+            $query
+                ->limit((int) ($validated['limit'] ?? self::DEFAULT_INDEX_LIMIT))
+                ->get()
+        );
     }
 
     public function store(Request $request): JsonResponse

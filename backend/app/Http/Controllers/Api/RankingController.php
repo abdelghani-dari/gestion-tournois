@@ -90,7 +90,9 @@ class RankingController extends Controller
 
     private function sortedRankings(int $tournamentId)
     {
-        return Ranking::with('team')
+        return Ranking::with([
+            'team:id,manager_id,name,short_name,logo_path,city,created_at,updated_at',
+        ])
             ->where('tournament_id', $tournamentId)
             ->join('teams', 'rankings.team_id', '=', 'teams.id')
             ->orderByDesc('rankings.points')
