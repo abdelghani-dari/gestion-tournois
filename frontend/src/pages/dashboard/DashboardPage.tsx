@@ -1,0 +1,482 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+import { Link } from "react-router";
+import { clsx } from "clsx";
+import { type FormEvent, useEffect, useRef, useState } from "react";
+import {
+  ApiError,
+  createTournament,
+  getDashboardSummary,
+  type ApiMatch,
+  type ApiRanking,
+  type ApiTeam,
+  type CreateTournamentPayload,
+  type DashboardSummary,
+} from "../../api";
+import Button from "../../components/common/Button";
+import ComponentCard from "../../components/common/ComponentCard";
+import EntityImage from "../../components/common/EntityImage";
+import ImageSourceInput, { type ImageSourceMode } from "../../components/common/ImageSourceInput";
+import { XPageMeta } from "../../components/common/PageMeta";
+import PageStack, { GRID_GAP } from "../../components/common/PageStack";
+import { statusLabel, statusTone } from "../../components/common/statusLabels";
+import { useThemeTokens } from "../../components/theme/useThemeTokens";
+import { useAuth } from "../../context/AuthContext";
+import {
+  GroupIcon,
+  PaperPlaneIcon,
+  PieChartIcon,
+  ShootingStarIcon,
+  TableIcon,
+  TaskIcon,
+  UserCircleIcon,
+  UserIcon,
+} from "../../icons";
+
+const emptyForm: CreateTournamentPayload = {
+  name: "",
+  description: "",
+  city: "",
+  location: "",
+  banner_path: "",
+  start_date: "",
+  end_date: "",
+};
+
+function formatDate(date?: string | null) {
+  if (!date) return "-";
+  return new Date(date).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function teamName(teamId: number, teams: ApiTeam[], embedded?: ApiTeam | null) {
+  return embedded?.name ?? teams.find((team) => team.id === teamId)?.name ?? `Équipe #${teamId}`;
+}
+
+function teamData(teamId: number, teams: ApiTeam[], embedded?: ApiTeam | null) {
+  return embedded ?? teams.find((team) => team.id === teamId) ?? null;
+}
+
+function matchWinner(match: ApiMatch) {
+  if (match.status !== "played" || match.result_status !== "confirmed") return null;
+  if (match.home_score == null || match.away_score == null) return null;
+  if (match.home_score === match.away_score) return null;
+  return match.home_score > match.away_score ? match.home_team_id : match.away_team_id;
+}
+
+function dashboardErrorMessage(error: unknown) {
+  if (error instanceof ApiError) {
+    if (error.status === 401) return "Votre session a expiré. Veuillez vous reconnecter.";
+    if (error.status === 404) return "Une ressource du tableau de bord est introuvable.";
+    if (error.status >= 500) return "Le serveur ne peut pas charger le tableau de bord pour le moment.";
+  }
+  return error instanceof Error ? error.message : "Impossible de charger le tableau de bord.";
+}
+
+function StatusPill({ value }: { value?: string | null }) {
+  const t = useThemeTokens();
+  return (
+    <span className={clsx("inline-flex rounded-sm px-2 py-0.5 text-xs font-medium", statusTone(value) || clsx(t.metricBg, t.textSecondary))}>
+      {statusLabel(value)}
+    </span>
+  );
+}
+
+function MetricCard({ label, value, tone }: { label: string; value: number; tone?: string }) {
+  const t = useThemeTokens();
+  return (
+    <div className={clsx("rounded-md border p-4", t.card)}>
+      <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>{label}</p>
+      <p className={clsx("mt-2 text-3xl font-bold tabular-nums", tone ?? t.textPrimary)}>{value}</p>
+    </div>
+  );
+}
+
+function HorizontalBars({ items }: { items: Array<{ label: string; value: number; tone: string }> }) {
+  const t = useThemeTokens();
+  const max = Math.max(1, ...items.map((item) => item.value));
+
+  return (
+    <div className="space-y-3">
+      {items.map((item) => (
+        <div key={item.label}>
+          <div className="mb-1 flex items-center justify-between gap-3 text-sm">
+            <span className={t.textSecondary}>{item.label}</span>
+            <span className={clsx("font-mono tabular-nums", t.textPrimary)}>{item.value}</span>
+          </div>
+          <div className={clsx("h-2 overflow-hidden rounded-sm", t.metricBg)}>
+            <div className={clsx("h-full rounded-sm", item.tone)} style={{ width: `${Math.max(8, (item.value / max) * 100)}%` }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DashboardMessage({ children, error = false }: { children: string; error?: boolean }) {
+  const t = useThemeTokens();
+  return <p className={clsx("py-8 text-center text-sm", error ? "text-red-300" : t.textMuted)}>{children}</p>;
+}
+
+function RankingBars({ rankings }: { rankings: ApiRanking[] }) {
+  const t = useThemeTokens();
+  const max = Math.max(1, ...rankings.map((ranking) => ranking.points));
+
+  if (rankings.length === 0) {
+    return <p className={clsx("py-8 text-center text-sm", t.textMuted)}>Aucun classement disponible.</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {rankings.slice(0, 6).map((ranking) => (
+        <div key={ranking.id}>
+          <div className="mb-1 flex items-center justify-between gap-3 text-sm">
+            <span className={clsx("truncate", t.textSecondary)}>{ranking.team?.name ?? `Équipe #${ranking.team_id}`}</span>
+            <span className={clsx("font-mono tabular-nums", t.textPrimary)}>{ranking.points} pts</span>
+          </div>
+          <div className={clsx("h-2 overflow-hidden rounded-sm", t.metricBg)}>
+            <div className="h-full rounded-sm bg-brand-500" style={{ width: `${Math.max(8, (ranking.points / max) * 100)}%` }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TournamentBracket({ matches, teams }: { matches: ApiMatch[]; teams: ApiTeam[] }) {
+  const t = useThemeTokens();
+
+  if (matches.length === 0) {
+    return <p className={clsx("py-8 text-center text-sm", t.textMuted)}>Aucun match disponible.</p>;
+  }
+
+  return (
+    <div className="x-scroll overflow-x-auto">
+      <div className="flex min-w-[720px] gap-4">
+        {matches.slice(0, 6).map((match, index) => {
+          const winnerId = matchWinner(match);
+          const homeTeam = teamData(match.home_team_id, teams, match.home_team ?? match.homeTeam);
+          const awayTeam = teamData(match.away_team_id, teams, match.away_team ?? match.awayTeam);
+          const home = teamName(match.home_team_id, teams, homeTeam);
+          const away = teamName(match.away_team_id, teams, awayTeam);
+
+          return (
+            <div key={match.id} className={clsx("w-64 shrink-0 rounded-md border p-4", t.card)}>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Match {index + 1}</p>
+                <StatusPill value={match.result_status ?? match.status} />
+              </div>
+              <div className="space-y-2">
+                <div className={clsx("flex items-center justify-between gap-3 rounded-sm px-3 py-2", winnerId === match.home_team_id ? "bg-emerald-500/10 text-emerald-300" : t.metricBg)}>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <EntityImage src={homeTeam?.logo_path} name={home} className="h-7 w-7 shrink-0 rounded-sm" />
+                    <span className="truncate">{homeTeam?.short_name ? `${homeTeam.short_name} - ${home}` : home}</span>
+                  </span>
+                  <span className="font-mono tabular-nums">{match.home_score ?? "-"}</span>
+                </div>
+                <div className={clsx("flex items-center justify-between gap-3 rounded-sm px-3 py-2", winnerId === match.away_team_id ? "bg-emerald-500/10 text-emerald-300" : t.metricBg)}>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <EntityImage src={awayTeam?.logo_path} name={away} className="h-7 w-7 shrink-0 rounded-sm" />
+                    <span className="truncate">{awayTeam?.short_name ? `${awayTeam.short_name} - ${away}` : away}</span>
+                  </span>
+                  <span className="font-mono tabular-nums">{match.away_score ?? "-"}</span>
+                </div>
+              </div>
+              <p className={clsx("mt-3 text-xs", t.textMuted)}>{formatDate(match.match_date)}</p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  const t = useThemeTokens();
+  const { user, isAuthenticated, isAdmin } = useAuth();
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState("");
+  const [error, setError] = useState("");
+  const [form, setForm] = useState<CreateTournamentPayload>(emptyForm);
+  const [bannerMode, setBannerMode] = useState<ImageSourceMode>("url");
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState("");
+  const loadedDashboardFor = useRef("");
+
+  const counts = summary?.counts;
+  const relatedMatches = summary?.match_preview ?? [];
+  const rankings = summary?.ranking_preview ?? [];
+
+  const tournamentStatusItems = [
+    { label: "Acceptés", value: summary?.tournament_status.accepted ?? 0, tone: "bg-emerald-500" },
+    { label: "En attente", value: summary?.tournament_status.pending ?? 0, tone: "bg-amber-500" },
+    { label: "Refusés", value: summary?.tournament_status.refused ?? 0, tone: "bg-red-500" },
+  ];
+
+  const matchStatusItems = [
+    { label: "Planifiés", value: summary?.match_status.scheduled ?? 0, tone: "bg-sky-500" },
+    { label: "Joués", value: summary?.match_status.played ?? 0, tone: "bg-emerald-500" },
+  ];
+
+  const resultStatusItems = [
+    { label: "En attente", value: summary?.result_status.pending ?? 0, tone: "bg-amber-500" },
+    { label: "Confirmés", value: summary?.result_status.confirmed ?? 0, tone: "bg-emerald-500" },
+    { label: "Contestés", value: summary?.result_status.disputed ?? 0, tone: "bg-red-500" },
+  ];
+
+  const loadDashboard = async () => {
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setDashboardError("");
+
+    try {
+      setSummary(await getDashboardSummary());
+    } catch (err) {
+      console.error("Dashboard request failed: /dashboard/summary", err);
+      setDashboardError(dashboardErrorMessage(err));
+      setSummary(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const loadKey = isAuthenticated ? `${user?.id ?? user?.email ?? "authenticated"}:${isAdmin}` : "anonymous";
+    if (loadedDashboardFor.current === loadKey) return;
+    loadedDashboardFor.current = loadKey;
+    void loadDashboard();
+  }, [isAuthenticated, isAdmin, user?.email, user?.id]);
+
+  const updateForm = (key: keyof CreateTournamentPayload, value: string) => {
+    setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const handleCreateTournament = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!isAuthenticated) return;
+
+    setSubmitting(true);
+    setSuccess("");
+    setError("");
+
+    try {
+      await createTournament({
+        name: form.name,
+        description: form.description?.trim() || undefined,
+        city: form.city?.trim() || undefined,
+        location: form.location?.trim() || undefined,
+        banner: bannerFile,
+        banner_url: form.banner_path?.trim() || undefined,
+        start_date: form.start_date,
+        end_date: form.end_date,
+      });
+      setSuccess("Tournoi créé et envoyé pour validation.");
+      setForm(emptyForm);
+      setBannerFile(null);
+      await loadDashboard();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setError("Votre session a expiré. Veuillez vous reconnecter.");
+      } else {
+        setError(err instanceof Error ? err.message : "Impossible de créer le tournoi.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const userQuickLinks = [
+    { label: "Créer un tournoi", desc: "Nouvelle demande", to: "/dashboard", icon: <ShootingStarIcon className="size-5" /> },
+    { label: "Gérer les équipes", desc: "Vos équipes locales", to: "/teams", icon: <GroupIcon className="size-5" /> },
+    { label: "Gérer les joueurs", desc: "Effectifs et postes", to: "/players", icon: <UserIcon className="size-5" /> },
+    { label: "Demandes", desc: "Participations", to: "/join-requests", icon: <PaperPlaneIcon className="size-5" /> },
+    { label: "Matchs", desc: "Calendrier et résultats", to: "/matches", icon: <TableIcon className="size-5" /> },
+    { label: "Classements", desc: "Points et positions", to: "/rankings", icon: <TaskIcon className="size-5" /> },
+  ];
+
+  const adminQuickLinks = [
+    { label: "Admin tournois", desc: "Valider les demandes", to: "/admin/tournaments", icon: <UserCircleIcon className="size-5" /> },
+    { label: "Tournois publics", desc: "Voir les tournois acceptés", to: "/tournaments", icon: <ShootingStarIcon className="size-5" /> },
+    { label: "Matchs", desc: "Suivre les résultats", to: "/matches", icon: <TableIcon className="size-5" /> },
+    { label: "Classements", desc: "Contrôler les points", to: "/rankings", icon: <PieChartIcon className="size-5" /> },
+  ];
+
+  return (
+    <>
+      <XPageMeta title="Dashboard" description="Gestion des tournois locaux" />
+      <PageStack>
+        <div className={clsx("grid grid-cols-1 xl:grid-cols-4", GRID_GAP)}>
+          <ComponentCard title={isAdmin ? "Dashboard admin" : "Mon dashboard"} desc={user ? `${user.email} - ${user.role}` : "Compte connecté"}>
+            <div className={clsx("rounded-md border p-4", t.card)}>
+              <div className="flex items-center gap-3">
+                <EntityImage src={user?.avatar_url} name={user?.name ?? "Compte"} className="h-12 w-12 shrink-0 rounded-md" />
+                <div className="min-w-0">
+                  <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>{isAdmin ? "Validation" : "Organisation"}</p>
+                  <p className={clsx("mt-1 truncate text-lg font-semibold", t.textPrimary)}>{user?.name}</p>
+                  <p className={clsx("text-sm", t.textSecondary)}>
+                    {isAdmin ? "Priorité aux tournois à valider." : "Suivi de vos tournois, équipes et matchs."}
+                  </p>
+                </div>
+              </div>
+            </div>
+            {isAdmin && (
+              <Link to="/dashboard" className="mt-4 inline-flex text-sm font-medium text-brand-500 hover:text-brand-400">
+                Créer un tournoi reste possible via votre compte.
+              </Link>
+            )}
+          </ComponentCard>
+
+          {isAdmin ? (
+            <>
+              <MetricCard label="En attente" value={summary?.tournament_status.pending ?? 0} tone="text-amber-400" />
+              <MetricCard label="Acceptés" value={summary?.tournament_status.accepted ?? 0} tone="text-emerald-400" />
+              <MetricCard label="Refusés" value={summary?.tournament_status.refused ?? 0} tone="text-red-300" />
+            </>
+          ) : (
+            <>
+              <MetricCard label="Mes tournois" value={counts?.my_tournaments ?? 0} tone="text-brand-400" />
+              <MetricCard label="Mes équipes" value={counts?.my_teams ?? 0} tone="text-cyan-400" />
+              <MetricCard label="Mes joueurs" value={counts?.my_players ?? 0} tone="text-indigo-400" />
+            </>
+          )}
+        </div>
+
+        {error && (
+          <div className="rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {error}
+          </div>
+        )}
+
+        <div className={clsx("grid grid-cols-1 lg:grid-cols-3", GRID_GAP)}>
+          <ComponentCard title="Statut des tournois" desc="Répartition actuelle">
+            {loading ? <DashboardMessage>Chargement...</DashboardMessage> : dashboardError ? <DashboardMessage error>{dashboardError}</DashboardMessage> : (counts?.my_tournaments ?? 0) === 0 ? <DashboardMessage>Aucun tournoi disponible.</DashboardMessage> : <HorizontalBars items={tournamentStatusItems} />}
+          </ComponentCard>
+          <ComponentCard title="Statut des matchs" desc="Planifiés et joués">
+            {loading ? <DashboardMessage>Chargement...</DashboardMessage> : dashboardError ? <DashboardMessage error>{dashboardError}</DashboardMessage> : relatedMatches.length === 0 ? <DashboardMessage>Aucun match disponible.</DashboardMessage> : <HorizontalBars items={matchStatusItems} />}
+          </ComponentCard>
+          <ComponentCard title="Statut des résultats" desc="Validation des scores">
+            {loading ? <DashboardMessage>Chargement...</DashboardMessage> : dashboardError ? <DashboardMessage error>{dashboardError}</DashboardMessage> : relatedMatches.length === 0 ? <DashboardMessage>Aucun match disponible.</DashboardMessage> : <HorizontalBars items={resultStatusItems} />}
+          </ComponentCard>
+        </div>
+
+        <div className={clsx("grid grid-cols-1 xl:grid-cols-3", GRID_GAP)}>
+          <ComponentCard title="Points du classement" desc="Premier tournoi disponible">
+            {loading ? <DashboardMessage>Chargement...</DashboardMessage> : dashboardError ? <DashboardMessage error>{dashboardError}</DashboardMessage> : <RankingBars rankings={rankings} />}
+          </ComponentCard>
+
+          <ComponentCard title="Tableau du tournoi" desc="Bracket simplifié depuis les matchs" className="xl:col-span-2">
+            {loading ? <DashboardMessage>Chargement...</DashboardMessage> : dashboardError ? <DashboardMessage error>{dashboardError}</DashboardMessage> : <TournamentBracket matches={relatedMatches} teams={[]} />}
+          </ComponentCard>
+        </div>
+
+        {isAdmin ? (
+          <ComponentCard title="Tournois à valider" desc="Dernières demandes en attente">
+            {loading ? (
+              <DashboardMessage>Chargement...</DashboardMessage>
+            ) : dashboardError ? (
+              <DashboardMessage error>{dashboardError}</DashboardMessage>
+            ) : (summary?.pending_tournaments.length ?? 0) === 0 ? (
+              <DashboardMessage>Aucun tournoi disponible.</DashboardMessage>
+            ) : (
+              <div className="space-y-3">
+                {summary?.pending_tournaments.map((tournament) => (
+                  <div key={tournament.id} className={clsx("flex flex-col gap-3 rounded-md border p-4 md:flex-row md:items-center md:justify-between", t.card)}>
+                    <div>
+                      <p className={clsx("font-semibold", t.textPrimary)}>{tournament.name}</p>
+                      <p className={clsx("text-sm", t.textSecondary)}>{tournament.city || "-"} - {formatDate(tournament.start_date)}</p>
+                    </div>
+                    <Link to="/admin/tournaments" className="text-sm font-medium text-brand-500 hover:text-brand-400">
+                      Ouvrir la validation
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ComponentCard>
+        ) : (
+          <div className={clsx("grid grid-cols-1 xl:grid-cols-3", GRID_GAP)}>
+            <ComponentCard title="Créer un tournoi" desc="Validation admin requise" className="xl:col-span-2">
+              <form onSubmit={handleCreateTournament} className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div>
+                  <label htmlFor="dashboard-tournament-name" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Nom *</label>
+                  <input id="dashboard-tournament-name" name="name" value={form.name} onChange={(e) => updateForm("name", e.target.value)} required disabled={submitting} className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
+                </div>
+                <div>
+                  <label htmlFor="dashboard-tournament-city" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Ville</label>
+                  <input id="dashboard-tournament-city" name="city" value={form.city} onChange={(e) => updateForm("city", e.target.value)} disabled={submitting} className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
+                </div>
+                <div>
+                  <label htmlFor="dashboard-tournament-location" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Lieu</label>
+                  <input id="dashboard-tournament-location" name="location" value={form.location} onChange={(e) => updateForm("location", e.target.value)} disabled={submitting} className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
+                </div>
+                <div>
+                  <label htmlFor="dashboard-tournament-description" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Description</label>
+                  <input id="dashboard-tournament-description" name="description" value={form.description} onChange={(e) => updateForm("description", e.target.value)} disabled={submitting} className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
+                </div>
+                <div className="lg:col-span-2">
+                  <ImageSourceInput
+                    label="Image du tournoi"
+                    name="banner"
+                    mode={bannerMode}
+                    onModeChange={setBannerMode}
+                    file={bannerFile}
+                    onFileChange={setBannerFile}
+                    url={form.banner_path ?? ""}
+                    onUrlChange={(value) => updateForm("banner_path", value)}
+                    previewName={form.name || "Tournoi"}
+                    disabled={submitting}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="dashboard-tournament-start-date" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Date début *</label>
+                  <input id="dashboard-tournament-start-date" name="start_date" type="date" value={form.start_date} onChange={(e) => updateForm("start_date", e.target.value)} required disabled={submitting} className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
+                </div>
+                <div>
+                  <label htmlFor="dashboard-tournament-end-date" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Date fin *</label>
+                  <input id="dashboard-tournament-end-date" name="end_date" type="date" value={form.end_date} onChange={(e) => updateForm("end_date", e.target.value)} required disabled={submitting} className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)} />
+                </div>
+                <div className="lg:col-span-2">
+                  {success && <div className="mb-3 rounded-sm border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">{success}</div>}
+                  <Button type="submit" disabled={submitting}>{submitting ? "Création..." : "Créer le tournoi"}</Button>
+                </div>
+              </form>
+            </ComponentCard>
+
+            <ComponentCard title="Activité" desc="Demandes et matchs">
+              <div className="grid grid-cols-2 gap-3">
+                <MetricCard label="Demandes" value={counts?.join_requests ?? 0} tone="text-teal-400" />
+                <MetricCard label="Matchs" value={counts?.matches ?? 0} tone="text-rose-400" />
+                <MetricCard label="Confirmés" value={counts?.confirmed_results ?? 0} tone="text-emerald-400" />
+                <MetricCard label="En attente" value={counts?.pending_requests ?? 0} tone="text-amber-400" />
+              </div>
+            </ComponentCard>
+          </div>
+        )}
+
+        <ComponentCard title="Accès rapides" desc={isAdmin ? "Actions d'administration" : "Votre espace de gestion"}>
+          <div className={clsx("grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4", GRID_GAP)}>
+            {(isAdmin ? adminQuickLinks : userQuickLinks).map((item) => (
+              <Link key={item.to + item.label} to={item.to} className={clsx("rounded-md border p-5 transition-colors", t.card, t.cardHover)}>
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-500/15 text-brand-400">{item.icon}</span>
+                  <div className="min-w-0">
+                    <p className={clsx("font-semibold", t.textPrimary)}>{item.label}</p>
+                    <p className={clsx("mt-1 text-sm", t.textSecondary)}>{item.desc}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </ComponentCard>
+      </PageStack>
+    </>
+  );
+}

@@ -1,0 +1,37 @@
+/* Thin scrollbars inside /x/ components only — transparent track */
+.x-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(161, 161, 170, 0.45) transparent;
+}
+
+.x-scroll::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.x-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.x-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(161, 161, 170, 0.45);
+  border-radius: 9999px;
+}
+
+.x-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(161, 161, 170, 0.65);
+}
+
+[data-x-theme="dark"] .x-scroll,
+[data-x-theme="zinc"] .x-scroll {
+  scrollbar-color: rgba(113, 113, 122, 0.5) transparent;
+}
+
+[data-x-theme="dark"] .x-scroll::-webkit-scrollbar-thumb,
+[data-x-theme="zinc"] .x-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(113, 113, 122, 0.5);
+}
+
+[data-x-theme="light"] .x-scroll {
+  scrollbar-color: rgba(113, 113, 122, 0.35) transparent;
+}
