@@ -10,7 +10,7 @@ Application web de gestion de **tournois locaux de football** : création et val
 | Backend | Laravel 11 (API REST) |
 | Base de données | PostgreSQL |
 | Conteneurisation | Docker Compose |
-| Authentification | Laravel Sanctum (token Bearer) |
+| Authentification | JWT Bearer Token |
 
 ## Fonctionnalités principales
 
@@ -73,6 +73,31 @@ gestion-tournois/
 ├── docs/             # Documentation PFE (français)
 └── docker-compose.yml
 ```
+
+## Tests backend
+
+La suite de tests backend couvre les principaux parcours API Laravel : authentification, tournois, validation administrateur, équipes, joueurs, demandes de participation, matchs, résultats, classements, statistiques, sécurité et régressions.
+
+Exécuter tous les tests backend :
+
+```bash
+docker compose exec backend php artisan test
+```
+
+Exécuter un fichier ou un filtre de test spécifique :
+
+```bash
+docker compose exec backend php artisan test --filter=AuthTest
+```
+
+Résultat actuel : **114 tests passés, 719 assertions**.
+
+Documentation détaillée :
+
+- [`docs/testing-strategy.md`](docs/testing-strategy.md)
+- [`docs/testing-results.md`](docs/testing-results.md)
+
+Le workflow CI GitHub Actions est défini dans [`.github/workflows/backend-tests.yml`](.github/workflows/backend-tests.yml).
 
 ## Documentation
 
