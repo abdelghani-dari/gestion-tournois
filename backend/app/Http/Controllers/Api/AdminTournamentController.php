@@ -4,12 +4,20 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tournament;
+use App\Services\OwnershipRules;
+use App\Services\TournamentRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class AdminTournamentController extends Controller
 {
+    public function __construct(
+        private TournamentRules $tournamentRules,
+        private OwnershipRules $ownershipRules
+    ) {
+    }
+
     public function pending(): JsonResponse
     {
         if (! $this->isAdmin()) {
@@ -41,13 +49,7 @@ class AdminTournamentController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        $tournament->update([
-            'approval_status' => 'accepted',
-            'status' => 'open',
-            'approved_by' => auth('api')->id(),
-            'approved_at' => now(),
-            'admin_note' => null,
-        ]);
+        $tournament->update($this->tournamentRules->acceptanceAttributes(auth('api')->id(), now()));
 
         $this->forgetTournamentCache($tournament->id);
 
@@ -64,13 +66,11 @@ class AdminTournamentController extends Controller
             'admin_note' => ['nullable', 'string'],
         ]);
 
-        $tournament->update([
-            'approval_status' => 'refused',
-            'status' => 'cancelled',
-            'approved_by' => auth('api')->id(),
-            'approved_at' => now(),
-            'admin_note' => $validated['admin_note'] ?? null,
-        ]);
+        $tournament->update($this->tournamentRules->refusalAttributes(
+            auth('api')->id(),
+            now(),
+            $validated['admin_note'] ?? null
+        ));
 
         $this->forgetTournamentCache($tournament->id);
 
@@ -79,7 +79,7 @@ class AdminTournamentController extends Controller
 
     private function isAdmin(): bool
     {
-        return auth('api')->user()?->role === 'admin';
+        return $this->ownershipRules->canAccessAdminActions(auth('api')->user()?->role);
     }
 
     private function forgetTournamentCache(int $tournamentId): void

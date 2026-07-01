@@ -5,12 +5,20 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Ranking;
 use App\Models\Tournament;
+use App\Services\OwnershipRules;
+use App\Services\RankingCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class RankingController extends Controller
 {
+    public function __construct(
+        private RankingCalculator $rankingCalculator,
+        private OwnershipRules $ownershipRules
+    ) {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -38,65 +46,41 @@ class RankingController extends Controller
 
         $tournament = Tournament::with('teams')->findOrFail($validated['tournament_id']);
 
-        if ((int) $tournament->created_by !== (int) auth('api')->id()
-            && auth('api')->user()?->role !== 'admin') {
+        if (! $this->ownershipRules->canManageTournamentResources(
+            $tournament->created_by,
+            auth('api')->id(),
+            auth('api')->user()?->role
+        )) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
         Ranking::where('tournament_id', $tournament->id)->delete();
 
-        $rankings = [];
+        $rankings = $this->rankingCalculator->calculate(
+            $tournament->teams
+                ->map(static fn ($team): array => [
+                    'id' => $team->id,
+                    'name' => $team->name,
+                ])
+                ->all(),
+            $tournament->matches()
+                ->get()
+                ->map(static fn ($match): array => [
+                    'home_team_id' => $match->home_team_id,
+                    'away_team_id' => $match->away_team_id,
+                    'home_score' => $match->home_score,
+                    'away_score' => $match->away_score,
+                    'status' => $match->status,
+                    'result_status' => $match->result_status,
+                ])
+                ->all()
+        );
 
-        foreach ($tournament->teams as $team) {
-            $rankings[$team->id] = Ranking::create([
+        foreach ($rankings as $ranking) {
+            Ranking::create([
                 'tournament_id' => $tournament->id,
-                'team_id' => $team->id,
+                ...$ranking,
             ]);
-        }
-
-        $matches = $tournament->matches()
-            ->where('status', 'played')
-            ->where('result_status', 'confirmed')
-            ->whereNotNull('home_score')
-            ->whereNotNull('away_score')
-            ->get();
-
-        foreach ($matches as $match) {
-            if (! isset($rankings[$match->home_team_id], $rankings[$match->away_team_id])) {
-                continue;
-            }
-
-            $homeRanking = $rankings[$match->home_team_id];
-            $awayRanking = $rankings[$match->away_team_id];
-
-            $homeRanking->played++;
-            $awayRanking->played++;
-
-            $homeRanking->goals_for += $match->home_score;
-            $homeRanking->goals_against += $match->away_score;
-            $awayRanking->goals_for += $match->away_score;
-            $awayRanking->goals_against += $match->home_score;
-
-            if ($match->home_score > $match->away_score) {
-                $homeRanking->wins++;
-                $homeRanking->points += 3;
-                $awayRanking->losses++;
-            } elseif ($match->home_score < $match->away_score) {
-                $awayRanking->wins++;
-                $awayRanking->points += 3;
-                $homeRanking->losses++;
-            } else {
-                $homeRanking->draws++;
-                $awayRanking->draws++;
-                $homeRanking->points++;
-                $awayRanking->points++;
-            }
-
-            $homeRanking->goal_difference = $homeRanking->goals_for - $homeRanking->goals_against;
-            $awayRanking->goal_difference = $awayRanking->goals_for - $awayRanking->goals_against;
-
-            $homeRanking->save();
-            $awayRanking->save();
         }
 
         Cache::forget("tournament:{$tournament->id}:rankings");

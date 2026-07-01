@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tournament;
+use App\Services\OwnershipRules;
+use App\Services\TournamentRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -11,6 +13,12 @@ use Illuminate\Support\Facades\Cache;
 
 class TournamentController extends Controller
 {
+    public function __construct(
+        private TournamentRules $tournamentRules,
+        private OwnershipRules $ownershipRules
+    ) {
+    }
+
     public function index(): JsonResponse
     {
         return response()->json(
@@ -45,16 +53,17 @@ class TournamentController extends Controller
 
         $user = auth('api')->user();
         $isAdmin = $user?->role === 'admin';
+        $approvalDefaults = $this->tournamentRules->defaultsForNewTournament(
+            $isAdmin,
+            $user?->id,
+            $isAdmin ? now() : null
+        );
 
         $tournament = Tournament::create([
             ...$validated,
             'format' => $validated['format'] ?? 'league',
             'created_by' => $user?->id,
-            'status' => $isAdmin ? 'open' : 'draft',
-            'approval_status' => $isAdmin ? 'accepted' : 'pending',
-            'admin_note' => null,
-            'approved_by' => $isAdmin ? $user->id : null,
-            'approved_at' => $isAdmin ? now() : null,
+            ...$approvalDefaults,
         ]);
 
         $this->forgetTournamentCache($tournament->id);
@@ -73,7 +82,11 @@ class TournamentController extends Controller
 
     public function update(Request $request, Tournament $tournament): JsonResponse
     {
-        if (! $this->isAdmin() && (int) $tournament->created_by !== (int) auth('api')->id()) {
+        if (! $this->ownershipRules->canManageTournamentResources(
+            $tournament->created_by,
+            auth('api')->id(),
+            auth('api')->user()?->role
+        )) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -105,7 +118,11 @@ class TournamentController extends Controller
 
     public function destroy(Tournament $tournament): JsonResponse
     {
-        if (! $this->isAdmin() && (int) $tournament->created_by !== (int) auth('api')->id()) {
+        if (! $this->ownershipRules->canManageTournamentResources(
+            $tournament->created_by,
+            auth('api')->id(),
+            auth('api')->user()?->role
+        )) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -139,7 +156,7 @@ class TournamentController extends Controller
 
     private function isAdmin(): bool
     {
-        return auth('api')->user()?->role === 'admin';
+        return $this->ownershipRules->isAdmin(auth('api')->user()?->role);
     }
 
     private function imagePath(Request $request, string $field, string $directory, string $prefix): ?string

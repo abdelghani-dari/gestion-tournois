@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Models\MatchGame;
 use App\Models\Player;
 use App\Models\Statistic;
+use App\Services\OwnershipRules;
+use App\Services\StatisticRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -15,6 +17,12 @@ class StatisticController extends Controller
     use AppliesListSorting;
 
     private const STAT_TYPES = 'goal,assist,yellow_card,red_card,clean_sheet';
+
+    public function __construct(
+        private StatisticRules $statisticRules,
+        private OwnershipRules $ownershipRules
+    ) {
+    }
 
     public function index(Request $request): JsonResponse
     {
@@ -117,23 +125,16 @@ class StatisticController extends Controller
 
     private function validateStatisticContext(MatchGame $matchGame, array $data): ?string
     {
-        if (! in_array((int) $data['team_id'], [(int) $matchGame->home_team_id, (int) $matchGame->away_team_id], true)) {
-            return 'The team must be one of the match teams.';
-        }
+        $player = empty($data['player_id']) ? null : Player::find($data['player_id']);
 
-        if (($data['stat_type'] ?? null) !== 'clean_sheet' && empty($data['player_id'])) {
-            return 'The player field is required for this statistic type.';
-        }
-
-        if (! empty($data['player_id']) && ! empty($data['team_id'])) {
-            $player = Player::find($data['player_id']);
-
-            if ($player !== null && (int) $player->team_id !== (int) $data['team_id']) {
-                return 'The player must belong to the selected team.';
-            }
-        }
-
-        return null;
+        return $this->statisticRules->validateContext(
+            [
+                'home_team_id' => $matchGame->home_team_id,
+                'away_team_id' => $matchGame->away_team_id,
+            ],
+            $data,
+            $player?->only(['id', 'team_id'])
+        );
     }
 
     private function canManageStatistic(Statistic $statistic): bool
@@ -144,7 +145,10 @@ class StatisticController extends Controller
 
     private function canManageMatch(MatchGame $matchGame): bool
     {
-        return auth('api')->user()?->role === 'admin'
-            || (int) $matchGame->tournament->created_by === (int) auth('api')->id();
+        return $this->ownershipRules->canManageStatistics(
+            $matchGame->tournament->created_by,
+            auth('api')->id(),
+            auth('api')->user()?->role
+        );
     }
 }
