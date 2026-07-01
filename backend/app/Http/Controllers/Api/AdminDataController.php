@@ -43,7 +43,7 @@ class AdminDataController extends Controller
             'city' => ['nullable', 'string', 'max:255'],
             'logo_path' => ['nullable', 'url', 'max:255'],
             'logo_url' => ['nullable', 'url', 'max:255'],
-            'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'logo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,gif,svg,bmp,tiff,avif,heic,heif', 'max:8192'],
             'manager_id' => ['nullable', 'exists:users,id'],
         ]);
         $validated['logo_path'] = $this->imagePath($request, 'logo', 'teams', 'logo') ?? $validated['logo_url'] ?? $validated['logo_path'] ?? null;
@@ -81,7 +81,7 @@ class AdminDataController extends Controller
             'number' => ['nullable', 'integer', 'min:1', 'max:99'],
             'photo_path' => ['nullable', 'url', 'max:255'],
             'photo_url' => ['nullable', 'url', 'max:255'],
-            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,gif,svg,bmp,tiff,avif,heic,heif', 'max:8192'],
         ]);
         $validated['photo_path'] = $this->imagePath($request, 'photo', 'players', 'photo') ?? $validated['photo_url'] ?? $validated['photo_path'] ?? null;
         unset($validated['photo'], $validated['photo_url']);

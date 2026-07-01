@@ -1,14 +1,17 @@
 import { Link } from "react-router";
 import { clsx } from "clsx";
+import type { ReactNode } from "react";
+import { useXTheme } from "../context/XThemeContext";
 import { useThemeTokens } from "../theme/useThemeTokens";
-import { useSeasonData } from "../context/SeasonContext";
-import { getTeamShortName } from "../data/fotmobData";
-import type { MatchGame, Team } from "../types";
+import type { ApiMatch, ApiTeam } from "../../api";
+import MediaImage from "../common/MediaImage";
+import { resolveTeamLogo } from "../common/teamAssets";
 
 interface MatchRowListProps {
-  matches: MatchGame[];
+  matches: ApiMatch[];
+  teams: ApiTeam[];
   compact?: boolean;
-  fill?: boolean;
+  renderActions?: (match: ApiMatch) => ReactNode;
 }
 
 function GlassPill({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -20,12 +23,58 @@ function GlassPill({ children, className }: { children: React.ReactNode; classNa
   );
 }
 
-function ScoreCell({ home, away, status }: { home: number | null; away: number | null; status: MatchGame["status"] }) {
-  const t = useThemeTokens();
+function teamById(teams: ApiTeam[], teamId?: number | null, embedded?: ApiTeam | null) {
+  if (embedded) return embedded;
+  if (teamId == null) return undefined;
+  return teams.find((team) => team.id === teamId);
+}
 
-  if (home !== null && away !== null) {
+function teamShortName(team?: ApiTeam) {
+  if (!team) return "—";
+  if (team.short_name?.trim()) return team.short_name.trim().toUpperCase();
+  return team.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function formatDateShort(value?: string | null) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
+}
+
+function formatTime(value?: string | null) {
+  if (!value) return "—";
+  return new Date(value).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function isCompleted(match: ApiMatch) {
+  return match.status === "played" || match.status === "completed";
+}
+
+function isMatchOverdue(match: ApiMatch) {
+  if (match.home_score != null && match.away_score != null) return false;
+  if (!match.match_date) return false;
+  const started = new Date(match.match_date).getTime();
+  if (Number.isNaN(started)) return false;
+  return Date.now() - started > 2 * 60 * 60 * 1000;
+}
+
+function ScoreCell({ match }: { match: ApiMatch }) {
+  const t = useThemeTokens();
+  const { theme } = useXTheme();
+  const { home_score: home, away_score: away, status } = match;
+
+  if (home != null && away != null) {
     return (
-      <GlassPill className="min-w-[3.25rem] px-2.5 py-1 font-mono text-sm font-bold tabular-nums">
+      <GlassPill
+        className={clsx(
+          "min-w-[3.25rem] px-2.5 py-1 font-mono text-sm font-bold tabular-nums",
+          theme === "light" ? "text-gray-950" : "text-white",
+        )}
+      >
         {home}–{away}
       </GlassPill>
     );
@@ -46,52 +95,51 @@ function ScoreCell({ home, away, status }: { home: number | null; away: number |
   );
 }
 
-function DateTimeCell({ date, time }: { date: string; time: string }) {
+function DateTimeCell({ match, overdue }: { match: ApiMatch; overdue: boolean }) {
   const t = useThemeTokens();
   return (
-    <div className="w-[3.5rem] shrink-0 text-left leading-tight sm:w-[4rem]">
-      <p className={clsx("text-[10px] font-medium capitalize", t.textMuted)}>{date}</p>
-      <p className={clsx("text-xs font-semibold tabular-nums", t.textSecondary)}>{time}</p>
+    <div className="w-[3.75rem] shrink-0 text-left leading-tight sm:w-[4.25rem]">
+      <p className={clsx("text-[10px] font-medium capitalize", t.textMuted)}>{formatDateShort(match.match_date)}</p>
+      <p className={clsx("text-xs font-semibold tabular-nums", t.textSecondary)}>{formatTime(match.match_date)}</p>
+      {overdue && (
+        <span className="mt-0.5 block whitespace-nowrap text-[8px] font-semibold uppercase tracking-wide text-red-400">
+          Résultat à saisir
+        </span>
+      )}
     </div>
   );
 }
 
-function TeamSide({ team, side }: { team?: Team; side: "home" | "away" }) {
+function TeamSide({ team, side }: { team?: ApiTeam; side: "home" | "away" }) {
   const t = useThemeTokens();
   const isHome = side === "home";
-  const short = team ? getTeamShortName(team.name) : "—";
   const logoSize = "h-10 w-10 sm:h-11 sm:w-11";
 
   return (
-    <div
-      className={clsx(
-        "flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5",
-        isHome ? "justify-end" : "justify-start"
-      )}
-    >
+    <div className={clsx("flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5", isHome ? "justify-end" : "justify-start")}>
       {isHome && (
         <>
           <div className="min-w-0 text-right">
-            <p className={clsx("hidden truncate text-sm font-semibold sm:block", t.textPrimary)}>
-              {team?.name ?? "—"}
-            </p>
-            <p className={clsx("text-[11px] font-bold uppercase tracking-wide sm:text-[10px]", t.textMuted)}>
-              {short}
-            </p>
+            <p className={clsx("truncate text-sm font-semibold uppercase tracking-wide sm:text-base", t.textPrimary)}>{teamShortName(team)}</p>
+            <p className={clsx("hidden truncate text-[11px] sm:block", t.textMuted)}>{team?.name ?? "—"}</p>
           </div>
-          <img src={team?.logo_url} alt="" className={clsx("shrink-0 object-contain", logoSize)} />
+          {team?.logo_path ? (
+            <MediaImage src={team.logo_path} fallback={resolveTeamLogo(null)} alt="" className={clsx("shrink-0 object-contain", logoSize)} />
+          ) : (
+            <div className={clsx("shrink-0 rounded-md bg-white/5", logoSize)} />
+          )}
         </>
       )}
       {!isHome && (
         <>
-          <img src={team?.logo_url} alt="" className={clsx("shrink-0 object-contain", logoSize)} />
+          {team?.logo_path ? (
+            <MediaImage src={team.logo_path} fallback={resolveTeamLogo(null)} alt="" className={clsx("shrink-0 object-contain", logoSize)} />
+          ) : (
+            <div className={clsx("shrink-0 rounded-md bg-white/5", logoSize)} />
+          )}
           <div className="min-w-0">
-            <p className={clsx("hidden truncate text-sm font-semibold sm:block", t.textPrimary)}>
-              {team?.name ?? "—"}
-            </p>
-            <p className={clsx("text-[11px] font-bold uppercase tracking-wide sm:text-[10px]", t.textMuted)}>
-              {short}
-            </p>
+            <p className={clsx("truncate text-sm font-semibold uppercase tracking-wide sm:text-base", t.textPrimary)}>{teamShortName(team)}</p>
+            <p className={clsx("hidden truncate text-[11px] sm:block", t.textMuted)}>{team?.name ?? "—"}</p>
           </div>
         </>
       )}
@@ -99,87 +147,66 @@ function TeamSide({ team, side }: { team?: Team; side: "home" | "away" }) {
   );
 }
 
-function DetailsLink({ matchId, finished }: { matchId: number; finished: boolean }) {
+function RowActions({ match, finished, renderActions }: { match: ApiMatch; finished: boolean; renderActions?: (match: ApiMatch) => ReactNode }) {
   const t = useThemeTokens();
   return (
-    <Link
-      to={`/matches/${matchId}`}
-      onClick={(e) => e.stopPropagation()}
-      className={clsx(
-        "inline-flex shrink-0 items-center justify-center rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors",
-        finished
-          ? clsx(t.metricBg, t.textMuted, "border-transparent")
-          : clsx(t.border, t.textSecondary, t.navHover)
-      )}
-    >
-      Détails
-    </Link>
+    <div className="ml-auto flex shrink-0 flex-row flex-nowrap items-center justify-end gap-2">
+      <Link
+        to={`/matches/${match.id}`}
+        className={clsx(
+          "inline-flex shrink-0 items-center justify-center rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors",
+          finished ? clsx(t.metricBg, t.textMuted, "border-transparent") : clsx(t.border, t.textSecondary, t.navHover),
+        )}
+      >
+        Détails
+      </Link>
+      {renderActions?.(match)}
+    </div>
   );
 }
 
-export default function MatchRowList({ matches, compact = false, fill = false }: MatchRowListProps) {
+function rowStripeClass(index: number) {
+  return index % 2 === 0 ? "bg-black/[0.008] dark:bg-white/[0.012]" : "bg-black/[0.018] dark:bg-white/[0.022]";
+}
+
+export default function MatchRowList({ matches, teams, compact = false, renderActions }: MatchRowListProps) {
   const t = useThemeTokens();
-  const { getTeamById, formatMatchDateShort, formatMatchTime } = useSeasonData();
+  const rowPad = compact ? "py-2.5" : "py-3";
 
   if (matches.length === 0) {
     return <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucun match disponible.</p>;
   }
 
-  const rowPad = compact ? "py-2.5" : "py-3";
-
-  const renderRow = (match: MatchGame, stretch = false) => {
-    const home = getTeamById(match.home_team_id);
-    const away = getTeamById(match.away_team_id);
-    const finished = match.status === "completed";
-
-    return (
-      <div
-        className={clsx(
-          "group flex items-center gap-2 transition-colors sm:gap-3",
-          rowPad,
-          stretch && "flex-1",
-          t.tableRow,
-          t.navHover
-        )}
-      >
-        <DateTimeCell
-          date={formatMatchDateShort(match.match_date)}
-          time={formatMatchTime(match.match_date)}
-        />
-
-        <TeamSide team={home} side="home" />
-
-        <div className="flex w-[4.5rem] shrink-0 justify-center px-1">
-          <ScoreCell home={match.home_score} away={match.away_score} status={match.status} />
-        </div>
-
-        <TeamSide team={away} side="away" />
-
-        <div className="hidden w-[4.5rem] shrink-0 justify-end sm:flex">
-          <DetailsLink matchId={match.id} finished={finished} />
-        </div>
-      </div>
-    );
-  };
-
-  if (fill) {
-    return (
-      <div className={clsx("flex min-h-0 flex-1 flex-col divide-y", t.tableDivide)}>
-        {matches.map((match) => (
-          <div key={match.id} className="flex min-h-0 flex-1 flex-col">
-            {renderRow(match, true)}
-          </div>
-        ))}
-      </div>
-    );
-  }
-
   return (
     <div className="x-scroll overflow-x-auto">
-      <div className={clsx("min-w-[540px] divide-y", t.tableDivide)}>
-        {matches.map((match) => (
-          <div key={match.id}>{renderRow(match)}</div>
-        ))}
+      <div className="min-w-[720px] space-y-1">
+        {matches.map((match, index) => {
+          const home = teamById(teams, match.home_team_id, match.home_team ?? match.homeTeam ?? undefined);
+          const away = teamById(teams, match.away_team_id, match.away_team ?? match.awayTeam ?? undefined);
+          const finished = isCompleted(match);
+          const overdue = isMatchOverdue(match);
+
+          return (
+            <div key={match.id} className="px-2 sm:px-3">
+              <div
+                className={clsx(
+                  "flex items-center gap-2 rounded-lg px-2 transition-colors sm:gap-3",
+                  rowPad,
+                  rowStripeClass(index),
+                  "hover:bg-black/[0.03] dark:hover:bg-white/[0.04]",
+                )}
+              >
+                <DateTimeCell match={match} overdue={overdue} />
+                <TeamSide team={home} side="home" />
+                <div className="flex w-[4.5rem] shrink-0 justify-center px-1">
+                  <ScoreCell match={match} />
+                </div>
+                <TeamSide team={away} side="away" />
+                <RowActions match={match} finished={finished} renderActions={renderActions} />
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

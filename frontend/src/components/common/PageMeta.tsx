@@ -1,4 +1,5 @@
 import { Helmet, HelmetProvider } from "react-helmet-async";
+import { APP_NAME } from "../../config/app";
 
 export function XPageMeta({
   title,
@@ -9,7 +10,7 @@ export function XPageMeta({
 }) {
   return (
     <Helmet>
-      <title>{title} | Gestion Tournois</title>
+      <title>{title} | {APP_NAME}</title>
       <meta name="description" content={description} />
     </Helmet>
   );

@@ -90,7 +90,7 @@ class CompositionController extends Controller
     {
         $composition->load('matchGame.tournament');
 
-        if (! $this->canManageMatch($composition->matchGame)) {
+        if (! $this->canDeleteMatch($composition->matchGame)) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -121,6 +121,13 @@ class CompositionController extends Controller
 
     private function canManageMatch(MatchGame $matchGame): bool
     {
-        return (int) $matchGame->tournament->created_by === (int) auth('api')->id();
+        return auth('api')->user()?->role === 'admin'
+            || (int) $matchGame->tournament->created_by === (int) auth('api')->id();
+    }
+
+    private function canDeleteMatch(MatchGame $matchGame): bool
+    {
+        return auth('api')->user()?->role === 'admin'
+            || $this->canManageMatch($matchGame);
     }
 }

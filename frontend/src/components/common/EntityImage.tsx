@@ -1,6 +1,6 @@
 import { clsx } from "clsx";
 import { useState } from "react";
-import { APP_BASE } from "../../api";
+import { STORAGE_BASE } from "../../api";
 
 function initials(name: string) {
   return name
@@ -20,7 +20,11 @@ type EntityImageProps = {
 };
 
 export default function EntityImage({ src, name, alt, className, imageClassName }: EntityImageProps) {
-  const imageSrc = src && /^(https?:|blob:|data:)/i.test(src) ? src : src ? `${APP_BASE}/storage/${src.replace(/^\/+/, "")}` : undefined;
+  const imageSrc = src
+    ? /^(https?:|blob:|data:)/i.test(src)
+      ? src
+      : `${STORAGE_BASE}/${src.replace(/^\/+/, "")}`
+    : undefined;
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const canShowImage = Boolean(imageSrc) && failedSrc !== imageSrc;
 

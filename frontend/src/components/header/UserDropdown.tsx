@@ -1,8 +1,8 @@
 import { Link, useNavigate } from "react-router";
 import { clsx } from "clsx";
 import { Dropdown } from "../ui/dropdown/Dropdown";
-import EntityImage from "../common/EntityImage";
-import { roleLabel } from "../common/roleLabels";
+import UserAvatar from "../common/UserAvatar";
+import RoleBadge from "../common/RoleBadge";
 import { useThemeTokens } from "../theme/useThemeTokens";
 import { useHeaderDropdown } from "../context/HeaderDropdownContext";
 import { useAuth } from "../../context/AuthContext";
@@ -17,7 +17,6 @@ export default function UserDropdown() {
 
   const displayName = user?.name ?? "Invite";
   const displayEmail = user?.email ?? "Non connecte";
-  const displayRole = user?.role ?? "guest";
 
   const handleLogout = async () => {
     await logout();
@@ -31,12 +30,15 @@ export default function UserDropdown() {
         type="button"
         onClick={() => toggle("profile")}
         className={clsx(
-          "dropdown-toggle flex items-center gap-2 rounded-lg border py-1.5 pl-1.5 pr-2.5 transition-colors lg:pl-2 lg:pr-3",
-          t.headerIconBtn
+          "dropdown-toggle flex items-center gap-2 rounded-full py-1 pl-1 pr-2.5 transition-colors lg:pl-2 lg:pr-3",
+          t.textSecondary,
+          "hover:bg-white/[0.04]",
         )}
       >
-        <EntityImage src={user?.avatar_url} name={displayName} className={clsx("h-8 w-8 shrink-0 rounded-lg", t.metricBg)} />
-        <span className={clsx("hidden font-medium sm:block", t.textPrimary)}>{displayName}</span>
+        <UserAvatar user={user} name={displayName} showRoleRing className="h-8 w-8 sm:h-9 sm:w-9" />
+        <span className={clsx("hidden max-w-28 truncate text-xs font-semibold sm:block", t.textPrimary)}>
+          {displayName}
+        </span>
         <ChevronDownIcon className={clsx("size-4 shrink-0 opacity-50 transition-transform", open && "rotate-180")} />
       </button>
 
@@ -46,13 +48,13 @@ export default function UserDropdown() {
         className={clsx("w-72 border p-2", t.headerDropdown)}
       >
         <div className={clsx("flex items-center gap-3 rounded-lg px-3 py-3", t.metricBg)}>
-          <EntityImage src={user?.avatar_url} name={displayName} className={clsx("h-11 w-11 shrink-0 rounded-lg", t.border)} />
+          <UserAvatar user={user} name={displayName} showRoleRing className="h-11 w-11" />
           <div className="min-w-0">
             <p className={clsx("truncate font-semibold", t.textPrimary)}>{displayName}</p>
             <p className={clsx("truncate text-xs", t.textMuted)}>{displayEmail}</p>
-            <span className="mt-1 inline-block rounded-sm bg-brand-500/15 px-2 py-0.5 text-xs font-medium text-brand-500">
-              {roleLabel(displayRole)}
-            </span>
+            <div className="mt-1.5">
+              <RoleBadge user={user} size="sm" />
+            </div>
           </div>
         </div>
 
@@ -90,14 +92,10 @@ export default function UserDropdown() {
           type="button"
           onClick={handleLogout}
           disabled={!isAuthenticated}
-          className={clsx(
-            "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-            t.textSecondary,
-            t.navHover
-          )}
+          className="mt-1 flex w-full items-center gap-3 rounded-lg bg-red-500/10 px-3 py-2.5 text-left text-sm font-medium text-red-400 transition-colors hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <LockIcon className="size-5 shrink-0 opacity-70" />
-          Deconnexion
+          <LockIcon className="size-5 shrink-0 opacity-80" />
+          Déconnexion
         </button>
       </Dropdown>
     </div>

@@ -1,1 +1,1 @@
-export const APP_NAME = "Gestion Tournois";
+export const APP_NAME = "Tournify";

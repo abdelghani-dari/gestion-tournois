@@ -1,0 +1,23 @@
+# Git
+.git
+.gitignore
+
+# Environment secrets - NEVER in image
+.env
+.env.*
+!.env.example
+
+# Dependencies (rebuilt inside image by npm install)
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Docker files themselves
+Dockerfile
+docker-compose*
+
+# OS files
+.DS_Store
+Thumbs.db

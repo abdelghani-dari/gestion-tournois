@@ -13,6 +13,7 @@ import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack from "../../components/common/PageStack";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
+import { usePendingCounts } from "../../components/context/PendingCountsContext";
 
 function StatusPill({ value }: { value: string }) {
   const tone =
@@ -32,6 +33,7 @@ function StatusPill({ value }: { value: string }) {
 export default function AdminPendingUsersPage() {
   const t = useThemeTokens();
   const { isAuthenticated, isAdmin, loading: authLoading } = useAuth();
+  const { refresh: refreshPendingCounts } = usePendingCounts();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(false);
@@ -77,7 +79,7 @@ export default function AdminPendingUsersPage() {
     try {
       await acceptUser(id);
       setSuccess("Utilisateur accepté.");
-      await loadUsers();
+      await Promise.all([loadUsers(), refreshPendingCounts()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossible d'accepter l'utilisateur.");
     } finally {
@@ -94,7 +96,7 @@ export default function AdminPendingUsersPage() {
       await refuseUser(id, notes[id]);
       setSuccess("Utilisateur refusé.");
       setNotes((current) => ({ ...current, [id]: "" }));
-      await loadUsers();
+      await Promise.all([loadUsers(), refreshPendingCounts()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossible de refuser l'utilisateur.");
     } finally {

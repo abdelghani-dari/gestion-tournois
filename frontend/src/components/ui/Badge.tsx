@@ -15,6 +15,7 @@ interface BadgeProps {
   color?: BadgeColor;
   startIcon?: React.ReactNode;
   endIcon?: React.ReactNode;
+  className?: string;
   children: React.ReactNode;
 }
 
@@ -24,6 +25,7 @@ export default function Badge({
   size = "md",
   startIcon,
   endIcon,
+  className,
   children,
 }: BadgeProps) {
   const baseStyles =
@@ -53,7 +55,7 @@ export default function Badge({
   };
 
   return (
-    <span className={`${baseStyles} ${sizeStyles[size]} ${variants[variant][color]}`}>
+    <span className={`${baseStyles} ${sizeStyles[size]} ${variants[variant][color]} ${className ?? ""}`}>
       {startIcon && <span>{startIcon}</span>}
       {children}
       {endIcon && <span>{endIcon}</span>}

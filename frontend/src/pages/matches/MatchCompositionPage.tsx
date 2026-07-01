@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router";
 import {
   ApiError,
   createComposition,
+  deleteComposition,
   getCompositions,
   getMatches,
   getPlayers,
@@ -16,9 +17,13 @@ import {
 } from "../../api";
 import Button from "../../components/common/Button";
 import ComponentCard from "../../components/common/ComponentCard";
+import ConfirmModal from "../../components/common/ConfirmModal";
+import FormSearchableSelect from "../../components/common/FormSearchableSelect";
+import { DropdownGroupProvider } from "../../components/common/SearchableFilter";
 import { XPageMeta } from "../../components/common/PageMeta";
 import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import Badge from "../../components/ui/Badge";
+import TableSkeleton from "../../components/common/skeletons/TableSkeleton";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
 
@@ -53,15 +58,17 @@ function formatDate(date?: string | null) {
 
 function playerName(player?: ApiPlayer | null) {
   if (!player) return "";
-  return `${player.first_name ?? ""} ${player.last_name ?? ""}`.trim() || `Player #${player.id}`;
+  return `${player.first_name ?? ""} ${player.last_name ?? ""}`.trim() || `Joueur #${player.id}`;
 }
 
 function playerLabel(playerId: number, players: ApiPlayer[], embedded?: ApiPlayer | null) {
-  return playerName(embedded) || playerName(players.find((player) => player.id === playerId)) || `Player #${playerId}`;
+  return playerName(embedded) || playerName(players.find((player) => player.id === playerId)) || `Joueur #${playerId}`;
 }
 
-function teamName(teamId: number, teams: ApiTeam[], embedded?: ApiTeam | null) {
-  return embedded?.name ?? teams.find((team) => team.id === teamId)?.name ?? `Team #${teamId}`;
+function teamName(teamId: number | null | undefined, teams: ApiTeam[], embedded?: ApiTeam | null) {
+  if (embedded?.name) return embedded.name;
+  if (teamId == null) return "En attente";
+  return embedded?.name ?? teams.find((team) => team.id === teamId)?.name ?? `Équipe #${teamId}`;
 }
 
 function matchName(matchId: number, matches: ApiMatch[], embedded?: ApiMatch | null) {
@@ -73,8 +80,9 @@ function matchName(matchId: number, matches: ApiMatch[], embedded?: ApiMatch | n
   return `#${match.id} - ${home} vs ${away}`;
 }
 
-function teamsFallback(id: number) {
-  return `Team #${id}`;
+function teamsFallback(id?: number | null) {
+  if (id == null) return "En attente";
+  return `Équipe #${id}`;
 }
 
 function isStarter(value: boolean | number) {
@@ -95,10 +103,10 @@ function compositionShirtNumber(composition: ApiComposition, players: ApiPlayer[
 
 function readableCompositionError(err: unknown, fallback: string) {
   if (err instanceof ApiError && err.status === 403) {
-    return "You can only manage compositions for tournaments you created.";
+    return "Vous pouvez seulement gérer les compositions des tournois que vous avez créés.";
   }
   if (err instanceof ApiError && err.status === 401) {
-    return "Your session has expired. Please log in again.";
+    return "Votre session a expire. Veuillez vous reconnecter.";
   }
   return err instanceof Error ? err.message : fallback;
 }
@@ -118,6 +126,8 @@ export default function MatchCompositionPage() {
   }));
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [compositionToDelete, setCompositionToDelete] = useState<ApiComposition | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -156,7 +166,7 @@ export default function MatchCompositionPage() {
         player_id: current.player_id || (playerData[0]?.id ? String(playerData[0].id) : ""),
       }));
     } catch (err) {
-      setError(readableCompositionError(err, "Unable to load compositions."));
+      setError(readableCompositionError(err, "Impossible de charger les compositions."));
     } finally {
       setLoading(false);
     }
@@ -199,7 +209,7 @@ export default function MatchCompositionPage() {
 
     try {
       await createComposition(payload);
-      setSuccess("Composition created.");
+      setSuccess("Composition créée.");
       setForm((current) => ({
         ...emptyForm,
         match_game_id: current.match_game_id,
@@ -208,9 +218,28 @@ export default function MatchCompositionPage() {
       }));
       await loadData(matchFilter);
     } catch (err) {
-      setError(readableCompositionError(err, "Unable to create composition."));
+      setError(readableCompositionError(err, "Impossible de créer la composition."));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!compositionToDelete) return;
+
+    setDeletingId(compositionToDelete.id);
+    setError("");
+    setSuccess("");
+
+    try {
+      await deleteComposition(compositionToDelete.id);
+      setSuccess("Composition supprimee.");
+      setCompositionToDelete(null);
+      await loadData(matchFilter);
+    } catch (err) {
+      setError(readableCompositionError(err, "Impossible de supprimer la composition."));
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -230,114 +259,85 @@ export default function MatchCompositionPage() {
       <XPageMeta title="Composition" description="Compositions des matchs" />
       <PageStack>
         <div className={clsx("grid grid-cols-1 lg:grid-cols-3", GRID_GAP)}>
-          <ComponentCard title="Match" desc="Composition backend" className="lg:col-span-2">
+          <ComponentCard title="Match" desc="Composition enregistrée" className="lg:col-span-2">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto_auto] md:items-end">
-              <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match</label>
-                <select
-                  value={matchFilter}
-                  onChange={(event) => {
-                    setMatchFilter(event.target.value);
-                    setForm((current) => ({ ...current, match_game_id: event.target.value || current.match_game_id }));
-                  }}
-                  disabled={loading}
-                  className={clsx(
-                    "w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none",
-                    t.border,
-                    t.metricBg,
-                    t.textPrimary,
-                  )}
-                >
-                  <option value="">All matches</option>
-                  {matches.map((match) => (
-                    <option key={match.id} value={match.id}>
-                      {matchName(match.id, matches, match)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <FormSearchableSelect
+                id="composition-match-filter"
+                label="Match"
+                value={matchFilter}
+                onChange={(value) => {
+                  setMatchFilter(value);
+                  setForm((current) => ({ ...current, match_game_id: value || current.match_game_id }));
+                }}
+                emptyOptionLabel="Tous les matchs"
+                disabled={loading}
+                options={matches.map((match) => ({
+                  value: String(match.id),
+                  label: matchName(match.id, matches, match),
+                }))}
+              />
               <Button type="button" onClick={handleApplyFilter} disabled={loading}>
-                Load
+                Charger
               </Button>
               <Button type="button" variant="secondary" onClick={handleResetFilter} disabled={loading}>
-                Reset
+                Réinitialiser
               </Button>
-            </div>
-          </ComponentCard>
-
-          <ComponentCard title="Session" desc={user ? `${user.email} - ${user.role}` : "Public access"}>
-            <div className={clsx("rounded-md border p-4", t.card)}>
-              <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Compositions</p>
-              <p className={clsx("mt-1 text-3xl font-bold", t.textPrimary)}>{compositions.length}</p>
-              <p className={clsx("mt-2 text-sm", t.textSecondary)}>
-                {matchFilter ? matchName(Number(matchFilter), matches) : "All matches"}
-              </p>
             </div>
           </ComponentCard>
         </div>
 
-        <ComponentCard title="Ajouter un joueur" desc={user ? `${user.email} - ${user.role}` : "Connexion requise"}>
+        <ComponentCard title="Ajouter un joueur" desc="Composition du match">
           {!isAuthenticated && !authLoading ? (
             <p className={clsx("text-sm", t.textSecondary)}>
-              Login is required to add compositions. Public compositions remain visible.
+              La connexion est requise pour ajouter des compositions. Les compositions publiques restent visibles.
             </p>
           ) : (
             <form onSubmit={handleCreate} className="grid grid-cols-1 gap-4 md:grid-cols-6">
-              <div className="md:col-span-2">
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match *</label>
-                <select
-                  value={form.match_game_id}
-                  onChange={(event) => updateForm("match_game_id", event.target.value)}
-                  required
-                  disabled={submitting || loading}
-                  className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                >
-                  <option value="">Select match</option>
-                  {matches.map((match) => (
-                    <option key={match.id} value={match.id}>
-                      {matchName(match.id, matches, match)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <FormSearchableSelect
+                id="composition-match"
+                label="Match *"
+                className="md:col-span-2"
+                value={form.match_game_id}
+                onChange={(value) => updateForm("match_game_id", value)}
+                emptyOptionLabel="Sélectionner un match"
+                disabled={submitting || loading}
+                options={matches.map((match) => ({
+                  value: String(match.id),
+                  label: matchName(match.id, matches, match),
+                }))}
+              />
+
+              <FormSearchableSelect
+                id="composition-team"
+                label="Équipe *"
+                value={form.team_id}
+                onChange={(value) => updateForm("team_id", value)}
+                emptyOptionLabel="Sélectionner une équipe"
+                disabled={submitting || loading}
+                options={teamOptions.map((team) => ({
+                  value: String(team.id),
+                  label: team.name,
+                }))}
+              />
+
+              <FormSearchableSelect
+                id="composition-player"
+                label="Joueur *"
+                value={form.player_id}
+                onChange={(value) => updateForm("player_id", value)}
+                emptyOptionLabel="Sélectionner un joueur"
+                disabled={submitting || loading}
+                options={players.map((player) => ({
+                  value: String(player.id),
+                  label: `${playerLabel(player.id, players, player)} - Équipe #${player.team_id}`,
+                }))}
+              />
 
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Team *</label>
-                <select
-                  value={form.team_id}
-                  onChange={(event) => updateForm("team_id", event.target.value)}
-                  required
-                  disabled={submitting || loading}
-                  className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                >
-                  <option value="">Select team</option>
-                  {teamOptions.map((team) => (
-                    <option key={team.id} value={team.id}>{team.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Player *</label>
-                <select
-                  value={form.player_id}
-                  onChange={(event) => updateForm("player_id", event.target.value)}
-                  required
-                  disabled={submitting || loading}
-                  className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
-                >
-                  <option value="">Select player</option>
-                  {players.map((player) => (
-                    <option key={player.id} value={player.id}>
-                      {playerLabel(player.id, players, player)} - Team #{player.team_id}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Position</label>
+                <label htmlFor="composition-position" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Poste</label>
                 <input
+                  id="composition-position"
+                  name="position"
                   type="text"
                   value={form.position}
                   onChange={(event) => updateForm("position", event.target.value)}
@@ -348,8 +348,10 @@ export default function MatchCompositionPage() {
               </div>
 
               <div>
-                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Shirt number</label>
+                <label htmlFor="composition-shirt-number" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Numéro de maillot</label>
                 <input
+                  id="composition-shirt-number"
+                  name="shirt_number"
                   type="number"
                   min={0}
                   value={form.shirt_number}
@@ -359,20 +361,22 @@ export default function MatchCompositionPage() {
                 />
               </div>
 
-              <label className={clsx("flex items-center gap-3 rounded-sm border px-4 py-2.5 md:col-span-2", t.border, t.metricBg)}>
+              <label htmlFor="composition-is-starter" className={clsx("flex items-center gap-3 rounded-sm border px-4 py-2.5 md:col-span-2", t.border, t.metricBg)}>
                 <input
+                  id="composition-is-starter"
+                  name="is_starter"
                   type="checkbox"
                   checked={form.is_starter}
                   onChange={(event) => updateForm("is_starter", event.target.checked)}
                   disabled={submitting || loading}
                   className="rounded border-zinc-600 bg-transparent text-brand-500 focus:ring-brand-500/30"
                 />
-                <span className={clsx("text-sm", t.textSecondary)}>Starter</span>
+                <span className={clsx("text-sm", t.textSecondary)}>Titulaire</span>
               </label>
 
               <div className="flex items-end md:col-span-4">
                 <Button type="submit" disabled={submitting || loading || matches.length === 0 || teams.length === 0 || players.length === 0}>
-                  {submitting ? "Saving..." : "Add composition"}
+                  {submitting ? "Enregistrement..." : "Ajouter la composition"}
                 </Button>
               </div>
             </form>
@@ -390,18 +394,16 @@ export default function MatchCompositionPage() {
           )}
         </ComponentCard>
 
-        <ComponentCard title="Liste des compositions" desc="Donnees backend">
-          {loading && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Loading compositions...</p>
-          )}
+        <ComponentCard title="Liste des compositions" desc="Données enregistrées">
+          {loading && <TableSkeleton rows={10} columns={9} />}
 
           {!loading && !error && compositions.length === 0 && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>No composition available yet.</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune donnée disponible.</p>
           )}
 
           {!loading && compositions.length > 0 && (
             <div className="x-scroll overflow-x-auto">
-              <table className="w-full min-w-[1080px] table-fixed text-sm">
+              <table className="w-full min-w-[1160px] table-fixed text-sm">
                 <colgroup>
                   <col className="w-[70px]" />
                   <col className="w-[20%]" />
@@ -410,18 +412,20 @@ export default function MatchCompositionPage() {
                   <col className="w-[11%]" />
                   <col className="w-[11%]" />
                   <col className="w-[11%]" />
-                  <col className="w-[16%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[12%]" />
                 </colgroup>
                 <thead>
                   <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
                     <th className="px-4 py-3">ID</th>
                     <th className="px-4 py-3">Match</th>
-                    <th className="px-4 py-3">Team</th>
-                    <th className="px-4 py-3">Player</th>
-                    <th className="px-4 py-3">Starter</th>
-                    <th className="px-4 py-3">Position</th>
-                    <th className="px-4 py-3">Shirt</th>
-                    <th className="px-4 py-3">Created</th>
+                    <th className="px-4 py-3">Équipe</th>
+                    <th className="px-4 py-3">Joueur</th>
+                    <th className="px-4 py-3">Titulaire</th>
+                    <th className="px-4 py-3">Poste</th>
+                    <th className="px-4 py-3">Maillot</th>
+                    <th className="px-4 py-3">Création</th>
+                    <th className="px-4 py-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -447,7 +451,7 @@ export default function MatchCompositionPage() {
                         </td>
                         <td className="px-4 py-3">
                           <Badge color={compositionIsStarter(composition) ? "success" : "info"}>
-                            {compositionIsStarter(composition) ? "Starter" : "Substitute"}
+                            {compositionIsStarter(composition) ? "Titulaire" : "Remplacant"}
                           </Badge>
                         </td>
                         <td className={clsx("px-4 py-3", t.textSecondary)}>{compositionPosition(composition, players)}</td>
@@ -456,6 +460,11 @@ export default function MatchCompositionPage() {
                         </td>
                         <td className={clsx("px-4 py-3 whitespace-nowrap tabular-nums", t.textSecondary)}>
                           {formatDate(composition.created_at)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Button type="button" size="sm" variant="danger" disabled={deletingId === composition.id} onClick={() => setCompositionToDelete(composition)}>
+                            {deletingId === composition.id ? "Suppression..." : "Supprimer"}
+                          </Button>
                         </td>
                       </tr>
                     );
@@ -468,9 +477,23 @@ export default function MatchCompositionPage() {
 
         <div>
           <Link to="/matches" className="text-sm font-medium text-brand-500 hover:text-brand-400">
-            Back to matches
+            Retour aux matchs
           </Link>
         </div>
+
+        <ConfirmModal
+          open={Boolean(compositionToDelete)}
+          onClose={() => setCompositionToDelete(null)}
+          title="Supprimer la composition"
+          message={
+            compositionToDelete
+              ? `Voulez-vous vraiment supprimer la composition #${compositionToDelete.id} ? Cette action est irréversible.`
+              : ""
+          }
+          confirmLabel="Supprimer"
+          loading={deletingId !== null}
+          onConfirm={() => void handleConfirmDelete()}
+        />
       </PageStack>
     </>
   );

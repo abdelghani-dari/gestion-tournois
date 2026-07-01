@@ -8,7 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
-class User extends Authenticatable
+class User extends Authenticatable implements JWTSubject
 {
     use HasFactory, Notifiable;
 
@@ -16,6 +16,12 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'account_status',
+        'approved_by',
+        'approved_at',
+        'admin_note',
+        'avatar_url',
     ];
 
     protected $hidden = [

@@ -3,6 +3,7 @@ import { clsx } from "clsx";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createAdminTeam,
+  deleteTeam,
   getAdminTeams,
   getAdminUsers,
   type AdminUser,
@@ -10,6 +11,8 @@ import {
   type TeamPayload,
 } from "../../api";
 import Button from "../../components/common/Button";
+import ConfirmModal from "../../components/common/ConfirmModal";
+import FormSearchableSelect from "../../components/common/FormSearchableSelect";
 import ComponentCard from "../../components/common/ComponentCard";
 import EntityImage from "../../components/common/EntityImage";
 import ImageSourceInput, { type ImageSourceMode } from "../../components/common/ImageSourceInput";
@@ -43,12 +46,15 @@ export default function AdminTeamsPage() {
   const [teams, setTeams] = useState<ApiTeam[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [form, setForm] = useState<TeamPayload>(emptyForm);
-  const [logoMode, setLogoMode] = useState<ImageSourceMode>("url");
+  const [logoMode, setLogoMode] = useState<ImageSourceMode>("upload");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [teamToDelete, setTeamToDelete] = useState<ApiTeam | null>(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -94,6 +100,7 @@ export default function AdminTeamsPage() {
     event.preventDefault();
     setSaving(true);
     setError("");
+    setSuccess("");
     try {
       await createAdminTeam(form);
       closeCreate();
@@ -102,6 +109,25 @@ export default function AdminTeamsPage() {
       setError(err instanceof Error ? err.message : "Création impossible.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!teamToDelete) return;
+
+    setDeletingId(teamToDelete.id);
+    setError("");
+    setSuccess("");
+
+    try {
+      await deleteTeam(teamToDelete.id);
+      setSuccess("Equipe supprimee.");
+      setTeamToDelete(null);
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Suppression impossible.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -125,7 +151,16 @@ export default function AdminTeamsPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
 
-              {error && <div className="rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
+              {(error || success) && (
+                <div
+                  className={clsx(
+                    "rounded-sm border px-4 py-3 text-sm",
+                    error ? "border-red-500/20 bg-red-500/10 text-red-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+                  )}
+                >
+                  {error || success}
+                </div>
+              )}
 
               {loading ? (
                 <p className={clsx("py-8 text-center text-sm", t.textMuted)}>Chargement...</p>
@@ -158,7 +193,14 @@ export default function AdminTeamsPage() {
                           <td className={clsx("px-4 py-3", t.textSecondary)}>{managerText(team)}</td>
                           <td className={clsx("px-4 py-3", t.textSecondary)}>{team.players_count ?? team.players?.length ?? 0}</td>
                           <td className={clsx("px-4 py-3", t.textSecondary)}>{formatDate(team.created_at)}</td>
-                          <td className="px-4 py-3"><Link to={`/admin/teams/${team.id}`} className="text-sm font-medium text-brand-500 hover:text-brand-400">Voir détails</Link></td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-row flex-wrap items-center gap-2">
+                              <Link to={`/admin/teams/${team.id}`} className="text-sm font-medium text-brand-500 hover:text-brand-400">Voir détails</Link>
+                              <Button type="button" size="sm" variant="danger" disabled={deletingId === team.id} onClick={() => setTeamToDelete(team)}>
+                                {deletingId === team.id ? "Suppression..." : "Supprimer"}
+                              </Button>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -172,12 +214,19 @@ export default function AdminTeamsPage() {
         <XModal open={createOpen} onClose={closeCreate} title="Créer une équipe" className="max-w-3xl">
           <form onSubmit={handleCreate} className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <input className={clsx("rounded-sm border px-3 py-2 text-sm", t.border, t.metricBg, t.textPrimary)} placeholder="Nom *" value={form.name} required onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))} />
-            <input className={clsx("rounded-sm border px-3 py-2 text-sm", t.border, t.metricBg, t.textPrimary)} placeholder="Nom court" value={form.short_name} onChange={(e) => setForm((current) => ({ ...current, short_name: e.target.value }))} />
+            <input className={clsx("rounded-sm border px-3 py-2 text-sm uppercase", t.border, t.metricBg, t.textPrimary)} placeholder="Nom court" maxLength={3} value={form.short_name} onChange={(e) => setForm((current) => ({ ...current, short_name: e.target.value.toUpperCase().slice(0, 3) }))} />
             <input className={clsx("rounded-sm border px-3 py-2 text-sm", t.border, t.metricBg, t.textPrimary)} placeholder="Ville" value={form.city} onChange={(e) => setForm((current) => ({ ...current, city: e.target.value }))} />
-            <select className={clsx("rounded-sm border px-3 py-2 text-sm", t.border, t.metricBg, t.textPrimary)} value={form.manager_id} onChange={(e) => setForm((current) => ({ ...current, manager_id: e.target.value ? Number(e.target.value) : "" }))}>
-              <option value="">Responsable: admin actuel</option>
-              {users.map((user) => <option key={user.id} value={user.id}>{user.name} - {user.email}</option>)}
-            </select>
+            <FormSearchableSelect
+              id="admin-team-manager"
+              label="Responsable"
+              value={form.manager_id ? String(form.manager_id) : ""}
+              onChange={(value) => setForm((current) => ({ ...current, manager_id: value ? Number(value) : "" }))}
+              emptyOptionLabel="Responsable: admin actuel"
+              options={users.map((user) => ({
+                value: String(user.id),
+                label: `${user.name} - ${user.email}`,
+              }))}
+            />
             <div className="md:col-span-2">
               <ImageSourceInput
                 label="Logo"
@@ -201,6 +250,20 @@ export default function AdminTeamsPage() {
             </div>
           </form>
         </XModal>
+
+        <ConfirmModal
+          open={Boolean(teamToDelete)}
+          onClose={() => setTeamToDelete(null)}
+          title="Supprimer l'équipe"
+          message={
+            teamToDelete
+              ? `Voulez-vous vraiment supprimer l'équipe « ${teamToDelete.name} » ? Cette action est irréversible.`
+              : ""
+          }
+          confirmLabel="Supprimer"
+          loading={deletingId !== null}
+          onConfirm={() => void handleConfirmDelete()}
+        />
       </PageStack>
     </>
   );

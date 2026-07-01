@@ -8,6 +8,8 @@ interface DropdownProps {
   children: React.ReactNode;
   className?: string;
   align?: "left" | "right";
+  placement?: "bottom" | "top";
+  style?: React.CSSProperties;
 }
 
 export const Dropdown: React.FC<DropdownProps> = ({
@@ -16,6 +18,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
   children,
   className = "",
   align = "right",
+  placement = "bottom",
+  style,
 }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -42,10 +46,12 @@ export const Dropdown: React.FC<DropdownProps> = ({
     <div
       ref={dropdownRef}
       className={clsx(
-        "absolute z-[100] mt-1.5 rounded-lg shadow-xl",
+        "absolute z-[9999] rounded-lg shadow-xl",
+        placement === "top" ? "bottom-full mb-1.5" : "mt-1.5",
         align === "left" ? "left-0" : "right-0",
         className
       )}
+      style={style}
     >
       {children}
     </div>

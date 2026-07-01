@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Team extends Model
 {
@@ -19,6 +21,23 @@ class Team extends Model
         'logo_path',
         'city',
     ];
+
+    protected function logoPath(): Attribute
+    {
+        return Attribute::make(
+            get: static function (?string $value): ?string {
+                if ($value === null) {
+                    return null;
+                }
+                // Already a full URL (external or previously resolved)
+                if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+                    return $value;
+                }
+                // Relative storage path — resolve to full public URL
+                return Storage::disk('public')->url(ltrim($value, '/'));
+            },
+        );
+    }
 
     public function manager(): BelongsTo
     {

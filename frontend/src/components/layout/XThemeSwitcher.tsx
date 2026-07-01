@@ -3,36 +3,13 @@ import { useXTheme, type XTheme } from "../context/XThemeContext";
 import { useThemeTokens } from "../theme/useThemeTokens";
 import { useHeaderDropdown } from "../context/HeaderDropdownContext";
 import { Dropdown } from "../ui/dropdown/Dropdown";
+import { Sun, Moon, Contrast } from "lucide-react";
 import { CheckLineIcon } from "../../icons";
 
 const themes: { id: XTheme; label: string; Icon: React.FC<{ className?: string }> }[] = [
-  {
-    id: "light",
-    label: "Clair",
-    Icon: ({ className }) => (
-      <svg className={className} viewBox="0 0 20 20" fill="currentColor">
-        <path d="M10 2.5a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2.5zm0 13a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5zm7.25-2.25a.75.75 0 010 1.5h-1.5a.75.75 0 010-1.5h1.5zM4.25 12.5a.75.75 0 010 1.5h-1.5a.75.75 0 010-1.5h1.5zm11.78-5.03a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.9 0a.75.75 0 011.06 0l1.06 1.06a.75.75 0 11-1.06 1.06L5.03 8.53a.75.75 0 010-1.06zm9.9 7.78a.75.75 0 00-1.06 0l-1.06 1.06a.75.75 0 101.06 1.06l1.06-1.06a.75.75 0 000-1.06zm-9.9 0a.75.75 0 00-1.06 1.06l1.06 1.06a.75.75 0 101.06-1.06L6.97 15.28a.75.75 0 00-1.06 0zM10 14.25a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5a.75.75 0 01.75-.75z" />
-      </svg>
-    ),
-  },
-  {
-    id: "dark",
-    label: "Slate",
-    Icon: ({ className }) => (
-      <svg className={className} viewBox="0 0 20 20" fill="currentColor">
-        <path d="M15.98 10.79a6.5 6.5 0 01-7.18-7.18 6.75 6.75 0 107.18 7.18z" />
-      </svg>
-    ),
-  },
-  {
-    id: "zinc",
-    label: "Zinc",
-    Icon: ({ className }) => (
-      <svg className={className} viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M7.455 2.697A7.5 7.5 0 1012.8 16.3 6.5 6.5 0 017.455 2.697z" clipRule="evenodd" />
-      </svg>
-    ),
-  },
+  { id: "light", label: "Clair", Icon: ({ className }) => <Sun className={className} /> },
+  { id: "dark", label: "Slate", Icon: ({ className }) => <Contrast className={className} /> },
+  { id: "zinc", label: "Zinc", Icon: ({ className }) => <Moon className={className} /> },
 ];
 
 export default function XThemeSwitcher() {
@@ -48,7 +25,7 @@ export default function XThemeSwitcher() {
         type="button"
         onClick={() => toggle("theme")}
         className={clsx(
-          "dropdown-toggle flex h-10 w-10 items-center justify-center rounded-lg border transition-colors lg:h-11 lg:w-11",
+          "dropdown-toggle flex h-9 w-9 items-center justify-center rounded-lg border transition-colors",
           t.headerIconBtn
         )}
         title="Thème"

@@ -26,6 +26,7 @@ export function XThemeProvider({ children }: { children: React.ReactNode }) {
     const root = document.documentElement;
     const prevDark = root.classList.contains("dark");
     const prevXTheme = root.getAttribute("data-x-theme");
+    const prevBodyBg = document.body.style.backgroundColor;
 
     if (theme === "light") {
       root.classList.remove("dark");
@@ -33,9 +34,11 @@ export function XThemeProvider({ children }: { children: React.ReactNode }) {
       root.classList.add("dark");
     }
     root.setAttribute("data-x-theme", theme);
+    document.body.style.backgroundColor = theme === "light" ? "#F3F5F7" : theme === "dark" ? "#020617" : "#09090b";
 
     return () => {
       root.setAttribute("data-x-theme", prevXTheme ?? "");
+      document.body.style.backgroundColor = prevBodyBg;
       if (prevDark) root.classList.add("dark");
       else root.classList.remove("dark");
     };

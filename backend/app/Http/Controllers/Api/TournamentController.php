@@ -35,7 +35,8 @@ class TournamentController extends Controller
             'location' => ['nullable', 'string', 'max:255'],
             'banner_path' => ['nullable', 'url', 'max:255'],
             'banner_url' => ['nullable', 'url', 'max:255'],
-            'banner' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'banner' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,gif,svg,bmp,tiff,avif,heic,heif', 'max:8192'],
+            'format' => ['nullable', 'in:league'],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
         ]);
@@ -47,6 +48,7 @@ class TournamentController extends Controller
 
         $tournament = Tournament::create([
             ...$validated,
+            'format' => $validated['format'] ?? 'league',
             'created_by' => $user?->id,
             'status' => $isAdmin ? 'open' : 'draft',
             'approval_status' => $isAdmin ? 'accepted' : 'pending',
@@ -64,14 +66,14 @@ class TournamentController extends Controller
     {
         return response()->json(
             Cache::remember("tournament:{$tournament->id}:details", 60, fn () => $tournament
-                ->load(['creator', 'approvedBy'])
+                ->load(['creator', 'approvedBy', 'teams'])
                 ->toArray())
         );
     }
 
     public function update(Request $request, Tournament $tournament): JsonResponse
     {
-        if ((int) $tournament->created_by !== (int) auth('api')->id()) {
+        if (! $this->isAdmin() && (int) $tournament->created_by !== (int) auth('api')->id()) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -83,6 +85,7 @@ class TournamentController extends Controller
             'banner_path' => ['nullable', 'url', 'max:255'],
             'banner_url' => ['nullable', 'url', 'max:255'],
             'banner' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'format' => ['sometimes', 'required', 'in:league'],
             'start_date' => ['sometimes', 'required', 'date'],
             'end_date' => ['sometimes', 'required', 'date', 'after_or_equal:start_date'],
             'status' => ['sometimes', 'required', 'string', 'max:255'],
@@ -102,7 +105,7 @@ class TournamentController extends Controller
 
     public function destroy(Tournament $tournament): JsonResponse
     {
-        if ((int) $tournament->created_by !== (int) auth('api')->id()) {
+        if (! $this->isAdmin() && (int) $tournament->created_by !== (int) auth('api')->id()) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -115,8 +118,14 @@ class TournamentController extends Controller
 
     public function myTournaments(): JsonResponse
     {
+        $user = auth('api')->user();
+
+        if ($user?->role === 'admin') {
+            return response()->json(Tournament::query()->latest()->get());
+        }
+
         return response()->json(
-            Tournament::where('created_by', auth('api')->id())->latest()->get()
+            Tournament::where('created_by', $user->id)->latest()->get()
         );
     }
 
@@ -124,6 +133,13 @@ class TournamentController extends Controller
     {
         Cache::forget('public:tournaments');
         Cache::forget("tournament:{$tournamentId}:details");
+        Cache::forget("tournament:{$tournamentId}:rankings");
+        Cache::forget("tournament:{$tournamentId}:statistics");
+    }
+
+    private function isAdmin(): bool
+    {
+        return auth('api')->user()?->role === 'admin';
     }
 
     private function imagePath(Request $request, string $field, string $directory, string $prefix): ?string

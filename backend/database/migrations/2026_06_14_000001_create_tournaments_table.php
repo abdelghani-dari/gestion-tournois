@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('city')->nullable();
             $table->string('location')->nullable();
             $table->string('banner_path')->nullable();
+            $table->string('format')->default('league');
             $table->date('start_date');
             $table->date('end_date');
             $table->string('status')->default('draft');

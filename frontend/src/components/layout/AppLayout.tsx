@@ -9,10 +9,18 @@ import "../styles/x-scrollbars.css";
 
 function LayoutContent() {
   const { isCollapsed } = useXSidebar();
-  const { shellBg } = useXTheme();
+  const { shellBg, theme } = useXTheme();
 
   return (
-    <div className={clsx("min-h-screen", shellBg)}>
+    <div className={clsx("relative min-h-screen", shellBg)}>
+      {/* Background spacer matching the dark sidebar background in light theme to prevent empty white gap during full-page scroll/stitching */}
+      <div
+        className={clsx(
+          "absolute bottom-0 left-0 top-0 -z-10 hidden border-r transition-[width] duration-200 ease-in-out lg:block",
+          theme === "light" ? "bg-[#0a1324] border-indigo-900/35" : "bg-transparent border-transparent",
+          isCollapsed ? "w-[72px]" : "w-[260px]"
+        )}
+      />
       <Sidebar />
       <div
         className={clsx(
@@ -38,3 +46,4 @@ export default function XAppLayout() {
     </XSidebarProvider>
   );
 }
+

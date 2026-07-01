@@ -4,11 +4,10 @@ import { clsx } from "clsx";
 import { useXSidebar } from "../context/SidebarContext";
 import { useThemeTokens } from "../theme/useThemeTokens";
 import { resolvePageMeta } from "../theme/pageMeta";
-import { APP_NAME } from "../../config/app";
+import AppLogo from "../common/AppLogo";
 import XThemeSwitcher from "./XThemeSwitcher";
 import UserDropdown from "../header/UserDropdown";
 import AdminNotificationDropdown from "../header/AdminNotificationDropdown";
-import { ShootingStarIcon } from "../../icons";
 
 export default function AppHeader() {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
@@ -65,11 +64,8 @@ export default function AppHeader() {
             )}
           </div>
 
-          <Link to="/dashboard" className="flex shrink-0 items-center gap-2 lg:hidden">
-            <span className="flex h-7 w-7 items-center justify-center rounded bg-brand-500/15 text-brand-400 ring-1 ring-brand-500/30">
-              <ShootingStarIcon className="size-4" />
-            </span>
-            <span className={clsx("text-sm font-semibold", t.textPrimary)}>{APP_NAME}</span>
+          <Link to="/" className="flex shrink-0 items-center lg:hidden">
+            <AppLogo size="sm" />
           </Link>
 
           <button
@@ -87,8 +83,8 @@ export default function AppHeader() {
 
         <div
           className={clsx(
-            `${isApplicationMenuOpen ? "flex" : "hidden"} w-full items-center justify-end gap-2 px-5 py-3 sm:gap-3 lg:flex lg:px-0 lg:py-4`,
-            "shadow-none"
+            "flex w-full items-center justify-end gap-2 px-3 py-2 sm:gap-2 lg:flex lg:px-0 lg:py-0",
+            isApplicationMenuOpen ? "flex" : "hidden lg:flex",
           )}
         >
           <XThemeSwitcher />

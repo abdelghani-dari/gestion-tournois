@@ -7,6 +7,7 @@ use App\Models\MatchGame;
 use App\Models\Tournament;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class MatchGameController extends Controller
 {
@@ -39,13 +40,17 @@ class MatchGameController extends Controller
     {
         $validated = $request->validate([
             'tournament_id' => ['required', 'exists:tournaments,id'],
-            'created_by' => ['nullable', 'exists:users,id'],
             'home_team_id' => ['required', 'exists:teams,id'],
             'away_team_id' => ['required', 'exists:teams,id', 'different:home_team_id'],
             'match_date' => ['required', 'date'],
         ]);
 
         $tournament = Tournament::findOrFail($validated['tournament_id']);
+
+        if (! $this->canManageTournament($tournament)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $error = $this->validateMatchTeams($tournament, $validated['home_team_id'], $validated['away_team_id']);
 
         if ($error !== null) {
@@ -54,6 +59,7 @@ class MatchGameController extends Controller
 
         $matchGame = MatchGame::create([
             ...$validated,
+            'created_by' => auth('api')->id(),
             'home_score' => null,
             'away_score' => null,
             'status' => 'scheduled',
@@ -70,6 +76,10 @@ class MatchGameController extends Controller
 
     public function update(Request $request, MatchGame $matchGame): JsonResponse
     {
+        if (! $this->canManageTournament($matchGame->tournament)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'home_team_id' => ['sometimes', 'required', 'exists:teams,id'],
             'away_team_id' => ['sometimes', 'required', 'exists:teams,id'],
@@ -97,6 +107,10 @@ class MatchGameController extends Controller
 
     public function destroy(MatchGame $matchGame): JsonResponse
     {
+        if (! $this->canDeleteTournament($matchGame->tournament)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $matchGame->delete();
 
         return response()->json(['message' => 'Match deleted.']);
@@ -104,6 +118,10 @@ class MatchGameController extends Controller
 
     public function result(Request $request, MatchGame $matchGame): JsonResponse
     {
+        if (! $this->canManageTournament($matchGame->tournament)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'home_score' => ['required', 'integer', 'min:0'],
             'away_score' => ['required', 'integer', 'min:0'],
@@ -115,11 +133,17 @@ class MatchGameController extends Controller
             'result_status' => 'pending',
         ]);
 
+        $this->forgetCompetitionCache($matchGame->tournament_id);
+
         return response()->json($matchGame->load(['tournament', 'homeTeam', 'awayTeam', 'creator']));
     }
 
     public function confirmResult(MatchGame $matchGame): JsonResponse
     {
+        if (! $this->canManageTournament($matchGame->tournament)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $error = $this->validateResultReady($matchGame);
 
         if ($error !== null) {
@@ -128,11 +152,17 @@ class MatchGameController extends Controller
 
         $matchGame->update(['result_status' => 'confirmed']);
 
+        $this->forgetCompetitionCache($matchGame->tournament_id);
+
         return response()->json($matchGame->load(['tournament', 'homeTeam', 'awayTeam', 'creator']));
     }
 
     public function disputeResult(MatchGame $matchGame): JsonResponse
     {
+        if (! $this->canManageTournament($matchGame->tournament)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $error = $this->validateResultReady($matchGame);
 
         if ($error !== null) {
@@ -140,6 +170,8 @@ class MatchGameController extends Controller
         }
 
         $matchGame->update(['result_status' => 'disputed']);
+
+        $this->forgetCompetitionCache($matchGame->tournament_id);
 
         return response()->json($matchGame->load(['tournament', 'homeTeam', 'awayTeam', 'creator']));
     }
@@ -170,6 +202,18 @@ class MatchGameController extends Controller
         return null;
     }
 
+    private function canManageTournament(Tournament $tournament): bool
+    {
+        return auth('api')->user()?->role === 'admin'
+            || (int) $tournament->created_by === (int) auth('api')->id();
+    }
+
+    private function canDeleteTournament(Tournament $tournament): bool
+    {
+        return auth('api')->user()?->role === 'admin'
+            || $this->canManageTournament($tournament);
+    }
+
     private function validateResultReady(MatchGame $matchGame): ?string
     {
         if ($matchGame->status !== 'played') {
@@ -181,5 +225,12 @@ class MatchGameController extends Controller
         }
 
         return null;
+    }
+
+    private function forgetCompetitionCache(int $tournamentId): void
+    {
+        Cache::forget("tournament:{$tournamentId}:rankings");
+        Cache::forget("tournament:{$tournamentId}:statistics");
+        Cache::forget("tournament:{$tournamentId}:details");
     }
 }
