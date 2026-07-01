@@ -98,6 +98,26 @@ Deux régressions importantes sont maintenant protégées :
 - la liste des demandes de participation reçues doit utiliser la propriété du tournoi, et pas seulement le rôle `creator`;
 - la création et la modification des statistiques doivent être réservées au créateur du tournoi ou à l'administrateur, avec un contexte match/équipe/joueur valide.
 
+### 7. Tests smoke
+
+Les tests smoke sont des vérifications rapides pour confirmer que les routes backend essentielles répondent après le démarrage de l'application ou après une modification.
+
+Ils ne remplacent pas les tests métier détaillés. Leur objectif est seulement de détecter rapidement une route cassée, une erreur d'authentification ou une réponse non JSON.
+
+Le fichier `SmokeTest.php` vérifie :
+
+- l'endpoint public des tournois;
+- la connexion avec des identifiants valides;
+- le rejet de `/api/me` pour un visiteur non connecté;
+- le fonctionnement de `/api/me` avec un vrai token JWT Bearer;
+- les routes publiques de classement et de statistiques;
+- les réponses JSON.
+
+Résultat actuel des tests smoke :
+
+- 5 tests passés;
+- 22 assertions.
+
 ## Outils utilisés
 
 ### Laravel PHPUnit
@@ -148,6 +168,7 @@ La campagne de tests backend couvre les modules suivants :
 - Classements;
 - Statistiques;
 - Règles métier unitaires isolées;
+- Tests smoke des routes essentielles;
 - Workflow complet d'un tournoi;
 - Sécurité et régressions.
 
@@ -163,6 +184,12 @@ Pour exécuter uniquement les tests unitaires :
 
 ```bash
 docker compose exec backend php artisan test --testsuite=Unit
+```
+
+Pour exécuter uniquement les tests smoke :
+
+```bash
+docker compose exec backend php artisan test --filter=SmokeTest
 ```
 
 Pour exécuter un fichier ou un groupe de tests spécifique :
