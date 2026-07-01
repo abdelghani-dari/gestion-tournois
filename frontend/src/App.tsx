@@ -1,18 +1,16 @@
-import { BrowserRouter as Router, Routes } from "react-router";
-import { ScrollToTop } from "./components/common/ScrollToTop";
-import { XThemeProvider } from "./components/context/XThemeContext";
-import { AuthProvider } from "./context/AuthContext";
-import { appRoutes } from "./pages/AppRoutes";
-
-export default function App() {
+function App() {
   return (
-    <XThemeProvider>
-      <AuthProvider>
-        <Router>
-          <ScrollToTop />
-          <Routes>{appRoutes}</Routes>
-        </Router>
-      </AuthProvider>
-    </XThemeProvider>
+    <main className="min-h-screen bg-neutral-950 px-6 py-10 text-neutral-100">
+      <section className="mx-auto max-w-3xl">
+        <p className="text-sm font-medium uppercase tracking-wider text-emerald-400">
+          Gestion Tournois
+        </p>
+        <h1 className="mt-4 text-3xl font-semibold">Clean project base</h1>
+        <p className="mt-4 text-neutral-300">
+          The previous tournament implementation has been removed. This React
+          shell is ready for the new local tournament app.
+        </p>
+      </section>
+    </main>
   );
 }

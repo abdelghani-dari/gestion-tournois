@@ -25,11 +25,11 @@ import { useAuth } from "../../context/AuthContext";
 import { BoltIcon, PieChartIcon } from "../../icons";
 
 const statTypes: Array<{ value: StatisticType; label: string }> = [
-  { value: "goal", label: "But" },
-  { value: "assist", label: "Passe décisive" },
-  { value: "yellow_card", label: "Carton jaune" },
-  { value: "red_card", label: "Carton rouge" },
-  { value: "clean_sheet", label: "Match sans but encaissé" },
+  { value: "goal", label: "Goal" },
+  { value: "assist", label: "Assist" },
+  { value: "yellow_card", label: "Yellow card" },
+  { value: "red_card", label: "Red card" },
+  { value: "clean_sheet", label: "Clean sheet" },
 ];
 
 type StatisticForm = {
@@ -79,19 +79,19 @@ function playerName(player?: ApiPlayer | null) {
 }
 
 function teamName(teamId: number, teams: ApiTeam[], embedded?: ApiTeam | null) {
-  return embedded?.name ?? teams.find((team) => team.id === teamId)?.name ?? `Équipe #${teamId}`;
+  return embedded?.name ?? teams.find((team) => team.id === teamId)?.name ?? `Team #${teamId}`;
 }
 
 function playerLabel(playerId: number, players: ApiPlayer[], embedded?: ApiPlayer | null) {
-  return playerName(embedded) || playerName(players.find((player) => player.id === playerId)) || `Joueur #${playerId}`;
+  return playerName(embedded) || playerName(players.find((player) => player.id === playerId)) || `Player #${playerId}`;
 }
 
 function matchName(matchId: number, matches: ApiMatch[], embedded?: ApiMatch | null) {
   const match = embedded ?? matches.find((item) => item.id === matchId);
   if (!match) return `Match #${matchId}`;
 
-  const home = match.homeTeam?.name ?? match.home_team?.name ?? `Équipe #${match.home_team_id}`;
-  const away = match.awayTeam?.name ?? match.away_team?.name ?? `Équipe #${match.away_team_id}`;
+  const home = match.home_team?.name ?? `Team #${match.home_team_id}`;
+  const away = match.away_team?.name ?? `Team #${match.away_team_id}`;
   return `#${match.id} - ${home} vs ${away}`;
 }
 
@@ -116,7 +116,7 @@ function getRouteFilters(pathname: string, id?: string): StatisticFilters {
 
 function readableStatisticError(err: unknown, fallback: string) {
   if (err instanceof ApiError && err.status === 401) {
-    return "Votre session a expiré. Veuillez vous reconnecter.";
+    return "Your session has expired. Please log in again.";
   }
   return err instanceof Error ? err.message : fallback;
 }
@@ -175,7 +175,7 @@ export default function StatisticsPage() {
         player_id: current.player_id || (playersData[0]?.id ? String(playersData[0].id) : ""),
       }));
     } catch (err) {
-      setError(readableStatisticError(err, "Impossible de charger les statistiques."));
+      setError(readableStatisticError(err, "Unable to load statistics."));
     } finally {
       setLoading(false);
     }
@@ -213,7 +213,7 @@ export default function StatisticsPage() {
 
     try {
       await createStatistic(payload);
-      setSuccess("Statistique créée.");
+      setSuccess("Statistic created.");
       setForm((current) => ({
         ...emptyForm,
         match_game_id: current.match_game_id,
@@ -222,7 +222,7 @@ export default function StatisticsPage() {
       }));
       await loadData();
     } catch (err) {
-      setError(readableStatisticError(err, "Impossible de créer la statistique."));
+      setError(readableStatisticError(err, "Unable to create statistic."));
     } finally {
       setSubmitting(false);
     }
@@ -245,9 +245,9 @@ export default function StatisticsPage() {
       <PageStack>
         <div className={clsx("grid grid-cols-1 sm:grid-cols-3", GRID_GAP)}>
           {[
-            { label: "Buts", value: totals.goals, icon: <PieChartIcon className="size-5 text-emerald-400" /> },
-            { label: "Passes décisives", value: totals.assists, icon: <BoltIcon className="size-5 text-sky-400" /> },
-            { label: "Cartons", value: totals.cards, icon: <PieChartIcon className="size-5 text-amber-400" /> },
+            { label: "Goals", value: totals.goals, icon: <PieChartIcon className="size-5 text-emerald-400" /> },
+            { label: "Assists", value: totals.assists, icon: <BoltIcon className="size-5 text-sky-400" /> },
+            { label: "Cards", value: totals.cards, icon: <PieChartIcon className="size-5 text-amber-400" /> },
           ].map((stat) => (
             <div key={stat.label} className={clsx("rounded-md border p-5", t.card)}>
               <div className="flex items-center gap-3">
@@ -263,21 +263,19 @@ export default function StatisticsPage() {
 
         <ComponentCard title="Ajouter une statistique" desc={user ? `${user.email} - ${user.role}` : "Connexion requise"}>
           {!isAuthenticated && !authLoading ? (
-            <p className={clsx("text-sm", t.textSecondary)}>La connexion est requise pour ajouter une statistique. Les statistiques publiques restent visibles.</p>
+            <p className={clsx("text-sm", t.textSecondary)}>Login is required to add statistics. Public statistics remain visible.</p>
           ) : (
             <form onSubmit={handleCreate} className="grid grid-cols-1 gap-4 md:grid-cols-5">
               <div className="md:col-span-2">
-                <label htmlFor="statistic-match" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match *</label>
+                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match *</label>
                 <select
-                  id="statistic-match"
-                  name="match_game_id"
                   value={form.match_game_id}
                   onChange={(event) => updateForm("match_game_id", event.target.value)}
                   required
                   disabled={submitting || loading}
                   className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                 >
-                  <option value="">Sélectionner un match</option>
+                  <option value="">Select match</option>
                   {matches.map((match) => (
                     <option key={match.id} value={match.id}>
                       {matchName(match.id, matches, match)}
@@ -287,17 +285,15 @@ export default function StatisticsPage() {
               </div>
 
               <div>
-                <label htmlFor="statistic-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe *</label>
+                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Team *</label>
                 <select
-                  id="statistic-team"
-                  name="team_id"
                   value={form.team_id}
                   onChange={(event) => updateForm("team_id", event.target.value)}
                   required
                   disabled={submitting || loading}
                   className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                 >
-                  <option value="">Sélectionner une équipe</option>
+                  <option value="">Select team</option>
                   {teams.map((team) => (
                     <option key={team.id} value={team.id}>{team.name}</option>
                   ))}
@@ -305,17 +301,15 @@ export default function StatisticsPage() {
               </div>
 
               <div>
-                <label htmlFor="statistic-player" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Joueur *</label>
+                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Player *</label>
                 <select
-                  id="statistic-player"
-                  name="player_id"
                   value={form.player_id}
                   onChange={(event) => updateForm("player_id", event.target.value)}
                   required
                   disabled={submitting || loading}
                   className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                 >
-                  <option value="">Sélectionner un joueur</option>
+                  <option value="">Select player</option>
                   {players.map((player) => (
                     <option key={player.id} value={player.id}>{playerLabel(player.id, players, player)}</option>
                   ))}
@@ -323,10 +317,8 @@ export default function StatisticsPage() {
               </div>
 
               <div>
-                <label htmlFor="statistic-type" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Type *</label>
+                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Type *</label>
                 <select
-                  id="statistic-type"
-                  name="stat_type"
                   value={form.stat_type}
                   onChange={(event) => updateForm("stat_type", event.target.value)}
                   required
@@ -340,10 +332,8 @@ export default function StatisticsPage() {
               </div>
 
               <div>
-                <label htmlFor="statistic-value" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Valeur *</label>
+                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Value *</label>
                 <input
-                  id="statistic-value"
-                  name="value"
                   type="number"
                   min={0}
                   value={form.value}
@@ -356,7 +346,7 @@ export default function StatisticsPage() {
 
               <div className="flex items-end md:col-span-4">
                 <Button type="submit" disabled={submitting || loading || matches.length === 0 || teams.length === 0 || players.length === 0}>
-                  {submitting ? "Enregistrement..." : "Ajouter la statistique"}
+                  {submitting ? "Saving..." : "Add statistic"}
                 </Button>
               </div>
             </form>
@@ -374,19 +364,17 @@ export default function StatisticsPage() {
           )}
         </ComponentCard>
 
-        <ComponentCard title="Filtres" desc="Recherche simple par match, équipe, joueur ou type">
+        <ComponentCard title="Filtres" desc="Recherche simple par match, equipe, joueur ou type">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
             <div>
-              <label htmlFor="statistics-filter-match" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match</label>
+              <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match</label>
               <select
-                id="statistics-filter-match"
-                name="match_game_id"
                 value={filters.match_game_id}
                 onChange={(event) => updateFilter("match_game_id", event.target.value)}
                 disabled={loading}
                 className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
               >
-                <option value="">Tous les matchs</option>
+                <option value="">All matches</option>
                 {matches.map((match) => (
                   <option key={match.id} value={match.id}>{matchName(match.id, matches, match)}</option>
                 ))}
@@ -394,16 +382,14 @@ export default function StatisticsPage() {
             </div>
 
             <div>
-              <label htmlFor="statistics-filter-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe</label>
+              <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Team</label>
               <select
-                id="statistics-filter-team"
-                name="team_id"
                 value={filters.team_id}
                 onChange={(event) => updateFilter("team_id", event.target.value)}
                 disabled={loading}
                 className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
               >
-                <option value="">Toutes les équipes</option>
+                <option value="">All teams</option>
                 {teams.map((team) => (
                   <option key={team.id} value={team.id}>{team.name}</option>
                 ))}
@@ -411,16 +397,14 @@ export default function StatisticsPage() {
             </div>
 
             <div>
-              <label htmlFor="statistics-filter-player" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Joueur</label>
+              <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Player</label>
               <select
-                id="statistics-filter-player"
-                name="player_id"
                 value={filters.player_id}
                 onChange={(event) => updateFilter("player_id", event.target.value)}
                 disabled={loading}
                 className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
               >
-                <option value="">Tous les joueurs</option>
+                <option value="">All players</option>
                 {players.map((player) => (
                   <option key={player.id} value={player.id}>{playerLabel(player.id, players, player)}</option>
                 ))}
@@ -428,16 +412,14 @@ export default function StatisticsPage() {
             </div>
 
             <div>
-              <label htmlFor="statistics-filter-type" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Type</label>
+              <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Type</label>
               <select
-                id="statistics-filter-type"
-                name="stat_type"
                 value={filters.stat_type}
                 onChange={(event) => updateFilter("stat_type", event.target.value)}
                 disabled={loading}
                 className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
               >
-                <option value="">Tous les types</option>
+                <option value="">All types</option>
                 {statTypes.map((type) => (
                   <option key={type.value} value={type.value}>{type.label}</option>
                 ))}
@@ -446,22 +428,22 @@ export default function StatisticsPage() {
 
             <div className="flex items-end gap-2">
               <Button type="button" onClick={handleApplyFilters} disabled={loading}>
-                Appliquer
+                Apply
               </Button>
               <Button type="button" variant="secondary" onClick={handleResetFilters} disabled={loading}>
-                Réinitialiser
+                Reset
               </Button>
             </div>
           </div>
         </ComponentCard>
 
-        <ComponentCard title="Liste des statistiques" desc="Données enregistrées">
+        <ComponentCard title="Liste des statistiques" desc="Donnees backend">
           {loading && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement des statistiques...</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Loading statistics...</p>
           )}
 
           {!loading && !error && statistics.length === 0 && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune donnée disponible.</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>No statistics available yet.</p>
           )}
 
           {!loading && statistics.length > 0 && (
@@ -480,11 +462,11 @@ export default function StatisticsPage() {
                   <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
                     <th className="px-4 py-3">ID</th>
                     <th className="px-4 py-3">Match</th>
-                    <th className="px-4 py-3">Équipe</th>
-                    <th className="px-4 py-3">Joueur</th>
+                    <th className="px-4 py-3">Team</th>
+                    <th className="px-4 py-3">Player</th>
                     <th className="px-4 py-3">Type</th>
-                    <th className="px-4 py-3">Valeur</th>
-                    <th className="px-4 py-3">Création</th>
+                    <th className="px-4 py-3">Value</th>
+                    <th className="px-4 py-3">Created</th>
                   </tr>
                 </thead>
                 <tbody>

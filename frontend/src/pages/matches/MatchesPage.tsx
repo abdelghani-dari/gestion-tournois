@@ -20,7 +20,6 @@ import PageStack, { GRID_GAP } from "../../components/common/PageStack";
 import ComponentCard from "../../components/common/ComponentCard";
 import Button from "../../components/common/Button";
 import FilterSearchInput from "../../components/common/FilterSearchInput";
-import { statusLabel, statusTone } from "../../components/common/statusLabels";
 import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
 import { PlusIcon } from "../../icons";
@@ -67,29 +66,37 @@ function toApiDateTime(value: string) {
   return value.length === 16 ? `${value}:00` : value;
 }
 
+function statusClass(value?: string | null) {
+  const normalized = value ?? "";
+  if (["confirmed", "played", "completed", "open", "accepted"].includes(normalized)) return "bg-emerald-500/15 text-emerald-400";
+  if (["pending", "scheduled", "draft"].includes(normalized)) return "bg-amber-500/15 text-amber-400";
+  if (["disputed", "cancelled", "refused", "rejected"].includes(normalized)) return "bg-red-500/15 text-red-300";
+  return "";
+}
+
 function StatusPill({ value }: { value?: string | null }) {
   const t = useThemeTokens();
   return (
-    <span className={clsx("inline-flex rounded-sm px-2 py-0.5 text-xs font-medium", statusTone(value) || clsx(t.metricBg, t.textSecondary))}>
-      {statusLabel(value)}
+    <span className={clsx("inline-flex rounded-sm px-2 py-0.5 text-xs font-medium capitalize", statusClass(value) || clsx(t.metricBg, t.textSecondary))}>
+      {value ?? "-"}
     </span>
   );
 }
 
 function tournamentName(match: ApiMatch, tournaments: MyTournament[]) {
-  return match.tournament?.name ?? tournaments.find((t) => t.id === match.tournament_id)?.name ?? `Tournoi #${match.tournament_id}`;
+  return match.tournament?.name ?? tournaments.find((t) => t.id === match.tournament_id)?.name ?? `Tournament #${match.tournament_id}`;
 }
 
 function teamName(teamId: number, teams: ApiTeam[], embedded?: ApiTeam | null) {
-  return embedded?.name ?? teams.find((team) => team.id === teamId)?.name ?? `Équipe #${teamId}`;
+  return embedded?.name ?? teams.find((team) => team.id === teamId)?.name ?? `Team #${teamId}`;
 }
 
 function readableActionError(err: unknown, fallback: string) {
   if (err instanceof ApiError && err.status === 403) {
-    return "Vous pouvez seulement créer des matchs pour vos tournois.";
+    return "You can only create matches for tournaments you created.";
   }
   if (err instanceof ApiError && err.status === 401) {
-    return "Votre session a expiré. Veuillez vous reconnecter.";
+    return "Your session has expired. Please log in again.";
   }
   return err instanceof Error ? err.message : fallback;
 }
@@ -136,7 +143,7 @@ export default function MatchesPage() {
         setMyTournaments([]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Impossible de charger les matchs.");
+      setError(err instanceof Error ? err.message : "Unable to load matches.");
     } finally {
       setLoading(false);
     }
@@ -198,7 +205,7 @@ export default function MatchesPage() {
       setMatchForm((current) => ({ ...emptyMatchForm, tournament_id: current.tournament_id }));
       await loadData();
     } catch (err) {
-      setError(readableActionError(err, "Impossible de créer le match."));
+      setError(readableActionError(err, "Unable to create match."));
     } finally {
       setSubmittingMatch(false);
     }
@@ -219,11 +226,11 @@ export default function MatchesPage() {
 
     try {
       await enterMatchResult(Number(resultForm.match_id), payload);
-      setSuccess("Résultat enregistré.");
+      setSuccess("Result entered.");
       setResultForm(emptyResultForm);
       await loadData();
     } catch (err) {
-      setError(readableActionError(err, "Impossible d'enregistrer le résultat."));
+      setError(readableActionError(err, "Unable to enter result."));
     } finally {
       setSubmittingResult(false);
     }
@@ -236,10 +243,10 @@ export default function MatchesPage() {
 
     try {
       await confirmMatchResult(id);
-      setSuccess("Résultat confirmé.");
+      setSuccess("Result confirmed.");
       await loadData();
     } catch (err) {
-      setError(readableActionError(err, "Impossible de confirmer le résultat."));
+      setError(readableActionError(err, "Unable to confirm result."));
     } finally {
       setWorkingId(null);
     }
@@ -252,10 +259,10 @@ export default function MatchesPage() {
 
     try {
       await disputeMatchResult(id);
-      setSuccess("Résultat contesté.");
+      setSuccess("Result disputed.");
       await loadData();
     } catch (err) {
-      setError(readableActionError(err, "Impossible de contester le résultat."));
+      setError(readableActionError(err, "Unable to dispute result."));
     } finally {
       setWorkingId(null);
     }
@@ -266,44 +273,39 @@ export default function MatchesPage() {
       <XPageMeta title="Matchs" description="Liste des matchs" />
       <PageStack>
         <div className={clsx("grid grid-cols-1 xl:grid-cols-3", GRID_GAP)}>
-          <ComponentCard title="Compte connecté" desc={user ? `${user.email} - ${user.role}` : "Connexion requise"}>
+          <ComponentCard title="Session" desc={user ? `${user.email} - ${user.role}` : "Connexion requise"}>
             <div className={clsx("rounded-md border p-4", t.card)}>
               <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Matchs</p>
               <p className={clsx("mt-1 text-3xl font-bold", t.textPrimary)}>{matches.length}</p>
             </div>
           </ComponentCard>
 
-          <ComponentCard title="Planifier un match" desc="Tournois que vous avez créés" className="xl:col-span-2">
+          <ComponentCard title="Planifier un match" desc="Tournois que vous avez crees" className="xl:col-span-2">
             {!isAuthenticated && !authLoading ? (
-              <p className={clsx("text-sm", t.textSecondary)}>Connectez-vous pour créer et gérer des matchs.</p>
+              <p className={clsx("text-sm", t.textSecondary)}>Connectez-vous pour creer et gerer des matchs.</p>
             ) : myTournaments.length === 0 && !loading ? (
-              <p className={clsx("text-sm", t.textSecondary)}>Créez d'abord un tournoi accepté.</p>
+              <p className={clsx("text-sm", t.textSecondary)}>Create an accepted tournament first.</p>
             ) : teams.length < 2 && !loading ? (
-              <p className={clsx("text-sm", t.textSecondary)}>Sélectionnez au moins deux équipes.</p>
+              <p className={clsx("text-sm", t.textSecondary)}>At least two teams are required.</p>
             ) : (
               <form onSubmit={handleCreateMatch} className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <label htmlFor="match-tournament" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Tournoi *</label>
+                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Tournoi *</label>
                   <select
-                    id="match-tournament"
-                    name="tournament_id"
                     value={matchForm.tournament_id}
                     onChange={(e) => updateMatchForm("tournament_id", e.target.value)}
                     required
                     disabled={submittingMatch || loading}
                     className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                   >
-                    <option value="">Sélectionner un tournoi</option>
                     {myTournaments.map((tournament) => (
                       <option key={tournament.id} value={tournament.id}>{tournament.name}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="match-date" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Date *</label>
+                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Date *</label>
                   <input
-                    id="match-date"
-                    name="match_date"
                     type="datetime-local"
                     value={matchForm.match_date}
                     onChange={(e) => updateMatchForm("match_date", e.target.value)}
@@ -313,34 +315,28 @@ export default function MatchesPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="match-home-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe domicile *</label>
+                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Equipe domicile *</label>
                   <select
-                    id="match-home-team"
-                    name="home_team_id"
                     value={matchForm.home_team_id}
                     onChange={(e) => updateMatchForm("home_team_id", e.target.value)}
                     required
                     disabled={submittingMatch || loading}
                     className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                   >
-                    <option value="">Sélectionner une équipe</option>
                     {teams.map((team) => (
                       <option key={team.id} value={team.id}>{team.name}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="match-away-team" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Équipe extérieure *</label>
+                  <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Equipe exterieure *</label>
                   <select
-                    id="match-away-team"
-                    name="away_team_id"
                     value={matchForm.away_team_id}
                     onChange={(e) => updateMatchForm("away_team_id", e.target.value)}
                     required
                     disabled={submittingMatch || loading}
                     className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
                   >
-                    <option value="">Sélectionner une équipe</option>
                     {teams.map((team) => (
                       <option key={team.id} value={team.id}>{team.name}</option>
                     ))}
@@ -349,7 +345,7 @@ export default function MatchesPage() {
                 <div className="md:col-span-2">
                   <Button type="submit" disabled={submittingMatch || loading || teams.length < 2} className="gap-2">
                     <PlusIcon className="size-4 shrink-0" />
-                    {submittingMatch ? "Création..." : "Créer le match"}
+                    {submittingMatch ? "Creation..." : "Creer le match"}
                   </Button>
                 </div>
               </form>
@@ -357,20 +353,18 @@ export default function MatchesPage() {
           </ComponentCard>
         </div>
 
-        <ComponentCard title="Résultat" desc="Saisie et validation">
+        <ComponentCard title="Resultat" desc="Saisie et validation">
           <form onSubmit={handleEnterResult} className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div className="md:col-span-2">
-              <label htmlFor="result-match" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match *</label>
+              <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Match *</label>
               <select
-                id="result-match"
-                name="match_id"
                 value={resultForm.match_id}
                 onChange={(e) => updateResultForm("match_id", e.target.value)}
                 required
                 disabled={!isAuthenticated || submittingResult || loading}
                 className={clsx("w-full rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
               >
-                <option value="">Sélectionner un match</option>
+                <option value="">Choisir un match</option>
                 {matches.map((match) => (
                   <option key={match.id} value={match.id}>
                     #{match.id} - {teamName(match.home_team_id, teams, match.home_team)} vs {teamName(match.away_team_id, teams, match.away_team)}
@@ -379,10 +373,8 @@ export default function MatchesPage() {
               </select>
             </div>
             <div>
-              <label htmlFor="result-home-score" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Score domicile *</label>
+              <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Score domicile *</label>
               <input
-                id="result-home-score"
-                name="home_score"
                 type="number"
                 min={0}
                 value={resultForm.home_score}
@@ -393,10 +385,8 @@ export default function MatchesPage() {
               />
             </div>
             <div>
-              <label htmlFor="result-away-score" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Score exterieur *</label>
+              <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Score exterieur *</label>
               <input
-                id="result-away-score"
-                name="away_score"
                 type="number"
                 min={0}
                 value={resultForm.away_score}
@@ -418,13 +408,13 @@ export default function MatchesPage() {
                 </div>
               )}
               <Button type="submit" disabled={!isAuthenticated || submittingResult || loading}>
-                {submittingResult ? "Enregistrement..." : "Enregistrer le résultat"}
+                {submittingResult ? "Enregistrement..." : "Enregistrer le resultat"}
               </Button>
             </div>
           </form>
         </ComponentCard>
 
-        <ComponentCard title="Liste des matchs" desc="Matchs enregistrés">
+        <ComponentCard title="Liste des matchs" desc="Matchs backend">
           <div className="mb-4 flex flex-wrap gap-3">
             <FilterSearchInput
               value={searchQuery}
@@ -432,8 +422,6 @@ export default function MatchesPage() {
               placeholder="Rechercher un match..."
             />
             <select
-              id="matches-tournament-filter"
-              name="tournament_filter"
               value={tournamentFilter}
               onChange={(e) => setTournamentFilter(e.target.value)}
               className={clsx("rounded-sm border px-4 py-2.5 text-sm focus:border-brand-500/50 focus:outline-none", t.border, t.metricBg, t.textPrimary)}
@@ -450,7 +438,7 @@ export default function MatchesPage() {
           )}
 
           {!loading && !error && matches.length === 0 && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune donnée disponible.</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>No matches yet.</p>
           )}
 
           {!loading && matches.length > 0 && (
@@ -472,11 +460,11 @@ export default function MatchesPage() {
                     <th className="px-4 py-3">ID</th>
                     <th className="px-4 py-3">Tournoi</th>
                     <th className="px-4 py-3">Domicile</th>
-                    <th className="px-4 py-3">Extérieur</th>
+                    <th className="px-4 py-3">Exterieur</th>
                     <th className="px-4 py-3">Date</th>
                     <th className="px-4 py-3">Score</th>
                     <th className="px-4 py-3">Statut</th>
-                    <th className="px-4 py-3">Résultat</th>
+                    <th className="px-4 py-3">Resultat</th>
                     <th className="px-4 py-3">Actions</th>
                   </tr>
                 </thead>
@@ -505,24 +493,12 @@ export default function MatchesPage() {
                       <td className="px-4 py-3"><StatusPill value={match.result_status} /></td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-2">
-                          {match.status === "played" && match.home_score != null && match.away_score != null && match.result_status === "pending" && (
-                            <>
-                              <Button size="sm" variant="secondary" disabled={workingId === match.id} onClick={() => handleConfirm(match.id)}>
-                                Confirmer
-                              </Button>
-                              <Button size="sm" variant="danger" disabled={workingId === match.id} onClick={() => handleDispute(match.id)}>
-                                Contester
-                              </Button>
-                            </>
-                          )}
-                          {match.status === "played" && match.home_score != null && match.away_score != null && match.result_status === "disputed" && (
-                            <Button size="sm" variant="secondary" disabled={workingId === match.id} onClick={() => handleConfirm(match.id)}>
-                              Confirmer
-                            </Button>
-                          )}
-                          {(match.status !== "played" || match.home_score == null || match.away_score == null || match.result_status === "confirmed") && (
-                            <span className={t.textMuted}>-</span>
-                          )}
+                          <Button size="sm" variant="secondary" disabled={workingId === match.id} onClick={() => handleConfirm(match.id)}>
+                            Confirmer
+                          </Button>
+                          <Button size="sm" variant="danger" disabled={workingId === match.id} onClick={() => handleDispute(match.id)}>
+                            Contester
+                          </Button>
                         </div>
                       </td>
                     </tr>

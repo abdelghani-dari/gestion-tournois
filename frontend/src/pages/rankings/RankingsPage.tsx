@@ -19,12 +19,12 @@ import { useThemeTokens } from "../../components/theme/useThemeTokens";
 import { useAuth } from "../../context/AuthContext";
 
 function teamName(ranking: ApiRanking) {
-  return ranking.team?.name ?? `Équipe #${ranking.team_id}`;
+  return ranking.team?.name ?? `Team #${ranking.team_id}`;
 }
 
 function tournamentName(tournamentId: string, tournaments: PublicTournament[]) {
   const found = tournaments.find((tournament) => String(tournament.id) === tournamentId);
-  return found?.name ?? (tournamentId ? `Tournoi #${tournamentId}` : "Sélectionner un tournoi");
+  return found?.name ?? (tournamentId ? `Tournament #${tournamentId}` : "Select tournament");
 }
 
 function mergeTournaments(publicTournaments: PublicTournament[], myTournaments: MyTournament[]) {
@@ -45,10 +45,10 @@ function mergeTournaments(publicTournaments: PublicTournament[], myTournaments: 
 
 function readableRankingError(err: unknown, fallback: string) {
   if (err instanceof ApiError && err.status === 403) {
-    return "Vous pouvez seulement recalculer les classements des tournois que vous avez créés.";
+    return "You can only recalculate rankings for tournaments you created.";
   }
   if (err instanceof ApiError && err.status === 401) {
-    return "Votre session a expiré. Veuillez vous reconnecter.";
+    return "Your session has expired. Please log in again.";
   }
   return err instanceof Error ? err.message : fallback;
 }
@@ -92,7 +92,7 @@ export default function RankingsPage() {
         setSelectedTournamentId((current) => current || (merged[0]?.id ? String(merged[0].id) : ""));
       } catch (err) {
         if (!active) return;
-        setError(readableRankingError(err, "Impossible de charger les tournois."));
+        setError(readableRankingError(err, "Unable to load tournaments."));
       } finally {
         if (active) setLoadingTournaments(false);
       }
@@ -115,7 +115,7 @@ export default function RankingsPage() {
 
   const loadRankings = async () => {
     if (!selectedTournamentId) {
-      setError("Sélectionnez d'abord un tournoi.");
+      setError("Select a tournament first.");
       return;
     }
 
@@ -128,7 +128,7 @@ export default function RankingsPage() {
       setRankings(data);
     } catch (err) {
       setRankings([]);
-      setError(readableRankingError(err, "Impossible de charger le classement."));
+      setError(readableRankingError(err, "Unable to load ranking."));
     } finally {
       setLoadingRankings(false);
     }
@@ -136,7 +136,7 @@ export default function RankingsPage() {
 
   const handleRecalculate = async () => {
     if (!selectedTournamentId) {
-      setError("Sélectionnez d'abord un tournoi.");
+      setError("Select a tournament first.");
       return;
     }
 
@@ -146,11 +146,11 @@ export default function RankingsPage() {
 
     try {
       await recalculateRankings(selectedTournamentId);
-      setSuccess("Classement recalculé.");
+      setSuccess("Ranking recalculated.");
       const data = await getRankings(selectedTournamentId);
       setRankings(data);
     } catch (err) {
-      setError(readableRankingError(err, "Impossible de recalculer le classement."));
+      setError(readableRankingError(err, "Unable to recalculate ranking."));
     } finally {
       setRecalculating(false);
     }
@@ -164,10 +164,8 @@ export default function RankingsPage() {
           <ComponentCard title="Tournoi" desc="Classement public par tournoi" className="lg:col-span-2">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto_auto] md:items-end">
               <div>
-                <label htmlFor="rankings-tournament" className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Tournoi</label>
+                <label className={clsx("mb-1.5 block text-sm", t.textSecondary)}>Tournoi</label>
                 <select
-                  id="rankings-tournament"
-                  name="tournament_id"
                   value={selectedTournamentId}
                   onChange={(event) => {
                     setSelectedTournamentId(event.target.value);
@@ -183,7 +181,7 @@ export default function RankingsPage() {
                     t.textPrimary,
                   )}
                 >
-                  <option value="">Sélectionner un tournoi</option>
+                  <option value="">Select tournament</option>
                   {tournamentOptions.map((tournament) => (
                     <option key={tournament.id} value={tournament.id}>
                       #{tournament.id} - {tournament.name}
@@ -197,7 +195,7 @@ export default function RankingsPage() {
                 onClick={loadRankings}
                 disabled={loadingTournaments || loadingRankings || !selectedTournamentId}
               >
-                {loadingRankings ? "Chargement..." : "Charger le classement"}
+                {loadingRankings ? "Loading..." : "Load Ranking"}
               </Button>
 
               <Button
@@ -205,9 +203,9 @@ export default function RankingsPage() {
                 variant="secondary"
                 onClick={handleRecalculate}
                 disabled={!isAuthenticated || loadingTournaments || recalculating || !selectedTournamentId}
-                title={!isAuthenticated ? "Connexion requise" : undefined}
+                title={!isAuthenticated ? "Login required" : undefined}
               >
-                {recalculating ? "Recalcul..." : "Recalculer le classement"}
+                {recalculating ? "Recalculating..." : "Recalculate ranking"}
               </Button>
             </div>
 
@@ -224,14 +222,14 @@ export default function RankingsPage() {
 
             {!isAuthenticated && !authLoading && (
               <p className={clsx("mt-3 text-sm", t.textMuted)}>
-                Le classement public est consultable sans connexion. La connexion est requise pour recalculer.
+                Public rankings can be loaded without login. Login is required to recalculate.
               </p>
             )}
           </ComponentCard>
 
-          <ComponentCard title="Compte connecté" desc={user ? `${user.email} - ${user.role}` : "Accès public"}>
+          <ComponentCard title="Session" desc={user ? `${user.email} - ${user.role}` : "Public access"}>
             <div className={clsx("rounded-md border p-4", t.card)}>
-              <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Tournoi sélectionné</p>
+              <p className={clsx("text-xs font-semibold uppercase tracking-wider", t.textMuted)}>Tournoi selectionne</p>
               <p className={clsx("mt-1 truncate text-lg font-semibold", t.textPrimary)}>
                 {tournamentName(selectedTournamentId, tournamentOptions)}
               </p>
@@ -242,17 +240,17 @@ export default function RankingsPage() {
           </ComponentCard>
         </div>
 
-        <ComponentCard title="Table de classement" desc="Données enregistrées">
+        <ComponentCard title="Table de classement" desc="Donnees calculees par le backend">
           {loadingTournaments && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement des tournois...</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Loading tournaments...</p>
           )}
 
           {!loadingTournaments && loadingRankings && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Chargement du classement...</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Loading ranking...</p>
           )}
 
           {!loadingTournaments && !loadingRankings && rankings.length === 0 && (
-            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>Aucune donnée disponible.</p>
+            <p className={clsx("py-10 text-center text-sm", t.textMuted)}>No ranking available yet.</p>
           )}
 
           {!loadingRankings && rankings.length > 0 && (
@@ -273,14 +271,14 @@ export default function RankingsPage() {
                 <thead>
                   <tr className={clsx("text-left text-xs font-semibold uppercase tracking-wider", t.tableHead)}>
                     <th className="px-4 py-3">Position</th>
-                    <th className="px-4 py-3">Équipe</th>
-                    <th className="px-4 py-3">Joués</th>
-                    <th className="px-4 py-3">Victoires</th>
-                    <th className="px-4 py-3">Nuls</th>
-                    <th className="px-4 py-3">Défaites</th>
-                    <th className="px-4 py-3">Buts pour</th>
-                    <th className="px-4 py-3">Buts contre</th>
-                    <th className="px-4 py-3">Différence</th>
+                    <th className="px-4 py-3">Team</th>
+                    <th className="px-4 py-3">Played</th>
+                    <th className="px-4 py-3">Wins</th>
+                    <th className="px-4 py-3">Draws</th>
+                    <th className="px-4 py-3">Losses</th>
+                    <th className="px-4 py-3">Goals For</th>
+                    <th className="px-4 py-3">Goals Against</th>
+                    <th className="px-4 py-3">Goal Difference</th>
                     <th className="px-4 py-3">Points</th>
                   </tr>
                 </thead>
