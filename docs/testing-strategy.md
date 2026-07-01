@@ -12,7 +12,20 @@ Les tests couvrent les parcours critiques : authentification, création et valid
 
 Les tests unitaires servent à vérifier une logique isolée, sans exécuter tout un parcours applicatif.
 
-Dans le projet, ils restent utiles pour tester des fonctions pures ou des services métier lorsque ceux-ci seront extraits des contrôleurs. La campagne actuelle est surtout orientée API et intégration, car les règles importantes sont implémentées dans les contrôleurs et les modèles Laravel.
+Dans le projet, des services métier ont été introduits pour séparer la logique pure des contrôleurs. Ces services sont placés dans `backend/app/Services/` et couvrent les règles de classement, de résultat de match, de statistiques, de tournoi, de demande de participation et de propriété.
+
+Les tests unitaires vérifient ces règles de manière isolée :
+
+- ils n'appellent pas les routes API;
+- ils n'utilisent pas la base de données;
+- ils n'utilisent pas de token JWT;
+- ils ne dépendent pas de PostgreSQL;
+- ils ne déclenchent pas `RefreshDatabase`.
+
+Résultat actuel des tests unitaires :
+
+- 48 tests passés;
+- 115 assertions.
 
 ### 2. Tests Feature/API
 
@@ -93,19 +106,23 @@ Laravel PHPUnit est utilisé pour exécuter les tests backend. Il permet de test
 
 ### RefreshDatabase
 
-Le trait `RefreshDatabase` est utilisé pour remettre la base de test dans un état propre entre les tests.
+Le trait `RefreshDatabase` est utilisé par les tests Feature/API pour remettre la base de test dans un état propre entre les tests.
 
 Cela garantit que les tests sont indépendants, reproductibles et non dépendants de données créées par un autre test.
 
+Les tests unitaires des services métier ne l'utilisent pas, car ils ne touchent pas à la base de données.
+
 ### Tokens JWT Bearer réels
 
-Les tests utilisent de vrais tokens JWT Bearer obtenus via la route :
+Les tests Feature/API utilisent de vrais tokens JWT Bearer obtenus via la route :
 
 ```bash
 POST /api/login
 ```
 
 Ce choix permet de tester l'authentification comme en conditions réelles, au lieu de simuler artificiellement un utilisateur connecté.
+
+Les tests unitaires des services métier n'utilisent pas de JWT.
 
 ### Docker Compose
 
@@ -130,6 +147,7 @@ La campagne de tests backend couvre les modules suivants :
 - Matchs et résultats;
 - Classements;
 - Statistiques;
+- Règles métier unitaires isolées;
 - Workflow complet d'un tournoi;
 - Sécurité et régressions.
 
@@ -139,6 +157,12 @@ Pour exécuter toute la suite de tests backend :
 
 ```bash
 docker compose exec backend php artisan test
+```
+
+Pour exécuter uniquement les tests unitaires :
+
+```bash
+docker compose exec backend php artisan test --testsuite=Unit
 ```
 
 Pour exécuter un fichier ou un groupe de tests spécifique :

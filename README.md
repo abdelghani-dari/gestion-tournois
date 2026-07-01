@@ -78,6 +78,8 @@ gestion-tournois/
 
 La suite de tests backend couvre les principaux parcours API Laravel : authentification, tournois, validation administrateur, équipes, joueurs, demandes de participation, matchs, résultats, classements, statistiques, sécurité et régressions.
 
+Elle contient aussi des tests unitaires pour les règles métier isolées. Ces tests vérifient les services métier sans appeler les routes API, sans base de données et sans JWT.
+
 Exécuter tous les tests backend :
 
 ```bash
@@ -90,7 +92,15 @@ Exécuter un fichier ou un filtre de test spécifique :
 docker compose exec backend php artisan test --filter=AuthTest
 ```
 
-Résultat actuel : **114 tests passés, 719 assertions**.
+Exécuter uniquement les tests unitaires :
+
+```bash
+docker compose exec backend php artisan test --testsuite=Unit
+```
+
+Résultat actuel : **162 tests passés, 834 assertions**.
+
+Résultat des tests unitaires : **48 tests passés, 115 assertions**.
 
 Documentation détaillée :
 

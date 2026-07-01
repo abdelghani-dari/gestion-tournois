@@ -6,10 +6,16 @@ La campagne de tests backend a permis de valider les principaux parcours métier
 
 Résultat global :
 
-- 114 tests passés;
-- 719 assertions;
+- 162 tests passés;
+- 834 assertions;
 - 0 test en échec après correction;
 - exécution dans l'environnement Docker Compose local.
+
+Résultat des tests unitaires :
+
+- 48 tests passés;
+- 115 assertions;
+- tests exécutés sans routes API, sans base de données et sans JWT.
 
 ## Tableau récapitulatif
 
@@ -25,7 +31,32 @@ Résultat global :
 | `StatisticTest.php` | 17 | 79 | Vérifier les statistiques de match, les types autorisés, les validations de contexte et les permissions créateur/admin. |
 | `FullTournamentFlowTest.php` | 3 | 89 | Vérifier le parcours complet : tournoi, validation admin, équipe, joueur, demande, match, résultat, classement et statistique. |
 | `SecurityRegressionTest.php` | 14 | 56 | Vérifier les règles de sécurité principales et empêcher le retour des bugs déjà corrigés. |
-| **Total** | **114** | **719** | **Couverture backend professionnelle des parcours métier critiques.** |
+| Tests unitaires des services métier | 48 | 115 | Vérifier les règles métier isolées sans API, sans base de données et sans JWT. |
+| **Total** | **162** | **834** | **Couverture backend professionnelle des parcours métier critiques et des règles isolées.** |
+
+## Tests unitaires ajoutés
+
+Des services métier ont été ajoutés dans `backend/app/Services/` afin de séparer la logique pure des contrôleurs.
+
+Services couverts :
+
+- `RankingCalculator.php`;
+- `MatchResultRules.php`;
+- `StatisticRules.php`;
+- `TournamentRules.php`;
+- `JoinRequestRules.php`;
+- `OwnershipRules.php`.
+
+Les tests unitaires associés vérifient ces règles sans appeler les routes API, sans utiliser la base de données, sans utiliser `RefreshDatabase` et sans générer de token JWT.
+
+Fichiers de tests unitaires :
+
+- `RankingCalculatorTest.php`;
+- `MatchResultRulesTest.php`;
+- `StatisticRulesTest.php`;
+- `TournamentRulesTest.php`;
+- `JoinRequestRulesTest.php`;
+- `OwnershipRulesTest.php`.
 
 ## Bugs détectés et corrigés
 
@@ -79,11 +110,13 @@ Les tests de sécurité et de régression confirment que ces règles restent app
 
 ## Observations importantes
 
-Les tests utilisent de vrais tokens JWT Bearer obtenus via la route `/api/login`. Cela valide le comportement réel de l'authentification et évite de contourner le mécanisme JWT.
+Les tests Feature/API utilisent de vrais tokens JWT Bearer obtenus via la route `/api/login`. Cela valide le comportement réel de l'authentification et évite de contourner le mécanisme JWT.
 
-Les tests utilisent `RefreshDatabase`, ce qui permet de garder chaque scénario indépendant et reproductible.
+Les tests Feature/API utilisent `RefreshDatabase`, ce qui permet de garder chaque scénario indépendant et reproductible.
 
-Les tests couvrent le backend Laravel. Aucun test frontend ou test end-to-end navigateur n'a été ajouté dans cette campagne backend.
+Les tests unitaires des services métier restent isolés : ils n'appellent pas les routes API, n'utilisent pas la base de données et n'utilisent pas de JWT.
+
+Les tests présentés dans ce document couvrent le backend Laravel. Les tests end-to-end frontend sont documentés séparément dans docs/e2e-testing.md.
 
 ## Commande utilisée
 
@@ -91,6 +124,12 @@ Exécution complète de la suite backend :
 
 ```bash
 docker compose exec backend php artisan test
+```
+
+Exécution des tests unitaires :
+
+```bash
+docker compose exec backend php artisan test --testsuite=Unit
 ```
 
 Exécution ciblée pendant le développement :
@@ -105,4 +144,4 @@ La suite de tests backend valide les fonctionnalités critiques de l'application
 
 Les tests ont également permis d'identifier et de corriger deux bugs réels liés aux autorisations et à la cohérence des données.
 
-Avec 114 tests passés et 719 assertions, le backend dispose maintenant d'une base de tests solide pour réduire les régressions et soutenir la qualité du projet lors de la soutenance et des évolutions futures.
+Avec 162 tests passés et 834 assertions, le backend dispose maintenant d'une base de tests solide pour réduire les régressions et soutenir la qualité du projet lors de la soutenance et des évolutions futures.
