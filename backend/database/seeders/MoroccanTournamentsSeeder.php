@@ -252,7 +252,7 @@ class MoroccanTournamentsSeeder extends Seeder
                     'team_id' => $team->id,
                     'first_name' => $name['first'],
                     'last_name' => $name['last'],
-                    'birth_date' => $this->randomBirthDate(),
+                    'birth_date' => $this->randomBirthDate($this->nameIndex),
                     'position' => $positions[$i] ?? 'MID',
                     'number' => $i + 1,
                     'photo_path' => $photo,
@@ -353,11 +353,11 @@ class MoroccanTournamentsSeeder extends Seeder
         return self::PLAYER_PHOTO_BASE.$photoId.'.png';
     }
 
-    private function randomBirthDate(): string
+    private function randomBirthDate(int $index): string
     {
-        $year = random_int(1994, 2006);
-        $month = random_int(1, 12);
-        $day = random_int(1, 28);
+        $year = 1994 + ($index % 13);
+        $month = 1 + ($index % 12);
+        $day = 1 + ($index % 28);
 
         return sprintf('%04d-%02d-%02d', $year, $month, $day);
     }

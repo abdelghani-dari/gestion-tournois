@@ -51,7 +51,8 @@ trait SeedsRealisticMatchStatistics
         }
 
         for ($i = 0; $i < $goalCount; $i++) {
-            $scorer = $outfield[array_rand($outfield)];
+            $scorerIndex = ($match->id + $i + $team->id) % count($outfield);
+            $scorer = $outfield[$scorerIndex];
             $this->createStat($match, $team, $scorer, 'goal', 1);
 
             $assistCandidates = array_values(array_filter(
@@ -60,7 +61,8 @@ trait SeedsRealisticMatchStatistics
             ));
 
             if ($assistCandidates !== []) {
-                $assister = $assistCandidates[array_rand($assistCandidates)];
+                $assisterIndex = ($match->id + $i + $scorer->id) % count($assistCandidates);
+                $assister = $assistCandidates[$assisterIndex];
                 $this->createStat($match, $team, $assister, 'assist', 1);
             }
         }
@@ -80,13 +82,17 @@ trait SeedsRealisticMatchStatistics
             $outfield = $players;
         }
 
-        $yellowCount = random_int(1, 4);
+        // Deterministic yellow card count (0, 1, or 2) — lower than before
+        $yellowCount = ($match->id + $team->id) % 3;
         for ($i = 0; $i < $yellowCount; $i++) {
-            $this->createStat($match, $team, $outfield[array_rand($outfield)], 'yellow_card', 1);
+            $yellowPlayerIndex = ($match->id + $i + 13) % count($outfield);
+            $this->createStat($match, $team, $outfield[$yellowPlayerIndex], 'yellow_card', 1);
         }
 
-        if (random_int(0, 12) === 0) {
-            $this->createStat($match, $team, $outfield[array_rand($outfield)], 'red_card', 1);
+        // Deterministic red card: ~6.67% chance (1 out of 15)
+        if (($match->id + $team->id) % 15 === 7) {
+            $redPlayerIndex = ($match->id + 42) % count($outfield);
+            $this->createStat($match, $team, $outfield[$redPlayerIndex], 'red_card', 1);
         }
     }
 

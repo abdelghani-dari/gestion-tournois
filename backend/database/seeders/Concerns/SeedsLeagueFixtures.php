@@ -99,42 +99,44 @@ trait SeedsLeagueFixtures
         $homeIsDcheira = $dcheiraId !== null && (int) $home->id === $dcheiraId;
         $awayIsDcheira = $dcheiraId !== null && (int) $away->id === $dcheiraId;
 
+        // Deterministic seed based on team IDs
+        $seed = ($home->id * 17) + ($away->id * 23);
+
         if (($homeIsRaja && $awayIsDcheira) || ($homeIsDcheira && $awayIsRaja)) {
             return $homeIsRaja
-                ? [random_int(2, 3), random_int(0, 1)]
-                : [random_int(0, 1), random_int(2, 3)];
+                ? [2 + ($seed % 2), $seed % 2]
+                : [$seed % 2, 2 + ($seed % 2)];
         }
 
         if ($homeIsRaja || $awayIsRaja) {
             return $homeIsRaja
-                ? [random_int(2, 4), random_int(0, 1)]
-                : [random_int(0, 1), random_int(2, 4)];
+                ? [2 + ($seed % 3), $seed % 2]
+                : [$seed % 2, 2 + ($seed % 3)];
         }
 
         if ($homeIsDcheira || $awayIsDcheira) {
-            $roll = random_int(1, 100);
+            $roll = $seed % 100;
 
-            if ($roll <= 52) {
+            if ($roll < 52) {
                 return $homeIsDcheira
-                    ? [random_int(2, 3), random_int(0, 1)]
-                    : [random_int(0, 1), random_int(2, 3)];
+                    ? [2 + ($seed % 2), $seed % 2]
+                    : [$seed % 2, 2 + ($seed % 2)];
             }
 
-            if ($roll <= 72) {
-                $draw = random_int(0, 2);
-
+            if ($roll < 72) {
+                $draw = $seed % 3;
                 return [$draw, $draw];
             }
 
             return $homeIsDcheira
-                ? [random_int(0, 1), random_int(2, 3)]
-                : [random_int(2, 3), random_int(0, 1)];
+                ? [$seed % 2, 2 + ($seed % 2)]
+                : [2 + ($seed % 2), $seed % 2];
         }
 
-        $homeScore = random_int(0, 4);
-        $awayScore = random_int(0, 4);
+        $homeScore = $seed % 4;
+        $awayScore = ($seed >> 2) % 4;
 
-        if ($homeScore === $awayScore && random_int(0, 1) === 1) {
+        if ($homeScore === $awayScore && ($seed % 2 === 1)) {
             $homeScore = min(4, $homeScore + 1);
         }
 
