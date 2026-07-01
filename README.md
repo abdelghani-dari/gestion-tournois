@@ -99,6 +99,10 @@ Documentation détaillée :
 
 Le workflow CI GitHub Actions est défini dans [`.github/workflows/backend-tests.yml`](.github/workflows/backend-tests.yml).
 
+## Tests E2E frontend
+
+Les tests end-to-end frontend utilisent Playwright. La documentation est disponible dans [`docs/e2e-testing.md`](docs/e2e-testing.md).
+
 ## Documentation
 
 Voir le dossier [`docs/`](docs/README_DOCS.md) :
